@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Bot Control Center</title>
+    <meta http-equiv="refresh" content="30">
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #1a1a1a;
+            color: white;
+            padding: 20px;
+        }
+
+        .card {
+            background: #2d2d2d;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .service-item {
+            background: #333;
+            padding: 15px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .badge {
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .badge.running {
+            background: #28a745;
+            color: white;
+        }
+
+        .badge.stopped {
+            background: #dc3545;
+            color: white;
+        }
+
+        h2 {
+            border-bottom: 1px solid #444;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+
+        .stats-row {
+            display: flex;
+            gap: 30px;
+            margin-top: 15px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #007bff;
+        }
+
+        .stat-label {
+            color: #888;
+            font-size: 0.9em;
+        }
+
+        .btn {
+            display: inline-block;
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="card">
+        <h2>🤖 System Status <span id="server-time"
+                style="float: right; font-size: 0.6em; color: #888; margin-top: 5px;"></span></h2>
+        <div class="status-grid" id="service-grid">
+            <!-- Services injected here -->
+            <div class="service-item">Loading status...</div>
+        </div>
+    </div>
+    <div class="card">
+        <h2>📊 Trading Bot Stats</h2>
+        <div class="stats-row">
+            <div class="stat-item">
+                <div class="stat-value" id="open-pos">-</div>
+                <div class="stat-label">Open Positions</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="total-trades">-</div>
+                <div class="stat-label">Total Trades</div>
+            </div>
+        </div>
+        <br>
+        <a href="http://72.60.40.29:8501" target="_blank" class="btn">Open Full Trading Dashboard ↗</a>
+        <a href="/" class="btn" style="background: #444;">Back to Portfolio</a>
+    </div>
+    <script>
+        fetch('/api/bot_status')
+            .then(r => r.json())
+            .then(data => {
+                // Update Services
+                const grid = document.getElementById('service-grid');
+                grid.innerHTML = '';
+                Object.values(data.services).forEach(s => {
+                    const cls = s.active ? 'running' : 'stopped';
+                    grid.innerHTML += `
+                        <div class="service-item">
+                            <span>${s.name}</span>
+                            <span class="badge ${cls}">${s.status}</span>
+                        </div>
+                    `;
+                });
+                // Update Stats
+                document.getElementById('open-pos').innerText = data.stats.open_positions;
+                document.getElementById('total-trades').innerText = data.stats.total_trades;
+
+                // Update Time
+                if (data.server_time) {
+                    document.getElementById('server-time').innerText = data.server_time;
+                }
+            });
+    </script>
+</body>
+
+</html>

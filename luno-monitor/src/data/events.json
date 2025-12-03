@@ -1,0 +1,29 @@
+[
+    {
+        "id": 1,
+        "title": "Ethereum Fusaka Upgrade",
+        "date": "2025-12-03T12:00:00Z",
+        "impact": "HIGH",
+        "category": "Crypto",
+        "description": "Major hard fork reducing L2 costs. Expect volatility.",
+        "url": "https://ethereum.org/en/roadmap/"
+    },
+    {
+        "id": 2,
+        "title": "Fed Interest Rate Decision",
+        "date": "2025-12-10T19:00:00Z",
+        "impact": "HIGH",
+        "category": "Macro",
+        "description": "FOMC decision on interest rates. Market mover.",
+        "url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"
+    },
+    {
+        "id": 3,
+        "title": "US Inflation Data (CPI)",
+        "date": "2025-12-18T13:30:00Z",
+        "impact": "HIGH",
+        "category": "Macro",
+        "description": "Consumer Price Index release.",
+        "url": "https://www.bls.gov/cpi/"
+    }
+]

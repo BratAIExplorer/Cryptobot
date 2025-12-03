@@ -1,0 +1,33 @@
+# Core dependencies
+requests==2.31.0
+python-dotenv==1.0.0
+
+# Crypto exchange APIs
+ccxt==4.2.25
+pycoingecko==3.1.0
+
+# Notifications
+plyer==2.1.0
+python-telegram-bot==20.7
+
+# Web dashboard
+flask==3.0.0
+flask-cors==4.0.0
+flask-socketio==5.3.5
+
+# Data processing
+pandas==2.1.4
+numpy==1.26.2
+
+# Visualization
+plotly==5.18.0
+
+# Task scheduling
+schedule==1.2.1
+
+# Email
+secure-smtplib==0.1.1
+
+# Utilities
+colorama==0.4.6
+python-dateutil==2.8.2

@@ -1,0 +1,13 @@
+[Unit]
+Description=Crypto Trading Bot Dashboard
+After=network.target
+
+[Service]
+User=root
+WorkingDirectory=/Antigravity/antigravity/scratch/crypto_trading_bot
+ExecStart=/usr/bin/python3 -m streamlit run dashboard/app.py --server.port 8501 --server.headless true
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

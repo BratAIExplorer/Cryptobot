@@ -1,0 +1,13 @@
+streamlit
+ccxt
+pandas
+
+numpy
+plotly
+streamlit
+ccxt
+pandas
+numpy
+plotly
+sqlalchemy
+requests

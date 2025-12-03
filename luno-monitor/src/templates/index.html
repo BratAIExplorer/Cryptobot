@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Luno Portfolio Monitor</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background: #f8f9fa;
+        }
+
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        }
+
+        .profit-positive {
+            color: #28a745;
+        }
+
+        .profit-negative {
+            color: #dc3545;
+        }
+
+        .coin-icon {
+            width: 24px;
+            height: 24px;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .spinning {
+            animation: spin 1s linear infinite;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar navbar-dark mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="#"><i class="fas fa-chart-line me-2"></i>Luno Portfolio Monitor</a>
+            <span class="text-white" id="last-update">Loading...</span>
+        </div>
+    </nav>
+    <div class="container">
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <h5>Total Value</h5>
+                        <h2 class="display-6" id="total-value">RM 0.00</h2>
+                        <p class="mb-0"><span id="asset-count">0</span> Assets Monitored</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="text-muted">Total Profit/Loss</h5>
+                        <h2 class="display-6" id="total-profit">RM 0.00</h2>
+                        <span id="total-profit-pct" class="badge bg-secondary">0.00%</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="text-muted">Best Performer</h5>
+                        <h2 class="display-6" id="best-performer">-</h2>
+                        <span id="best-performer-pct" class="badge bg-success">0.00%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card mb-4">
+            <div class="card-header bg-white py-3 d-flex justify-content-between">
+                <h5 class="mb-0">Your Holdings</h5>
+                <button class="btn btn-sm btn-outline-primary" onclick="updateData()">
+                    <i class="fas fa-sync-alt" id="refresh-icon"></i> Refresh
+                </button>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Asset</th>
+                                <th>Balance</th>
+                                <th>Avg Buy Price</th>
+                                <th>Current Price</th>
+                                <th>Value (MYR)</th>
+                                <th>Profit/Loss</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="holdings-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Economic Calendar</h5>
+                    </div>
+                    <div class="card-body" id="calendar-feed">
+                        <p class="text-muted text-center">Loading...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0"><i class="fas fa-bullhorn me-2"></i>Trading Signals</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-success">
+                            <strong><i class="fas fa-arrow-up"></i> Strong Buy:</strong> XRP
+                            <p class="mb-0 small">Technical indicators suggest strong upward momentum.</p>
+                        </div>
+                        <div class="alert alert-info">
+                            <strong><i class="fas fa-hand-holding"></i> Hold:</strong> BTC, ETH
+                            <p class="mb-0 small">Consolidating at current levels. Wait for breakout.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="targetModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">🎯 Sell Targets: <span id="target-coin-name"></span></h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Target</th>
+                                <th>Sell Price</th>
+                                <th>Profit</th>
+                                <th>Total Value</th>
+                            </tr>
+                        </thead>
+                        <tbody id="target-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function fmt(v) { return 'RM ' + parseFloat(v || 0).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+        function fmtCrypto(v) { return parseFloat(v || 0).toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 8 }); }
+        function getTimeRemaining(dateStr) {
+            const total = Date.parse(dateStr) - Date.parse(new Date());
+            const seconds = Math.floor((total / 1000) % 60);
+            const minutes = Math.floor((total / 1000 / 60) % 60);
+            const hours = Math.floor((total / (1000 * 60 * 60)) % 24);
+            const days = Math.floor(total / (1000 * 60 * 60 * 24));
+            if (total <= 0) return "Happening Now / Passed";
+            return `${days}d ${hours}h ${minutes}m`;
+        }
+        function updateData() {
+            document.getElementById('refresh-icon').classList.add('spinning');
+            fetch('/api/data').then(r => r.json()).then(data => {
+                const p = data.portfolio;
+                document.getElementById('total-value').textContent = fmt(p.total_value);
+                document.getElementById('asset-count').textContent = p.num_coins;
+                document.getElementById('total-profit').textContent = fmt(p.total_profit_loss);
+                document.getElementById('total-profit-pct').textContent = ((p.total_profit_pct || 0) >= 0 ? '+' : '') + (p.total_profit_pct || 0).toFixed(2) + '%';
+                document.getElementById('last-update').textContent = 'Last updated: ' + new Date().toLocaleTimeString();
+                const tb = document.getElementById('holdings-body');
+                tb.innerHTML = '';
+                (p.holdings || []).forEach(c => {
+                    const pl = c.profit_loss_zar || 0;
+                    const pct = c.profit_loss_pct || 0;
+                    const row = document.createElement('tr');
+                    row.innerHTML = `<td><strong>${c.coin}</strong></td><td>${fmtCrypto(c.balance)}</td>
+                        <td>${fmt(c.avg_buy_price)}</td><td>${fmt(c.current_price)}</td><td><strong>${fmt(c.current_value)}</strong></td>
+                        <td class="${pl >= 0 ? 'profit-positive' : 'profit-negative'}">${fmt(pl)}<br><small>(${(pct >= 0 ? '+' : '')}${pct.toFixed(2)}%)</small></td>
+                        <td><button class="btn btn-sm btn-outline-success" onclick='viewTargets(${JSON.stringify(c)})'><i class="fas fa-bullseye"></i> Targets</button></td>`;
+                    tb.appendChild(row);
+                });
+                if (p.holdings && p.holdings.length > 0) {
+                    const best = p.holdings.reduce((a, b) => ((a.profit_loss_pct || 0) > (b.profit_loss_pct || 0)) ? a : b);
+                    document.getElementById('best-performer').textContent = best.coin;
+                    document.getElementById('best-performer-pct').textContent = '+' + (best.profit_loss_pct || 0).toFixed(2) + '%';
+                }
+
+                // Update Economic Calendar
+                const cf = document.getElementById('calendar-feed');
+                if (data.events && data.events.length > 0) {
+                    cf.innerHTML = '';
+                    data.events.forEach(e => {
+                        const badgeClass = e.impact === 'HIGH' ? 'bg-danger' : (e.impact === 'MEDIUM' ? 'bg-warning text-dark' : 'bg-info');
+                        const timeRem = getTimeRemaining(e.date);
+                        cf.innerHTML += `<div class="d-flex mb-3 border-bottom pb-2">
+                            <div class="me-3 text-center" style="min-width: 60px;">
+                                <span class="badge ${badgeClass} w-100 mb-1">${e.impact}</span>
+                                <div class="small fw-bold text-muted">${new Date(e.date).toLocaleDateString()}</div>
+                            </div>
+                            <div>
+                                <a href="${e.url || '#'}" target="_blank" class="text-decoration-none text-dark fw-bold">${e.title}</a>
+                                <div class="small text-muted mb-1">${e.description}</div>
+                                <div class="small text-primary"><i class="far fa-clock"></i> ${timeRem}</div>
+                            </div>
+                        </div>`;
+                    });
+                } else { cf.innerHTML = '<p class="text-muted text-center">No upcoming events</p>'; }
+
+                setTimeout(() => document.getElementById('refresh-icon').classList.remove('spinning'), 500);
+            }).catch(e => { console.error(e); setTimeout(() => document.getElementById('refresh-icon').classList.remove('spinning'), 500); });
+        }
+        function viewTargets(coin) {
+            const modal = new bootstrap.Modal(document.getElementById('targetModal'));
+            document.getElementById('target-coin-name').textContent = coin.coin;
+            const tb = document.getElementById('target-body');
+            tb.innerHTML = '';
+            [10, 15, 20, 25].forEach(pct => {
+                const tp = (coin.avg_buy_price || 0) * (1 + pct / 100);
+                const tv = tp * (coin.balance || 0);
+                const prof = tv - ((coin.avg_buy_price || 0) * (coin.balance || 0));
+                tb.innerHTML += `<tr><td><span class="badge bg-success">${pct}%</span></td><td>${fmt(tp)}</td><td class="fw-bold text-success">+${fmt(prof)}</td><td>${fmt(tv)}</td></tr>`;
+            });
+            modal.show();
+        }
+        updateData();
+        setInterval(updateData, 60000);
+    </script>
+</body>
+
+</html>

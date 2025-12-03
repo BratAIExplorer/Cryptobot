@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Luno Portfolio Monitor</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            transition: transform 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .profit-positive {
+            color: #198754;
+            font-weight: bold;
+        }
+
+        .profit-negative {
+            color: #dc3545;
+            font-weight: bold;
+        }
+
+        .coin-icon {
+            width: 32px;
+            height: 32px;
+            margin-right: 10px;
+        }
+
+        .navbar {
+            background: linear-gradient(135deg, #1a237e 0%, #0d47a1 100%);
+        }
+
+        .refresh-btn {
+            cursor: pointer;
+            transition: transform 0.5s;
+        }
+
+        .refresh-btn.spinning {
+            transform: rotate(360deg);
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar navbar-dark mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-chart-line me-2"></i>
+                Luno Portfolio Monitor
+            </a>
+            <span class="text-white" id="last-update">Updating...</span>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Portfolio Summary -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <h5 class="card-title">Total Value</h5>
+                        <h2 class="display-6" id="total-value">RM 0.00</h2>
+                        <p class="mb-0"><span id="asset-count">0</span> Assets Monitored</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title text-muted">Total Profit/Loss</h5>
+                        <h2 class="display-6" id="total-profit">RM 0.00</h2>
+                        <span id="total-profit-pct" class="badge bg-secondary">0.00%</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title text-muted">Best Performer</h5>
+                        <h2 class="display-6" id="best-performer">-</h2>
+                        <span id="best-performer-pct" class="badge bg-success">0.00%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Holdings Table -->
+        <div class="card">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Your Holdings</h5>
+                <button class="btn btn-sm btn-outline-primary" onclick="updateData()">
+                    <i class="fas fa-sync-alt refresh-btn" id="refresh-icon"></i> Refresh
+                </button>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Asset</th>
+                                <th>Balance</th>
+                                <th>Avg Buy Price</th>
+                                <th>Current Price</th>
+                                <th>Value (MYR)</th>
+                                <th>Profit/Loss</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="holdings-body">
+                            <!-- Data populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Market Sentiment & News -->
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0"><i class="fas fa-newspaper me-2"></i>Market News</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="news-feed">
+                            <p class="text-muted text-center">Loading market news...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0"><i class="fas fa-bullhorn me-2"></i>Trading Signals</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-success">
+                            <strong><i class="fas fa-arrow-up"></i> Strong Buy:</strong> XRP
+                            <p class="mb-0 small">Technical indicators suggest strong upward momentum.</p>
+                        </div>
+                        <div class="alert alert-info">
+                            <strong><i class="fas fa-hand-holding"></i> Hold:</strong> BTC, ETH
+                            <p class="mb-0 small">Consolidating at current levels. Wait for breakout.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transaction Modal -->
+    <div class="modal fade" id="txModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Transaction History: <span id="modal-coin-name"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Amount</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tx-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Target Profit Modal -->
+    <div class="modal fade" id="targetModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">🎯 Sell Targets: <span id="target-coin-name"></span></h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small">Potential profit calculated based on your average buy price.</p>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Target</th>
+                                    <th>Sell Price</th>
+                                    <th>Profit</th>
+                                    <th>Total Value</th>
+                                </tr>
+                            </thead>
+                            <tbody id="target-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function formatCurrency(value) {
+            return 'RM ' + parseFloat(value).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function formatCrypto(value) {
+            return parseFloat(value).toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 8 });
+        }
+
+        function updateData() {
+            const icon = document.getElementById('refresh-icon');
+            icon.classList.add('spinning');
+
+            fetch('/api/data')
+                .then(response => response.json())
+                .then(data => {
+                    const p = data.portfolio;
+
+                    // Update Summary Cards
+                    document.getElementById('total-value').textContent = formatCurrency(p.total_value);
+                    document.getElementById('asset-count').textContent = p.num_coins;
+
+                    const profitEl = document.getElementById('total-profit');
+                    profitEl.textContent = formatCurrency(p.total_profit_loss);
+                    profitEl.className = 'display-6 ' + (p.total_profit_loss >= 0 ? 'profit-positive' : 'profit-negative');
+
+                    const profitPctEl = document.getElementById('total-profit-pct');
+                    profitPctEl.textContent = (p.total_profit_pct >= 0 ? '+' : '') + p.total_profit_pct.toFixed(2) + '%';
+                    profitPctEl.className = 'badge ' + (p.total_profit_pct >= 0 ? 'bg-success' : 'bg-danger');
+
+                    document.getElementById('last-update').textContent = 'Last updated: ' + new Date().toLocaleTimeString();
+                    <button class="btn btn-sm btn-outline-secondary" onclick="viewTransactions('${coin.coin}')">
+                        <i class="fas fa-history"></i> History
+                    </button>
+                                </div >
+                            </td >
+                        `;
+                        tbody.appendChild(row);
+                    });
+
+                    // Update Best Performer
+                    if (p.holdings.length > 0) {
+                        const best = p.holdings.reduce((prev, current) => (prev.profit_loss_pct > current.profit_loss_pct) ? prev : current);
+                        document.getElementById('best-performer').textContent = best.coin;
+                        document.getElementById('best-performer-pct').textContent = '+' + best.profit_loss_pct.toFixed(2) + '%';
+                        document.getElementById('best-performer-pct').className = 'badge ' + (best.profit_loss_pct >= 0 ? 'bg-success' : 'bg-danger');
+                    }
+
+                    // Update News
+                    const newsDiv = document.getElementById('news-feed');
+                    if (data.news && data.news.length > 0) {
+                        newsDiv.innerHTML = '';
+                        data.news.forEach(item => {
+                            const newsItem = `
+                        < div class="d-flex mb-3 border-bottom pb-2" >
+                            <img src="${item.image}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 5px;" class="me-3" onerror="this.style.display='none'">
+                                <div>
+                                    <a href="${item.url}" target="_blank" class="text-decoration-none text-dark fw-bold">${item.title}</a>
+                                    <div class="text-muted small mt-1">
+                                        <i class="far fa-clock"></i> ${item.published_on} • ${item.source}
+                                    </div>
+                                </div>
+                            </div>
+                    `;
+                            newsDiv.innerHTML += newsItem;
+                        });
+                    } else {
+                        newsDiv.innerHTML = '<p class="text-muted text-center">No news available</p>';
+                    }
+
+                    setTimeout(() => icon.classList.remove('spinning'), 500);
+                })
+                .catch(err => {
+                    console.error('Error fetching data:', err);
+                    setTimeout(() => icon.classList.remove('spinning'), 500);
+                });
+        }
+
+        function viewTargets(coin) {
+            const modal = new bootstrap.Modal(document.getElementById('targetModal'));
+            document.getElementById('target-coin-name').textContent = coin.coin;
+
+            const tbody = document.getElementById('target-body');
+            tbody.innerHTML = '';
+
+            // Calculate profits for each target
+            const targets = [10, 15, 20, 25];
+
+            targets.forEach(pct => {
+                // Calculate target price based on avg buy price
+                const targetPrice = coin.avg_buy_price * (1 + (pct / 100));
+                const totalValueAtTarget = targetPrice * coin.balance;
+                const profitAtTarget = totalValueAtTarget - coin.cost_basis;
+
+                const row = `
+                        < tr >
+                        <td><span class="badge bg-success">${pct}%</span></td>
+                        <td>${formatCurrency(targetPrice)}</td>
+                        <td class="fw-bold text-success">+${formatCurrency(profitAtTarget)}</td>
+                        <td>${formatCurrency(totalValueAtTarget)}</td>
+                    </tr >
+                        `;
+                tbody.innerHTML += row;
+            });
+
+            modal.show();
+        }
+
+        function viewTransactions(coin) {
+            const modal = new bootstrap.Modal(document.getElementById('txModal'));
+            document.getElementById('modal-coin-name').textContent = coin;
+            document.getElementById('tx-body').innerHTML = '<tr><td colspan="4" class="text-center">Loading...</td></tr>';
+            modal.show();
+
+            fetch(`/ api / transactions / ${ coin } `)
+                .then(res => res.json())
+                .then(data => {
+                    const tbody = document.getElementById('tx-body');
+                    tbody.innerHTML = '';
+
+                    if (data.transactions && data.transactions.length > 0) {
+                        data.transactions.forEach(tx => {
+                            const date = new Date(tx.timestamp).toLocaleString();
+                            const row = `
+                        < tr >
+                                    <td>${date}</td>
+                                    <td><span class="badge bg-secondary">${tx.type}</span></td>
+                                    <td>${tx.balance_delta}</td>
+                                    <td>${tx.description}</td>
+                                </tr >
+                            `;
+                            tbody.innerHTML += row;
+                        });
+                    } else {
+                        tbody.innerHTML = '<tr><td colspan="4" class="text-center">No recent transactions found</td></tr>';
+                    }
+                });
+        }
+
+        // Initial load
+        updateData();
+        // Auto refresh every 60s
+        setInterval(updateData, 60000);
+    </script>
+</body>
+
+</html>

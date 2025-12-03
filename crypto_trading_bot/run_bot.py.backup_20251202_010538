@@ -1,0 +1,93 @@
+#!/usr/bin/env python3
+"""
+Standalone bot runner - runs trading strategies 24/7 independently of the dashboard.
+"""
+import time
+import sys
+import os
+
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+from core.engine import TradingEngine
+
+def main():
+    print("=" * 60)
+    print("🤖 Crypto Trading Bot - Standalone Runner")
+    print("=" * 60)
+    
+    # Telegram config from environment variables
+    telegram_config = None
+    tg_token = os.environ.get('TELEGRAM_BOT_TOKEN')
+    tg_chat_id = os.environ.get('TELEGRAM_CHAT_ID')
+    
+    if tg_token and tg_chat_id:
+        telegram_config = {'token': tg_token, 'chat_id': tg_chat_id}
+        print("✅ Telegram notifications enabled")
+    else:
+        print("⚠️  Telegram notifications disabled")
+    
+    # Initialize engine
+    engine = TradingEngine(mode='paper', telegram_config=telegram_config)
+    
+    # ==========================================
+    # 🚀 ALL-STAR PORTFOLIO CONFIGURATION
+    # Based on Top 15 Coin Backtest Results
+    # ==========================================
+    
+    # 1. SMA TREND BOT (The Champion)
+    # Best for catching big moves. 40% of Capital.
+    engine.add_bot({
+        'name': 'SMA Trend Bot',
+        'type': 'SMA',
+        'symbols': ['DOGE/USDT', 'XRP/USDT', 'DOT/USDT', 'ATOM/USDT', 'ADA/USDT'],
+        'amount': 800,  # $800 per coin ($4000 total)
+        'initial_balance': 50000,
+        'take_profit_pct': 0.03,  # 3%
+        'stop_loss_pct': 0.05,    # 5%
+        'max_hold_hours': 24,     # Force exit after 24h
+        'max_exposure_per_coin': 800
+    })
+    
+    # 2. BUY-THE-DIP STRATEGY (Value Investing)
+    # Best for volatile dips. 25% of Capital.
+    engine.add_bot({
+        'name': 'Buy-the-Dip Strategy',
+        'type': 'Buy-the-Dip',
+        'symbols': ['UNI/USDT', 'XRP/USDT', 'BTC/USDT'],
+        'amount': 800,  # $800 per coin ($2400 total)
+        'initial_balance': 50000,
+        'take_profit_pct': 0.10,  # Target 10% (Tiered exits handle the rest)
+        'stop_loss_pct': 0.30,    # Max drawdown 30%
+        'max_hold_hours': 2880,   # 120 days
+        'max_exposure_per_coin': 800
+    })
+    
+    # 3. HYPER-SCALPER BOT (Cash Flow)
+    # Best for high volume. 35% of Capital.
+    engine.add_bot({
+        'name': 'Hyper-Scalper Bot',
+        'type': 'Hyper-Scalper',
+        'symbols': ['SOL/USDT', 'ETH/USDT', 'BTC/USDT', 'XRP/USDT'],
+        'amount': 800,  # $800 per coin ($3200 total)
+        'initial_balance': 50000,
+        'rsi_limit': 10,          # Deep oversold only
+        'take_profit_pct': 0.015, # 1.5% Quick profit
+        'stop_loss_pct': 0.02,    # 2% Tight stop
+        'max_hold_hours': 0.5,    # CRITICAL: 30 minutes max
+        'max_exposure_per_coin': 800
+    })
+    
+    print(f"✅ Loaded 3 All-Star Strategies: SMA Trend, Buy-the-Dip, Hyper-Scalper")
+    print("=" * 60)
+    print("🚀 Starting bot... (Press Ctrl+C to stop)")
+    print("=" * 60)
+    
+    try:
+        engine.start()
+    except KeyboardInterrupt:
+        print("\n⏹️  Stopping bot...")
+        engine.stop()
+        print("✅ Bot stopped successfully")
+
+if __name__ == "__main__":
+    main()
