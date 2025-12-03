@@ -1,9 +1,11 @@
 from datetime import datetime, time
 
 class RiskManager:
-    def __init__(self, min_profit_pct=0.5, fee_rate=0.001):
+    def __init__(self, min_profit_pct=0.5, fee_rate=0.001, max_drawdown_pct=0.10):
         self.min_profit_pct = min_profit_pct
         self.fee_rate = fee_rate
+        self.max_drawdown_pct = max_drawdown_pct  # Default 10% max drawdown
+        self.peak_equity = None  # Track peak equity for drawdown calculation
         self.allowed_hours = (time(0, 0), time(23, 59)) # Default: 24/7
 
     def set_schedule(self, start_hour, end_hour):
@@ -37,3 +39,33 @@ class RiskManager:
         is_profitable = profit_pct >= self.min_profit_pct
         
         return is_profitable, profit_pct
+    
+    def check_drawdown_limit(self, current_equity, logger):
+        """
+        Check if current drawdown exceeds maximum allowed.
+        This is a critical safety feature to prevent catastrophic losses.
+        
+        Args:
+            current_equity: Current account value (initial_balance + total_pnl)
+            logger: TradeLogger instance for getting P&L
+            
+        Returns:
+            tuple: (can_trade: bool, drawdown_pct: float)
+        """
+        # Initialize peak equity on first call
+        if self.peak_equity is None:
+            self.peak_equity = current_equity
+        
+        # Update peak if we've grown
+        if current_equity > self.peak_equity:
+            self.peak_equity = current_equity
+        
+        # Calculate drawdown from peak
+        drawdown = (self.peak_equity - current_equity) / self.peak_equity
+        drawdown_pct = drawdown * 100
+        
+        # Check if we've exceeded the max drawdown limit
+        if drawdown > self.max_drawdown_pct:
+            return False, drawdown_pct
+        
+        return True, drawdown_pct

@@ -106,6 +106,18 @@ class TradingEngine:
             # Clean up stuck positions
             self.cleanup_aged_positions()
             
+            # Check max drawdown limit (Industry standard safety feature)
+            total_pnl = self.logger.get_pnl_summary()  # All strategies combined
+            current_equity = 50000 + total_pnl  # Initial balance + realized P&L
+            can_trade, drawdown_pct = self.risk_manager.check_drawdown_limit(current_equity, self.logger)
+            
+            if not can_trade:
+                self.notifier.send_message(f"🚨 MAX DRAWDOWN HIT: {drawdown_pct:.1f}% - Pausing all bots for 1 hour!")
+                print(f"⏸️ Drawdown limit exceeded: {drawdown_pct:.1f}% (max: {self.risk_manager.max_drawdown_pct*100:.0f}%)")
+                print(f"   Peak Equity: ${self.risk_manager.peak_equity:.2f} | Current: ${current_equity:.2f}")
+                time.sleep(3600)  # Pause for 1 hour before rechecking
+                continue
+            
             if not self.risk_manager.can_trade():
                 print("Outside trading hours. Sleeping...")
                 time.sleep(120)
@@ -346,10 +358,12 @@ class TradingEngine:
                 # Reset circuit breaker on successful trade
                 self.reset_circuit_breaker()
                 
-                # Update bot status
-                total_trades = len(self.logger.get_trades())
+                # Update bot status with accurate per-strategy metrics
+                all_trades = self.logger.get_trades()
+                bot_trades = all_trades[all_trades['strategy'] == bot['name']] if not all_trades.empty else []
+                total_trades = len(bot_trades)
                 total_pnl = self.logger.get_pnl_summary(bot['name'])
-                wallet_balance = self.logger.get_wallet_balance(bot['name'], initial_balance=bot.get('initial_balance', 20000))
+                wallet_balance = self.logger.get_wallet_balance(bot['name'], initial_balance=bot.get('initial_balance', 50000))
                 self.logger.update_bot_status(bot['name'], 'RUNNING', total_trades, total_pnl, wallet_balance)
         
         elif side == 'SELL' and position_id:
@@ -386,8 +400,10 @@ class TradingEngine:
                 # Reset circuit breaker on successful trade
                 self.reset_circuit_breaker()
                 
-                # Update bot status
-                total_trades = len(self.logger.get_trades())
+                # Update bot status with accurate per-strategy metrics
+                all_trades = self.logger.get_trades()
+                bot_trades = all_trades[all_trades['strategy'] == bot['name']] if not all_trades.empty else []
+                total_trades = len(bot_trades)
                 total_pnl = self.logger.get_pnl_summary(bot['name'])
-                wallet_balance = self.logger.get_wallet_balance(bot['name'], initial_balance=bot.get('initial_balance', 20000))
+                wallet_balance = self.logger.get_wallet_balance(bot['name'], initial_balance=bot.get('initial_balance', 50000))
                 self.logger.update_bot_status(bot['name'], 'RUNNING', total_trades, total_pnl, wallet_balance)
