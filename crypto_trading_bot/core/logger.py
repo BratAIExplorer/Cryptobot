@@ -110,6 +110,21 @@ class TradeLogger:
             # Migration may not be needed if schema is already correct
             print(f"[DB] Migration note: {e}")
         
+        # Circuit Breaker table (persistent state)
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS circuit_breaker (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                is_open BOOLEAN DEFAULT 0,
+                consecutive_errors INTEGER DEFAULT 0,
+                last_error_time DATETIME,
+                last_reset_time DATETIME,
+                total_trips INTEGER DEFAULT 0
+            )
+        ''')
+        
+        # Initialize circuit breaker if not exists
+        c.execute('INSERT OR IGNORE INTO circuit_breaker (id, is_open, consecutive_errors, total_trips) VALUES (1, 0, 0, 0)')
+        
         conn.commit()
         conn.close()
         
@@ -126,7 +141,7 @@ class TradeLogger:
         conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
         
-        required_tables = ['trades', 'positions', 'bot_status']
+        required_tables = ['trades', 'positions', 'bot_status', 'circuit_breaker']
         c.execute("SELECT name FROM sqlite_master WHERE type='table'")
         existing_tables = [row[0] for row in c.fetchall()]
         
@@ -293,4 +308,89 @@ class TradeLogger:
         result = c.fetchone()[0]
         conn.close()
         return result if result else 0.0
+    
+    # ==================== CIRCUIT BREAKER METHODS ====================
+    
+    def get_circuit_breaker_status(self):
+        """Get current circuit breaker state from database"""
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        c.execute('SELECT is_open, consecutive_errors, last_error_time, total_trips FROM circuit_breaker WHERE id = 1')
+        row = c.fetchone()
+        conn.close()
+        
+        if row:
+            return {
+                'is_open': bool(row[0]),
+                'consecutive_errors': row[1],
+                'last_error_time': row[2],
+                'total_trips': row[3]
+            }
+        return {'is_open': False, 'consecutive_errors': 0, 'last_error_time': None, 'total_trips': 0}
+    
+    def increment_circuit_breaker_errors(self):
+        """Increment error counter and potentially open circuit breaker"""
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        c.execute('''
+            UPDATE circuit_breaker 
+            SET consecutive_errors = consecutive_errors + 1,
+                last_error_time = ?
+            WHERE id = 1
+        ''', (datetime.now(),))
+        
+        # Check if threshold exceeded (10 errors)
+        c.execute('SELECT consecutive_errors FROM circuit_breaker WHERE id = 1')
+        errors = c.fetchone()[0]
+        
+        if errors >= 10:
+            c.execute('''
+                UPDATE circuit_breaker 
+                SET is_open = 1,
+                    total_trips = total_trips + 1
+                WHERE id = 1
+            ''')
+        
+        conn.commit()
+        conn.close()
+        return errors
+    
+    def reset_circuit_breaker(self):
+        """Reset circuit breaker after successful trade or cooldown"""
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        c.execute('''
+            UPDATE circuit_breaker 
+            SET is_open = 0,
+                consecutive_errors = 0,
+                last_reset_time = ?
+            WHERE id = 1
+        ''', (datetime.now(),))
+        conn.commit()
+        conn.close()
+    
+    def check_circuit_breaker_auto_recovery(self, cooldown_minutes=30):
+        """Check if circuit breaker should auto-recover after cooldown period"""
+        status = self.get_circuit_breaker_status()
+        
+        if not status['is_open']:
+            return False  # Already closed
+        
+        if not status['last_error_time']:
+            return False  # No error time recorded
+        
+        # Parse last error time
+        try:
+            from datetime import datetime, timedelta
+            last_error = datetime.fromisoformat(status['last_error_time'])
+            cooldown_elapsed = datetime.now() - last_error
+            
+            if cooldown_elapsed > timedelta(minutes=cooldown_minutes):
+                print(f"[CIRCUIT BREAKER] Auto-recovery: {cooldown_minutes}min cooldown elapsed")
+                self.reset_circuit_breaker()
+                return True
+        except:
+            pass
+        
+        return False
 

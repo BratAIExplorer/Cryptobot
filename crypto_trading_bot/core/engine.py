@@ -20,19 +20,16 @@ class TradingEngine:
         self.active_bots = []
         self.is_running = False
         
-        # Circuit Breaker (Safety Feature)
-        self.circuit_breaker = {
-            'consecutive_errors': 0,
-            'max_errors': 10,
-            'is_open': False,
-            'last_error_time': None
-        }
-        
         # Watchdog (Safety Feature)
         self.watchdog = {
             'last_check': datetime.now(),
             'check_interval_minutes': 10
         }
+        
+        # Rate limiting
+        self.api_call_count = 0
+        self.api_reset_time = datetime.now()
+        self.max_api_calls_per_minute = 30  # Conservative limit
 
     def add_bot(self, strategy_config):
         """Add a bot configuration"""
@@ -40,23 +37,22 @@ class TradingEngine:
         print(f"Bot added: {strategy_config['name']}")
 
     def check_circuit_breaker(self):
-        """Check if circuit breaker should be triggered (Safety Feature)"""
-        if self.circuit_breaker['is_open']:
-            print("🔴 CIRCUIT BREAKER OPEN - Bot is paused")
-            return False
+        """Check if circuit breaker should be triggered (Persistent Safety Feature)"""
+        # Check for auto-recovery first
+        self.logger.check_circuit_breaker_auto_recovery(cooldown_minutes=30)
         
-        if self.circuit_breaker['consecutive_errors'] >= self.circuit_breaker['max_errors']:
-            self.circuit_breaker['is_open'] = True
-            self.notifier.send_message("🔴 CIRCUIT BREAKER OPEN - Bot paused after 10 consecutive errors")
-            self.is_running = False
+        # Get current status from database
+        status = self.logger.get_circuit_breaker_status()
+        
+        if status['is_open']:
+            print("🔴 CIRCUIT BREAKER OPEN - Bot is paused (waiting for cooldown)")
             return False
         
         return True
     
     def reset_circuit_breaker(self):
         """Reset circuit breaker after successful trade"""
-        if self.circuit_breaker['consecutive_errors'] > 0:
-            self.circuit_breaker['consecutive_errors'] = 0
+        self.logger.reset_circuit_breaker()
     
     def check_watchdog(self):
         """Check for no-sell condition (Safety Feature)"""
@@ -98,16 +94,21 @@ class TradingEngine:
             self.logger.update_bot_status(bot['name'], 'RUNNING', 0, total_pnl, wallet_balance)
         
         while self.is_running:
-            # Check circuit breaker
+            # Check circuit breaker with auto-recovery
             if not self.check_circuit_breaker():
-                break
+                print("⏸️  Circuit breaker paused. Waiting for auto-recovery...")
+                time.sleep(60)  # Check every minute for auto-recovery
+                continue
             
             # Check watchdog
             self.check_watchdog()
             
+            # Clean up stuck positions
+            self.cleanup_aged_positions()
+            
             if not self.risk_manager.can_trade():
                 print("Outside trading hours. Sleeping...")
-                time.sleep(120)  # Increased to 120s to avoid API limits
+                time.sleep(120)
                 continue
 
             for bot in self.active_bots:
@@ -130,11 +131,57 @@ class TradingEngine:
                 # 3. Process Strategy
                 self.process_bot(bot)
             
-            time.sleep(120)  # Loop interval - 60s to avoid rate limits
+            time.sleep(180)  # Loop interval - 180s for better rate limiting
 
     def stop(self):
         self.is_running = False
         print("Engine stopped")
+    
+    def cleanup_aged_positions(self):
+        """Automatically force-close positions that are older than 3x their max hold time"""
+        # Strategy max hold times (in hours)
+        max_hold_times = {
+            'Hyper-Scalper Bot': 0.5,  # 30 minutes
+            'Buy-the-Dip Strategy': 2880,  # 120 days
+            'SMA Trend Bot': 24  # 24 hours
+        }
+        
+        open_positions = self.logger.get_open_positions()
+        if open_positions.empty:
+            return
+        
+        for _, position in open_positions.iterrows():
+            strategy = position['strategy']
+            symbol = position['symbol']
+            position_id = position['id']
+            buy_timestamp = pd.to_datetime(position['buy_timestamp'])
+            
+            # Calculate position age
+            age_hours = (datetime.now() - buy_timestamp).total_seconds() / 3600
+            max_hold = max_hold_times.get(strategy, 24)
+            
+            # Force close if older than 3x max hold time (severe aging)
+            if age_hours > (max_hold * 3):
+                print(f"[AUTO-CLEANUP] Force-closing aged position #{position_id}: {symbol} ({age_hours:.1f}h old, max: {max_hold}h)")
+                
+                try:
+                    # Get current price
+                    df = self.exchange.fetch_ohlcv(symbol, timeframe='1h', limit=1)
+                    if not df.empty:
+                        current_price = df['close'].iloc[-1]
+                        
+                        # Close position
+                        profit = self.logger.close_position(position_id, current_price)
+                        if profit is not None:
+                            print(f"[AUTO-CLEANUP] Position #{position_id} closed with profit: ${profit:.2f}")
+                            
+                            # Log the trade
+                            amount = position['amount']
+                            self.logger.log_trade(strategy, symbol, 'SELL', current_price, amount, 
+                                                position_id=position_id, engine_version='2.0')
+                except Exception as e:
+                    print(f"[AUTO-CLEANUP] Error closing aged position #{position_id}: {e}")
+
 
     def process_bot(self, bot):
         """Execute logic for a single bot configuration (can be multiple symbols)"""
@@ -262,8 +309,10 @@ class TradingEngine:
                 
             except Exception as e:
                 print(f"Error processing {symbol}: {e}")
-                self.circuit_breaker['consecutive_errors'] += 1
-                self.circuit_breaker['last_error_time'] = datetime.now()
+                error_count = self.logger.increment_circuit_breaker_errors()
+                if error_count >= 10:
+                    self.notifier.send_message(f"🔴 CIRCUIT BREAKER TRIGGERED - {error_count} consecutive errors. Auto-recovery in 30 min.")
+                    print(f"⚠️  Circuit breaker triggered after {error_count} errors")
 
     def execute_trade(self, bot, symbol, side, price, rsi, position_id=None):
         """Execute a trade with FIFO position management"""
@@ -306,6 +355,12 @@ class TradingEngine:
         elif side == 'SELL' and position_id:
             # Get position details
             open_positions = self.logger.get_open_positions(symbol)
+            
+            # Safety check: ensure position exists
+            if open_positions.empty or position_id not in open_positions['id'].values:
+                print(f"[ERROR] Position #{position_id} not found in open positions")
+                return  # Exit early without logging error to circuit breaker
+            
             position = open_positions[open_positions['id'] == position_id].iloc[0]
             amount = position['amount']
             
