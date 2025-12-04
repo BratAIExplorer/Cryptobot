@@ -190,21 +190,63 @@ if not trades.empty:
     conn.close()
     
     if not closed_positions.empty:
-        symbol_pnl = closed_positions.groupby('symbol')['profit'].sum().sort_values(ascending=False)
+        # Group by symbol AND strategy for proper attribution
+        symbol_strategy_pnl = closed_positions.groupby(['symbol', 'strategy']).agg({
+            'profit': 'sum',
+            'id': 'count'  # Number of trades
+        }).reset_index()
+        symbol_strategy_pnl.columns = ['symbol', 'strategy', 'total_pnl', 'num_trades']
+        symbol_strategy_pnl = symbol_strategy_pnl.sort_values('total_pnl', ascending=False)
+        
+        # Also calculate overall symbol performance (across all strategies)
+        symbol_pnl_total = closed_positions.groupby('symbol')['profit'].sum().sort_values(ascending=False)
         
         col1, col2 = st.columns(2)
         
         with col1:
             st.success("🚀 Top Performing Coins")
-            top_coins = symbol_pnl.head(5)
-            for symbol, profit in top_coins.items():
-                st.metric(symbol, f"${profit:.2f}")
+            # Show only coins with POSITIVE P&L
+            top_performers = symbol_strategy_pnl[symbol_strategy_pnl['total_pnl'] > 0].head(5)
+            
+            if not top_performers.empty:
+                for _, row in top_performers.iterrows():
+                    profit_color = "🟢" if row['total_pnl'] > 0 else "🔴"
+                    st.metric(
+                        f"{row['symbol']} ({row['strategy'][:15]}...)", 
+                        f"${row['total_pnl']:.2f}",
+                        delta=f"{row['num_trades']} trades"
+                    )
+                    
+                # Show total across all strategies
+                st.caption(f"💰 Best Overall: {symbol_pnl_total.index[0]} (${symbol_pnl_total.iloc[0]:.2f})")
+            else:
+                st.info("No profitable coins yet")
                 
         with col2:
             st.error("📉 Weakest Links")
-            weak_coins = symbol_pnl.tail(5).sort_values()
-            for symbol, profit in weak_coins.items():
-                st.metric(symbol, f"${profit:.2f}")
+            # Show only coins with NEGATIVE or lowest positive P&L
+            worst_performers = symbol_strategy_pnl[symbol_strategy_pnl['total_pnl'] <0].head(5)
+            
+            # If no negative performers, show lowest positive ones (but not duplicates from top)
+            if worst_performers.empty:
+                worst_performers = symbol_strategy_pnl[symbol_strategy_pnl['total_pnl'] > 0].tail(5)
+                worst_performers = worst_performers[~worst_performers.index.isin(top_performers.index)]
+            
+            if not worst_performers.empty:
+                for _, row in worst_performers.iterrows():
+                    profit_color = "🟢" if row['total_pnl'] > 0 else "🔴"
+                    st.metric(
+                        f"{row['symbol']} ({row['strategy'][:15]}...)", 
+                        f"${row['total_pnl']:.2f}",
+                        delta=f"{row['num_trades']} trades"
+                    )
+                    
+                # Show worst overall
+                if symbol_pnl_total.iloc[-1] < 0:
+                    st.caption(f"⚠️ Worst Overall: {symbol_pnl_total.index[-1]} (${symbol_pnl_total.iloc[-1]:.2f})")
+            else:
+                st.success("All coins are profitable! 🎉")
+                
     else:
         st.info("No closed positions yet to analyze performance.")
 else:
