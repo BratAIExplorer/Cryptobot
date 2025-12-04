@@ -245,15 +245,16 @@ class TradingEngine:
                     if not df.empty:
                         current_price = df['close'].iloc[-1]
                         
-                        # Close position
-                        profit = self.logger.close_position(position_id, current_price)
+                        # Close position with exit RSI
+                        profit = self.logger.close_position(position_id, current_price, exit_rsi=rsi)
                         if profit is not None:
                             print(f"[AUTO-CLEANUP] Position #{position_id} closed with profit: ${profit:.2f}")
                             
-                            # Log the trade
+                            # Log the trade with fee
                             amount = position['amount']
+                            fee = current_price * amount * 0.001  # 0.1% fee
                             self.logger.log_trade(strategy, symbol, 'SELL', current_price, amount, 
-                                                position_id=position_id, engine_version='2.0')
+                                                fee=fee, rsi=rsi, position_id=position_id, engine_version='2.0')
                 except Exception as e:
                     print(f"[AUTO-CLEANUP] Error closing aged position #{position_id}: {e}")
 
@@ -317,7 +318,8 @@ class TradingEngine:
                             
                     elif strategy_type == 'Hyper-Scalper':
                         # Scalper should exit within 30 minutes if profitable
-                        if position_age_hours >= 0.5 and profit_pct > 0.001:
+                        # Minimum 0.75% to cover 0.2-0.4% round-trip fees
+                        if position_age_hours >= 0.5 and profit_pct >= 0.0075:  # 0.75% minimum
                             sell_reason = f"Scalp Exit +{profit_pct*100:.2f}% ({position_age_hours*60:.0f}min)"
                         # Standard TP
                         elif current_price >= buy_price * (1 + tp_pct):
@@ -332,7 +334,8 @@ class TradingEngine:
                         sell_reason = f"Time Exit ({position_age_hours:.1f}h old, {profit_pct*100:.1f}%)"
                     
                     # Priority 5: Break-even exit for stuck positions (after 6 hours)
-                    elif position_age_hours >= 6 and profit_pct >= 0.001:
+                    # Raised to 0.75% to cover fees
+                    elif position_age_hours >= 6 and profit_pct >= 0.0075:  # 0.75% minimum
                          sell_reason = f"Break-Even Exit ({position_age_hours:.1f}h old)"
                     
                     if sell_reason:
@@ -408,12 +411,16 @@ class TradingEngine:
             if self.mode == 'paper':
                 print(f"●BUY {symbol}● Price: ${price:.4f}, Amount: {amount:.4f}")
                 
-                # Open position (FIFO)
-                position_id = self.logger.open_position(symbol, bot['name'], price, amount)
+                # Open position (FIFO) with entry RSI
+                position_id = self.logger.open_position(symbol, bot['name'], price, amount, entry_rsi=rsi)
                 
-                # Log trade (with versioning)
+                # Calculate fee (0.1% Binance standard)
+                fee = price * amount * 0.001
+                
+                # Log trade (with versioning and fee)
                 strategy_version = bot.get('version', '1.0')
-                self.logger.log_trade(bot['name'], symbol, side, price, amount, rsi=rsi, position_id=position_id, engine_version='2.0', strategy_version=strategy_version)
+                self.logger.log_trade(bot['name'], symbol, side, price, amount, fee=fee, rsi=rsi, 
+                                    position_id=position_id, engine_version='2.0', strategy_version=strategy_version)
                 
                 # Send Notification
                 self.notifier.notify_trade(symbol, side, price, amount, reason=f"RSI: {rsi:.2f}")
@@ -451,13 +458,16 @@ class TradingEngine:
                     print(f"[SKIP] Position #{position_id} was closed between check and execution")
                     return
                 
-                # Close position (FIFO)
-                profit = self.logger.close_position(position_id, price)
+                # Close position (FIFO) with exit RSI
+                profit = self.logger.close_position(position_id, price, exit_rsi=rsi)
                 
                 # Safety check: Handle case where position wasn't found
                 if profit is None:
                     print(f"[SKIP] Position #{position_id} already processed")
                     return  # Exit early, don't continue with logging/notification
+                
+                # Calculate fee (0.1% Binance standard)
+                fee = price * amount * 0.001
                 
                 # Alert on large losses
                 if profit < -50:  # Loss greater than $50
@@ -467,9 +477,10 @@ class TradingEngine:
                 # Update last trade time for no-activity monitoring
                 self.last_trade_time = datetime.now()
                 
-                # Log trade (with versioning)
+                # Log trade (with versioning and fee)
                 strategy_version = bot.get('version', '1.0')
-                self.logger.log_trade(bot['name'], symbol, side, price, amount, rsi=rsi, position_id=position_id, engine_version='2.0', strategy_version=strategy_version)
+                self.logger.log_trade(bot['name'], symbol, side, price, amount, fee=fee, rsi=rsi, 
+                                    position_id=position_id, engine_version='2.0', strategy_version=strategy_version)
                 
                 # Send Notification
                 profit_str = f"Profit: ${profit:.2f}" if profit is not None else "Profit: N/A (Error)"

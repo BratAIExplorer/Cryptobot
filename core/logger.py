@@ -34,7 +34,7 @@ class TradeLogger:
             )
         ''')
         
-        # Positions table (FIFO tracking)
+        # Positions table (FIFO tracking with RSI analytics)
         c.execute('''
             CREATE TABLE IF NOT EXISTS positions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -47,7 +47,9 @@ class TradeLogger:
                 status TEXT,
                 sell_price REAL,
                 sell_timestamp DATETIME,
-                profit REAL
+                profit REAL,
+                entry_rsi REAL,
+                exit_rsi REAL
             )
         ''')
         
@@ -165,22 +167,23 @@ class TradeLogger:
         conn.close()
         print(f"[LOG] Trade logged: {side} {symbol} @ {price}")
 
-    def open_position(self, symbol, strategy, buy_price, amount):
-        """Open a new position (FIFO)"""
+    def open_position(self, symbol, strategy, buy_price, amount, entry_rsi=None):
+        """Open a new position (FIFO) with optional entry RSI tracking"""
         conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
         c.execute('''
-            INSERT INTO positions (symbol, strategy, buy_price, buy_timestamp, amount, cost, status)
-            VALUES (?, ?, ?, ?, ?, ?, 'OPEN')
-        ''', (symbol, strategy, buy_price, datetime.now(), amount, buy_price * amount))
+            INSERT INTO positions (symbol, strategy, buy_price, buy_timestamp, amount, cost, status, entry_rsi)
+            VALUES (?, ?, ?, ?, ?, ?, 'OPEN', ?)
+        ''', (symbol, strategy, buy_price, datetime.now(), amount, buy_price * amount, entry_rsi))
         position_id = c.lastrowid
         conn.commit()
         conn.close()
-        print(f"[POSITION] Opened position #{position_id}: {amount} {symbol} @ {buy_price}")
+        rsi_str = f" (RSI: {entry_rsi:.2f})" if entry_rsi else ""
+        print(f"[POSITION] Opened position #{position_id}: {amount} {symbol} @ {buy_price}{rsi_str}")
         return position_id
 
-    def close_position(self, position_id, sell_price):
-        """Close a position (FIFO)"""
+    def close_position(self, position_id, sell_price, exit_rsi=None):
+        """Close a position (FIFO) with optional exit RSI tracking"""
         conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
         
@@ -204,13 +207,14 @@ class TradeLogger:
         # Update position
         c.execute('''
             UPDATE positions 
-            SET status = 'CLOSED', sell_price = ?, sell_timestamp = ?, profit = ?
+            SET status = 'CLOSED', sell_price = ?, sell_timestamp = ?, profit = ?, exit_rsi = ?
             WHERE id = ?
-        ''', (sell_price, datetime.now(), profit, position_id))
+        ''', (sell_price, datetime.now(), profit, exit_rsi, position_id))
         
         conn.commit()
         conn.close()
-        print(f"[POSITION] Closed position #{position_id}: Profit ${profit:.2f} ({profit_pct:.2f}%)")
+        rsi_str = f" (Exit RSI: {exit_rsi:.2f})" if exit_rsi else ""
+        print(f"[POSITION] Closed position #{position_id}: Profit ${profit:.2f} ({profit_pct:.2f}%){rsi_str}")
         return profit
 
     def get_open_positions(self, symbol=None):
