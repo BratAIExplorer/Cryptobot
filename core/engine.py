@@ -26,6 +26,14 @@ class TradingEngine:
             'check_interval_minutes': 10
         }
         
+        # No-activity monitoring
+        self.last_trade_time = datetime.now()
+        self.no_activity_alert_sent = False
+        
+        # Milestone tracking
+        self.last_milestone = 0
+        self.milestones = [100, 250, 500, 1000, 2500, 5000, 10000]
+        
         # Rate limiting
         self.api_call_count = 0
         self.api_reset_time = datetime.now()
@@ -39,12 +47,16 @@ class TradingEngine:
     def check_circuit_breaker(self):
         """Check if circuit breaker should be triggered (Persistent Safety Feature)"""
         # Check for auto-recovery first
+        was_open = self.logger.get_circuit_breaker_status()['is_open']
         self.logger.check_circuit_breaker_auto_recovery(cooldown_minutes=30)
         
         # Get current status from database
         status = self.logger.get_circuit_breaker_status()
         
         if status['is_open']:
+            # Send alert only on first trigger (not every loop)
+            if not was_open or status['consecutive_errors'] >= 10:
+                self.notifier.alert_circuit_breaker(status['consecutive_errors'])
             print("🔴 CIRCUIT BREAKER OPEN - Bot is paused (waiting for cooldown)")
             return False
         
@@ -85,6 +97,9 @@ class TradingEngine:
         self.is_running = True
         print(f"Engine started in {self.mode} mode")
         
+        # Send startup notification
+        self.notifier.alert_service_restart()
+        
         # Update bot status on start for ALL bots
         for bot in self.active_bots:
             total_pnl = self.logger.get_pnl_summary(bot['name'])
@@ -111,8 +126,23 @@ class TradingEngine:
             current_equity = 50000 + total_pnl  # Initial balance + realized P&L
             can_trade, drawdown_pct = self.risk_manager.check_drawdown_limit(current_equity, self.logger)
             
+            # Alert at 80% of max drawdown (warning)
+            if drawdown_pct >= (self.risk_manager.max_drawdown_pct * 100 * 0.8) and drawdown_pct < (self.risk_manager.max_drawdown_pct * 100):
+                self.notifier.alert_max_drawdown(
+                    drawdown_pct, 
+                    self.risk_manager.max_drawdown_pct * 100,
+                    current_equity,
+                    self.risk_manager.peak_equity
+                )
+            
             if not can_trade:
-                self.notifier.send_message(f"🚨 MAX DRAWDOWN HIT: {drawdown_pct:.1f}% - Pausing all bots for 1 hour!")
+                # Send critical alert when max drawdown hit
+                self.notifier.alert_max_drawdown(
+                    drawdown_pct,
+                    self.risk_manager.max_drawdown_pct * 100,
+                    current_equity,
+                    self.risk_manager.peak_equity
+                )
                 print(f"⏸️ Drawdown limit exceeded: {drawdown_pct:.1f}% (max: {self.risk_manager.max_drawdown_pct*100:.0f}%)")
                 print(f"   Peak Equity: ${self.risk_manager.peak_equity:.2f} | Current: ${current_equity:.2f}")
                 time.sleep(3600)  # Pause for 1 hour before rechecking
@@ -122,6 +152,9 @@ class TradingEngine:
                 print("Outside trading hours. Sleeping...")
                 time.sleep(120)
                 continue
+            
+            # Check for no-activity (6 hour silence)
+            self.check_no_activity()
 
             for bot in self.active_bots:
                 # --- Heartbeat & Status Update ---
@@ -137,6 +170,9 @@ class TradingEngine:
                 total_pnl = self.logger.get_pnl_summary(bot['name'])
                 wallet_balance = self.logger.get_wallet_balance(bot['name'], initial_balance=bot.get('initial_balance', 50000))
                 
+                # Check for profit milestones
+                self.check_profit_milestones(total_pnl)
+                
                 # 2. Update DB
                 self.logger.update_bot_status(bot['name'], 'RUNNING', total_trades, total_pnl, wallet_balance)
                 
@@ -148,6 +184,33 @@ class TradingEngine:
     def stop(self):
         self.is_running = False
         print("Engine stopped")
+    
+    def check_no_activity(self):
+        """Alert if bot hasn't traded in 6 hours"""
+        trades = self.logger.get_trades()
+        if trades.empty:
+            return  # No trades yet, bot just started
+        
+        trades['timestamp'] = pd.to_datetime(trades['timestamp'])
+        last_trade_time = trades['timestamp'].max()
+        hours_since_trade = (datetime.now() - last_trade_time).total_seconds() / 3600
+        
+        if hours_since_trade >= 6 and not self.no_activity_alert_sent:
+            self.notifier.alert_no_activity(int(hours_since_trade))
+            self.no_activity_alert_sent = True
+        elif hours_since_trade < 6:
+            self.no_activity_alert_sent = False  # Reset flag
+    
+    def check_profit_milestones(self, total_pnl):
+        """Check and alert on profit milestones"""
+        if total_pnl <= 0:
+            return
+        
+        for milestone in self.milestones:
+            if total_pnl >= milestone and self.last_milestone < milestone:
+                self.notifier.alert_profit_milestone(milestone, total_pnl)
+                self.last_milestone = milestone
+                break
     
     def cleanup_aged_positions(self):
         """Automatically force-close positions that are older than 3x their max hold time"""
@@ -395,6 +458,14 @@ class TradingEngine:
                 if profit is None:
                     print(f"[SKIP] Position #{position_id} already processed")
                     return  # Exit early, don't continue with logging/notification
+                
+                # Alert on large losses
+                if profit < -50:  # Loss greater than $50
+                    profit_pct = (profit / position['cost']) * 100
+                    self.notifier.alert_large_loss(symbol, abs(profit), abs(profit_pct))
+                
+                # Update last trade time for no-activity monitoring
+                self.last_trade_time = datetime.now()
                 
                 # Log trade (with versioning)
                 strategy_version = bot.get('version', '1.0')
