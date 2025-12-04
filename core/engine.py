@@ -372,7 +372,7 @@ class TradingEngine:
             
             # Safety check: ensure position exists
             if open_positions.empty or position_id not in open_positions['id'].values:
-                print(f"[ERROR] Position #{position_id} not found in open positions")
+                print(f"[SKIP] Position #{position_id} already closed or not found for {symbol}")
                 return  # Exit early without logging error to circuit breaker
             
             position = open_positions[open_positions['id'] == position_id].iloc[0]
@@ -381,12 +381,19 @@ class TradingEngine:
             if self.mode == 'paper':
                 print(f"●SELL {symbol}● Price: ${price:.4f}, Amount: {amount:.4f}")
                 
+                # Double-check position still exists (race condition protection)
+                # Refresh positions right before closing
+                refresh_positions = self.logger.get_open_positions(symbol)
+                if refresh_positions.empty or position_id not in refresh_positions['id'].values:
+                    print(f"[SKIP] Position #{position_id} was closed between check and execution")
+                    return
+                
                 # Close position (FIFO)
                 profit = self.logger.close_position(position_id, price)
                 
                 # Safety check: Handle case where position wasn't found
                 if profit is None:
-                    print(f"[WARNING] Skipping trade logging - position #{position_id} not found")
+                    print(f"[SKIP] Position #{position_id} already processed")
                     return  # Exit early, don't continue with logging/notification
                 
                 # Log trade (with versioning)

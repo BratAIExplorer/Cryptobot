@@ -47,7 +47,7 @@ def plot_candle_chart(df, trades=None, title="Price Chart"):
             ), row=1, col=1)
 
     fig.update_layout(xaxis_rangeslider_visible=False, height=600)
-    st.plotly_chart(fig, use_container_width=True) # Keeping it for now as 'width' might be 1.56+ only
+    st.plotly_chart(fig, width='stretch')
 
 def strategy_config_ui():
     """

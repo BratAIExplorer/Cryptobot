@@ -89,7 +89,7 @@ with tab1:
         # Display
         st.dataframe(
             positions_display[['symbol', 'strategy', 'buy_price', 'current_price', 'amount', 'cost', 'unrealized_pnl', 'unrealized_pnl_pct', 'buy_timestamp']],
-            use_container_width=True,
+            width='stretch',
             column_config={
                 "buy_price": st.column_config.NumberColumn("Buy Price", format="$%.4f"),
                 "current_price": st.column_config.NumberColumn("Current Price", format="$%.4f"),
@@ -128,7 +128,7 @@ with tab2:
         
         st.dataframe(
             filtered_trades,
-            use_container_width=True,
+            width='stretch',
             column_config={
                 "price": st.column_config.NumberColumn("Price", format="$%.4f"),
                 "cost": st.column_config.NumberColumn("Cost", format="$%.2f"),

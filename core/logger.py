@@ -191,7 +191,7 @@ class TradeLogger:
         # Safety check: Handle case where position doesn't exist or already closed
         if not row:
             conn.close()
-            print(f"[ERROR] Position #{position_id} not found or already closed")
+            print(f"[SKIP] Position #{position_id} already closed or not in database")
             return None
         
         buy_price, amount, cost = row
