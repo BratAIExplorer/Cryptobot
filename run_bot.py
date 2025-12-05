@@ -70,14 +70,67 @@ def main():
         'symbols': ['SOL/USDT', 'ETH/USDT', 'BTC/USDT', 'XRP/USDT'],
         'amount': 800,  # $800 per coin ($3200 total)
         'initial_balance': 50000,
-        'rsi_limit': 10,          # Deep oversold only
-        'take_profit_pct': 0.015, # 1.5% Quick profit
+        'rsi_limit': 30,          # Relaxed from 15 to 30 (Expert Rec)
+        'take_profit_pct': 0.012, # 1.2% Profit (covers fees + buffer)
         'stop_loss_pct': 0.02,    # 2% Tight stop
         'max_hold_hours': 0.5,    # CRITICAL: 30 minutes max
         'max_exposure_per_coin': 800
     })
+
+    # 4. GRID BOTS (Sideways Market Kings)
+    # 20% of Capital.
+    # BTC Grid: Range +/- 10%, 20 Grids
+    engine.add_bot({
+        'name': 'Grid Bot BTC',
+        'type': 'Grid',
+        'symbols': ['BTC/USDT'],
+        'amount': 50,           # Amount per grid level
+        'grid_levels': 20,
+        'lower_limit': 90000,   # Placeholder, will be updated by logic if needed, but V2 uses config
+        # We need to set dynamic limits based on current price? 
+        # For now, let's set a wide fixed range or update V2 to auto-calculate if 0.
+        # But V2 takes config. Let's use the backtest values relative to current price.
+        # Since I can't get live price easily here, I'll use the values from backtest or expert advice.
+        # Expert said: "Use support/resistance levels".
+        # For automation, I'll set a wide range around "current" price (approx 98k for BTC, 3200 for ETH).
+        'lower_limit': 88000,
+        'upper_limit': 108000,
+        'initial_balance': 50000,
+        'max_exposure_per_coin': 1000
+    })
+
+    engine.add_bot({
+        'name': 'Grid Bot ETH',
+        'type': 'Grid',
+        'symbols': ['ETH/USDT'],
+        'amount': 30,
+        'grid_levels': 30,
+        'lower_limit': 2800,
+        'upper_limit': 3500,
+        'initial_balance': 50000,
+        'max_exposure_per_coin': 1000
+    })
+
+    # 5. HIDDEN GEM MONITOR (Paper Mode Exploration)
+    # Tracking top 50 coins for dip opportunities.
+    engine.add_bot({
+        'name': 'Hidden Gem Monitor',
+        'type': 'Buy-the-Dip',
+        'symbols': [
+            'ADA/USDT', 'AVAX/USDT', 'DOT/USDT', 'LINK/USDT', 'MATIC/USDT', 
+            'UNI/USDT', 'ATOM/USDT', 'LTC/USDT', 'NEAR/USDT', 'ALGO/USDT',
+            'FIL/USDT', 'HBAR/USDT', 'ICP/USDT', 'VET/USDT', 'SAND/USDT',
+            'MANA/USDT', 'AAVE/USDT', 'EOS/USDT', 'XTZ/USDT', 'THETA/USDT'
+        ],
+        'amount': 100,  # Small test amount
+        'initial_balance': 50000,
+        'take_profit_pct': 0.10,
+        'stop_loss_pct': 0.20,
+        'max_hold_hours': 72,
+        'max_exposure_per_coin': 100
+    })
     
-    print(f"✅ Loaded 3 All-Star Strategies: SMA Trend, Buy-the-Dip, Hyper-Scalper")
+    print(f"✅ Loaded 5 Strategies: SMA Trend, Buy-the-Dip, Hyper-Scalper, Grid Bots, Hidden Gem Monitor")
     print("=" * 60)
     print("🚀 Starting bot... (Press Ctrl+C to stop)")
     print("=" * 60)

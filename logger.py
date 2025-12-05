@@ -62,6 +62,20 @@ class TradeLogger:
             )
         ''')
         
+        # Circuit Breaker table
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS circuit_breaker (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                is_open BOOLEAN DEFAULT 0,
+                consecutive_errors INTEGER DEFAULT 0,
+                last_error_time DATETIME,
+                last_reset_time DATETIME
+            )
+        ''')
+        
+        # Initialize circuit breaker row if not exists
+        c.execute('INSERT OR IGNORE INTO circuit_breaker (id, is_open, consecutive_errors) VALUES (1, 0, 0)')
+        
         # Migration: Add wallet_balance column if it doesn't exist (for existing DBs)
         try:
             c.execute('SELECT wallet_balance FROM bot_status LIMIT 1')
@@ -210,4 +224,58 @@ class TradeLogger:
         result = c.fetchone()[0]
         conn.close()
         return result if result else 0.0
+
+    # --- CIRCUIT BREAKER METHODS ---
+    def get_circuit_breaker_status(self):
+        """Get current circuit breaker status"""
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        c.execute('SELECT is_open, consecutive_errors, last_error_time FROM circuit_breaker WHERE id = 1')
+        row = c.fetchone()
+        conn.close()
+        if row:
+            return {'is_open': bool(row[0]), 'consecutive_errors': row[1], 'last_error_time': row[2]}
+        return {'is_open': False, 'consecutive_errors': 0, 'last_error_time': None}
+
+    def increment_circuit_breaker_errors(self):
+        """Increment error count and open circuit breaker if threshold reached"""
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        
+        c.execute('SELECT consecutive_errors FROM circuit_breaker WHERE id = 1')
+        errors = c.fetchone()[0] + 1
+        is_open = 1 if errors >= 10 else 0
+        
+        c.execute('''
+            UPDATE circuit_breaker 
+            SET consecutive_errors = ?, is_open = ?, last_error_time = ?
+            WHERE id = 1
+        ''', (errors, is_open, datetime.now()))
+        
+        conn.commit()
+        conn.close()
+        return errors
+
+    def reset_circuit_breaker(self):
+        """Reset circuit breaker after successful operation"""
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        c.execute('''
+            UPDATE circuit_breaker 
+            SET consecutive_errors = 0, is_open = 0, last_reset_time = ?
+            WHERE id = 1
+        ''', (datetime.now(),))
+        conn.commit()
+        conn.close()
+
+    def check_circuit_breaker_auto_recovery(self, cooldown_minutes=30):
+        """Auto-reset circuit breaker if cooldown period has passed"""
+        status = self.get_circuit_breaker_status()
+        if status['is_open'] and status['last_error_time']:
+            last_error = pd.to_datetime(status['last_error_time'])
+            if (datetime.now() - last_error).total_seconds() / 60 > cooldown_minutes:
+                print(f"[CIRCUIT BREAKER] Auto-recovering after {cooldown_minutes}m cooldown")
+                self.reset_circuit_breaker()
+                return True
+        return False
 

@@ -4,7 +4,12 @@ from datetime import datetime
 import os
 
 class TradeLogger:
-    def __init__(self, db_path='data/trades.db'):
+    def __init__(self, db_path=None):
+        if db_path is None:
+            # Use absolute path to prevent split-brain issues
+            root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            db_path = os.path.join(root_dir, 'data', 'trades.db')
+            
         self.db_path = db_path
         os.makedirs(os.path.dirname(db_path), exist_ok=True)
         self.init_db()

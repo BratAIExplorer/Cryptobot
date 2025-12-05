@@ -6,6 +6,7 @@ from .logger import TradeLogger
 from .risk_manager import RiskManager
 from .notifier import TelegramNotifier
 from utils.indicators import calculate_rsi, calculate_sma
+from strategies.grid_strategy_v2 import GridStrategyV2
 
 class TradingEngine:
     def __init__(self, mode='paper', telegram_config=None):
@@ -38,10 +39,25 @@ class TradingEngine:
         self.api_call_count = 0
         self.api_reset_time = datetime.now()
         self.max_api_calls_per_minute = 30  # Conservative limit
+        
+        # Strategy Instances (for stateful strategies like Grid)
+        self.strategies = {}
 
     def add_bot(self, strategy_config):
         """Add a bot configuration"""
         self.active_bots.append(strategy_config)
+        
+        # Initialize strategy instance if needed
+        if strategy_config['type'] == 'Grid':
+            # Create a unique key for the strategy instance
+            # Assuming Grid bot has one symbol per config for now
+            symbol = strategy_config.get('symbols', [None])[0]
+            if symbol:
+                # Pass the full config, ensure symbol is set
+                config = strategy_config.copy()
+                config['symbol'] = symbol
+                self.strategies[strategy_config['name']] = GridStrategyV2(config)
+                
         print(f"Bot added: {strategy_config['name']}")
 
     def check_circuit_breaker(self):
@@ -274,6 +290,22 @@ class TradingEngine:
                 current_price = df['close'].iloc[-1]
                 rsi = calculate_rsi(df['close']).iloc[-1]
                 
+                # --- SPECIAL HANDLING FOR GRID BOT ---
+                if strategy_type == 'Grid':
+                    strategy_instance = self.strategies.get(bot['name'])
+                    if strategy_instance:
+                        open_positions = self.logger.get_open_positions(symbol)
+                        signal = strategy_instance.get_signal(current_price, open_positions)
+                        
+                        if signal:
+                            if signal['side'] == 'SELL':
+                                print(f"[{bot['name']}] Grid SELL Signal: {signal['reason']}")
+                                self.execute_trade(bot, symbol, 'SELL', current_price, rsi, position_id=signal['position_id'])
+                            elif signal['side'] == 'BUY':
+                                print(f"[{bot['name']}] Grid BUY Signal: {signal['reason']}")
+                                self.execute_trade(bot, symbol, 'BUY', current_price, rsi)
+                        continue # Skip standard logic for Grid
+                
                 # Check for SELL signals first (FIFO)
                 open_positions = self.logger.get_open_positions(symbol)
                 if not open_positions.empty:
@@ -483,7 +515,7 @@ class TradingEngine:
                                     position_id=position_id, engine_version='2.0', strategy_version=strategy_version)
                 
                 # Send Notification
-                profit_str = f"Profit: ${profit:.2f}" if profit is not None else "Profit: N/A (Error)"
+                profit_str = f"Profit: ${profit:.2f}"
                 self.notifier.notify_trade(symbol, side, price, amount, reason=profit_str)
                 
                 # Reset circuit breaker on successful trade

@@ -1,0 +1,28 @@
+# VPS Configuration
+# ===================
+# This file stores critical VPS deployment information
+
+VPS_PATH="/Antigravity/antigravity/scratch/crypto_trading_bot"
+VPS_HOST="72.60.40.29"  # Updated VPS IP
+VPS_USER="root"
+
+# Quick Reference Commands
+# ------------------------
+
+# SSH to VPS:
+# ssh root@srv1010193
+
+# Navigate to bot:
+# cd /Antigravity/antigravity/scratch/crypto_trading_bot
+
+# Restart bot:
+# pkill -f run_bot.py && nohup python3 run_bot.py > bot.log 2>&1 &
+
+# Check bot status:
+# ps aux | grep run_bot.py
+
+# View logs:
+# tail -f /Antigravity/antigravity/scratch/crypto_trading_bot/bot.log
+
+# Check dashboard:
+# http://srv1010193:8501

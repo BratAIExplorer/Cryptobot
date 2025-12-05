@@ -9,15 +9,11 @@ from core.logger import TradeLogger
 
 def main():
     print("=" * 60)
-    print("🤖 Crypto Bot Performance Report")
+    print("🤖 Crypto Bot Performance Report (Secondary DB)")
     print("=" * 60)
     
-    db_path = 'data/trades.db'
-    if not os.path.exists(db_path):
-        print(f"❌ Database not found at {db_path}")
-        return
-
-    logger = TradeLogger(db_path)
+    # Use default DB path (which is now absolute in logger.py)
+    logger = TradeLogger()
     
     # 1. Bot Status
     print("\n📊 Bot Status:")
