@@ -108,10 +108,10 @@ class TradingEngine:
         buys = len(scalper_trades[scalper_trades['side'] == 'BUY'])
         sells = len(scalper_trades[scalper_trades['side'] == 'SELL'])
         
-        if buys > 20 and sells == 0:
+        if buys > 25 and sells == 0:
             self.notifier.send_message(f"🚨 WATCHDOG ALERT (Scalper): {buys} buys with 0 sells in last 6 hours!")
             print(f"⚠️ WATCHDOG: {buys} buys, 0 sells in 6h")
-        elif buys > sells * 10 and sells > 0:
+        elif buys > sells * 20 and sells > 0:
             self.notifier.send_message(f"⚠️ WATCHDOG (Scalper): High buy/sell ratio: {buys}/{sells}")
 
     def start(self):
