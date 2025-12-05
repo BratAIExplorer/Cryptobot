@@ -99,14 +99,20 @@ class TradingEngine:
         trades['timestamp'] = pd.to_datetime(trades['timestamp'])
         recent_trades = trades[trades['timestamp'] > now - timedelta(hours=6)]
         
-        buys = len(recent_trades[recent_trades['side'] == 'BUY'])
-        sells = len(recent_trades[recent_trades['side'] == 'SELL'])
+        # Filter for Hyper-Scalper only (Grid and Dip bots are expected to accumulate)
+        scalper_trades = recent_trades[recent_trades['strategy'].str.contains('Hyper-Scalper', case=False, na=False)]
+        
+        if scalper_trades.empty:
+            return
+
+        buys = len(scalper_trades[scalper_trades['side'] == 'BUY'])
+        sells = len(scalper_trades[scalper_trades['side'] == 'SELL'])
         
         if buys > 20 and sells == 0:
-            self.notifier.send_message(f"🚨 WATCHDOG ALERT: {buys} buys with 0 sells in last 6 hours!")
+            self.notifier.send_message(f"🚨 WATCHDOG ALERT (Scalper): {buys} buys with 0 sells in last 6 hours!")
             print(f"⚠️ WATCHDOG: {buys} buys, 0 sells in 6h")
         elif buys > sells * 10 and sells > 0:
-            self.notifier.send_message(f"⚠️ WATCHDOG: High buy/sell ratio: {buys}/{sells}")
+            self.notifier.send_message(f"⚠️ WATCHDOG (Scalper): High buy/sell ratio: {buys}/{sells}")
 
     def start(self):
         """Start the main loop"""
@@ -303,7 +309,7 @@ class TradingEngine:
                                 self.execute_trade(bot, symbol, 'SELL', current_price, rsi, position_id=signal['position_id'])
                             elif signal['side'] == 'BUY':
                                 print(f"[{bot['name']}] Grid BUY Signal: {signal['reason']}")
-                                self.execute_trade(bot, symbol, 'BUY', current_price, rsi)
+                                self.execute_trade(bot, symbol, 'BUY', current_price, rsi, reason=signal['reason'])
                         continue # Skip standard logic for Grid
                 
                 # Check for SELL signals first (FIFO)
@@ -424,7 +430,7 @@ class TradingEngine:
                     self.notifier.send_message(f"🔴 CIRCUIT BREAKER TRIGGERED - {error_count} consecutive errors. Auto-recovery in 30 min.")
                     print(f"⚠️  Circuit breaker triggered after {error_count} errors")
 
-    def execute_trade(self, bot, symbol, side, price, rsi, position_id=None):
+    def execute_trade(self, bot, symbol, side, price, rsi, position_id=None, reason=None):
         """Execute a trade with FIFO position management"""
         max_exposure = bot.get('max_exposure_per_coin', 2000)
         trade_amount_usd = bot['amount']
@@ -455,7 +461,8 @@ class TradingEngine:
                                     position_id=position_id, engine_version='2.0', strategy_version=strategy_version)
                 
                 # Send Notification
-                self.notifier.notify_trade(symbol, side, price, amount, reason=f"RSI: {rsi:.2f}")
+                trade_reason = reason if reason else f"RSI: {rsi:.2f}"
+                self.notifier.notify_trade(symbol, side, price, amount, reason=trade_reason)
                 
                 # Reset circuit breaker on successful trade
                 self.reset_circuit_breaker()
