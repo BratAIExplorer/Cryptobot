@@ -2,7 +2,7 @@ module.exports = {
     apps: [{
         name: "crypto-bot",
         script: "run_bot.py",
-        interpreter: "python",
+        interpreter: "python3",
         watch: false,
         autorestart: true,
         restart_delay: 5000,
