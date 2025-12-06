@@ -1,11 +1,3 @@
-> Status: **Optimized & Enhanced (Grid Bot Added)**
-> Last Updated: 2025-12-05
-
-## 1. Project Overview & Objectives
-**Purpose:**
-To build a robust, automated crypto trading system capable of executing multiple strategies simultaneously on a VPS, with real-time monitoring via a web dashboard.
-
-**End Goal:**
 A "set-and-forget" passive income generator that:
 - Runs 24/7 with 99.9% uptime.
 - Protects capital via strict risk management (Circuit Breakers, Max Drawdown).
@@ -32,6 +24,17 @@ A "set-and-forget" passive income generator that:
 - **Streamlit Warnings:** Resolved deprecation warnings for `use_container_width`.
 - **Split-Brain DB:** Resolved dual-database issue.
 
+### Critical Fixes (Dec 6)
+> [!CAUTION]
+> **Ghost Position Bug:** Discovered and resolved a critical issue causing 15+ hours of zero trading activity.
+
+- **Problem:** Auto-cleanup function crashed due to undefined `rsi` variable, leaving "ghost positions" in the database. This caused the bot to think it was at max exposure on 15+ coins, blocking all new trades.
+- **Fix Applied:**
+  - Updated `core/engine.py` to define a default RSI value (50.0) in the `cleanup_aged_positions` method.
+  - Created and executed `force_cleanup.py` to manually purge 12 stuck positions from the database.
+- **Result:** Bot now has free capacity to trade. Watchdog sensitivity also adjusted (10:1 → 20:1 ratio) to reduce false alarms.
+- **Monitoring Tool:** Created `health_check.py` for periodic status checks every 2-4 hours.
+
 ---
 
 ## 3. Prevention Measures & "Extra Mile"
@@ -39,7 +42,7 @@ To ensure the bot functions as expected moving forward:
 
 **Implemented Safety Nets:**
 - **Circuit Breaker:** Auto-pauses on errors, auto-recovers after 30 mins. **(Verified & Fixed)**
-- **Watchdog:** Alerts if there are many buys with 0 sells (hoarding check).
+- **Smart Watchdog:** Alerts on "hoarding" (many buys, 0 sells) but intelligently ignores Grid/Dip strategies.
 - **Max Drawdown Protection:** Pauses trading if equity drops below a set threshold.
 - **PM2 Process Manager:** Ensures the bot auto-restarts on crashes or server reboots.
 
