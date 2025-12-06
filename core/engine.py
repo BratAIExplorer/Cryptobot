@@ -267,6 +267,17 @@ class TradingEngine:
                     if not df.empty:
                         current_price = df['close'].iloc[-1]
                         
+                        # Calculate RSI for cleanup log
+                        try:
+                            # We need more history to calc RSI, fetch if needed or default to None
+                            # For cleanup, accurate RSI isn't critical, but we need the variable defined
+                            rsi = 50.0 # Default neutral value for forced cleanup
+                            # Optionally fetch more data if strictly needed:
+                            # df_rsi = self.exchange.fetch_ohlcv(symbol, timeframe='1h', limit=50)
+                            # rsi = calculate_rsi(df_rsi['close']).iloc[-1]
+                        except:
+                            rsi = 50.0
+
                         # Close position with exit RSI
                         profit = self.logger.close_position(position_id, current_price, exit_rsi=rsi)
                         if profit is not None:
