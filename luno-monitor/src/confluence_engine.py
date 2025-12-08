@@ -323,18 +323,18 @@ class ConfluenceEngine:
         breakdown['sector_rotation'] = {'xlm_outperformance': xlm_gain, 'score': sector_score, 'max': 7}
         
         # Model Forecast (0-5 points)
-        # Check if model predicts positive expected value
-        expected_return_pct = manual_inputs.get('model_expected_return', 0)
-        if expected_return_pct > 10:
-            model_score = 5
-        elif expected_return_pct > 5:
-            model_score = 4
-        elif expected_return_pct > 0:
-            model_score = 3
-        else:
-            model_score = 0
+        # DISABLED: Simple trend model shows POOR health (Win Rate <40%, MAPE >20%)
+        # Re-enable when better forecast source is available (TradingView, CryptoQuant, or ML model)
+        # For now, fundamental score = ETF flows + sector rotation only (15 points max)
+        expected_return_pct = 0  # Disabled
+        model_score = 0
         score += model_score
-        breakdown['model_forecast'] = {'expected_return': expected_return_pct, 'score': model_score, 'max': 5}
+        breakdown['model_forecast'] = {
+            'expected_return': expected_return_pct, 
+            'score': model_score, 
+            'max': 5,
+            'status': 'DISABLED - awaiting better forecast model'
+        }
         
         return {
             'score': score,
