@@ -402,4 +402,30 @@ class TradeLogger:
             pass
         
         return False
+    
+    # ==================== SKIPPED TRADES LOGGING ====================
+    
+    def log_skipped_trade(self, strategy, symbol, side, price, intended_amount, skip_reason, 
+                          current_exposure=None, max_exposure=None, available_balance=None, details=None):
+        """Log a trade that was skipped due to limits or insufficient funds"""
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        
+        # Check if table exists (for backwards compatibility)
+        c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='skipped_trades'")
+        if not c.fetchone():
+            conn.close()
+            return  # Table doesn't exist, skip logging quietly
+        
+        c.execute('''
+            INSERT INTO skipped_trades 
+            (timestamp, strategy, symbol, side, price, intended_amount, skip_reason, details, 
+             current_exposure, max_exposure, available_balance)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (datetime.now(), strategy, symbol, side, price, intended_amount, skip_reason, 
+              details, current_exposure, max_exposure, available_balance))
+        
+        conn.commit()
+        conn.close()
+        print(f"[SKIP-LOG] {skip_reason}: {side} {symbol} @ ${price:.4f}")
 

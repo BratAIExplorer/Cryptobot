@@ -14,7 +14,10 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.portfolio_analyzer import PortfolioAnalyzer
 from src.price_monitor import PriceMonitor
 from src.luno_client import LunoClient
+from src.model_validator import ModelValidator
+from src.confluence_engine import ConfluenceEngine
 import config
+import config_coins
 
 app = Flask(__name__)
 CORS(app)
@@ -23,6 +26,8 @@ CORS(app)
 analyzer = PortfolioAnalyzer()
 monitor = PriceMonitor()
 luno_client = LunoClient()
+model_validator = ModelValidator()
+confluence_engine = ConfluenceEngine()
 
 # Global cache for data
 data_cache = {
@@ -135,7 +140,9 @@ def get_bot_status():
             status[service] = {'name': service, 'active': False, 'status': 'ERROR'}
     # Get trading stats from DB
     try:
-        db_path = '/Antigravity/antigravity/scratch/crypto_trading_bot/data/trades.db'
+        # Auto-detect path (works locally and on VPS)
+        root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        db_path = os.path.join(root_dir, 'data', 'trades.db')
         conn = sqlite3.connect(db_path)
         c = conn.cursor()
         
@@ -157,6 +164,79 @@ def get_bot_status():
             'open_positions': open_positions,
             'total_trades': total_trades
         }
+    })
+
+
+@app.route('/api/model_health')
+def get_model_health():
+    """Get model validation status for all tracked coins"""
+    try:
+        results = {}
+        enabled_coins = config_coins.get_enabled_coins()
+        
+        # Check if we have recent validation data in database
+        db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'data', 'trades.db')
+        conn = sqlite3.connect(db_path)
+        c = conn.cursor()
+        
+        for symbol in enabled_coins:
+            c.execute('''
+                SELECT mape, win_rate, sharpe_ratio, health_status, validation_date
+                FROM model_validation
+                WHERE symbol = ?
+                ORDER BY validation_date DESC
+                LIMIT 1
+            ''', (symbol,))
+            row = c.fetchone()
+            
+            if row:
+                results[symbol] = {
+                    'mape': row[0],
+                    'win_rate': row[1],
+                    'sharpe_ratio': row[2],
+                    'health_status': row[3],
+                    'last_validation': row[4]
+                }
+            else:
+                results[symbol] = {
+                    'health_status': 'NOT_VALIDATED',
+                    'message': 'Run validation first'
+                }
+        
+        conn.close()
+        return jsonify(results)
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/confluence_score/<symbol>')
+def get_confluence_score(symbol):
+    """Get confluence score for a specific coin"""
+    try:
+        # In production, manual_inputs would come from UI form or APIs
+        # For now, return structure for frontend to populate
+        return jsonify({
+            'symbol': symbol,
+            'status': 'ready',
+            'message': 'Submit manual inputs via POST to calculate score',
+            'required_inputs': {
+                'technical': ['rsi', 'macd_signal', 'volume_trend', 'price', 'ma50', 'ma200'],
+                'onchain': ['whale_holdings', 'exchange_reserves', 'velocity', 'exchange_flow_ratio', 'dormant_circulation'],
+                'macro': ['btc_trend', 'btc_price', 'risk_regime', 'fed_rate_cut_prob'],
+                'fundamental': ['etf_inflows', 'xlm_outperformance_pct', 'model_expected_return']
+            }
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/tracked_coins')
+def get_tracked_coins():
+    """Get list of all tracked coins with configuration"""
+    return jsonify({
+        'coins': config_coins.TRACKED_COINS,
+        'enabled_coins': config_coins.get_enabled_coins()
     })
 
 
