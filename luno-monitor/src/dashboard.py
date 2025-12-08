@@ -252,6 +252,26 @@ def confluence_calculator():
     return render_template('confluence_calculator.html')
 
 
+@app.route('/api/news/<symbol>')
+def get_crypto_news(symbol):
+    """Get top 5 critical news for a coin"""
+    from src.news_filter import NewsFilter
+    
+    # Get API key from environment (optional)
+    import os
+    api_key = os.getenv('CRYPTOPANIC_API_KEY')  # Or use 'demo'
+    
+    filter = NewsFilter(api_key=api_key)
+    news = filter.fetch_critical_news(symbol=symbol.upper(), max_items=5)
+    formatted = filter.format_news_for_display(news)
+    
+    return jsonify({
+        'symbol': symbol.upper(),
+        'news_count': len(formatted),
+        'news': formatted
+    })
+
+
 
 @app.route('/status')
 def status_page():
