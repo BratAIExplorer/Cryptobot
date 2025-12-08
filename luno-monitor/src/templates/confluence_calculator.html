@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confluence Score Calculator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            color: #fff;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(26, 31, 58, 0.6);
+            border-radius: 15px;
+        }
+
+        .section {
+            background: rgba(26, 31, 58, 0.9);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+
+        .section h2 {
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #2a2f4a;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #aaa;
+            font-size: 0.9em;
+        }
+
+        .input-group input,
+        .input-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #2a2f4a;
+            border-radius: 8px;
+            background: rgba(42, 47, 74, 0.5);
+            color: #fff;
+            font-size: 1em;
+        }
+
+        .input-group input:focus,
+        .input-group select:focus {
+            outline: none;
+            border-color: #00ff88;
+        }
+
+        .score-display {
+            text-align: center;
+            padding: 30px;
+            background: linear-gradient(135deg, #1a1f3a 0%, #2a2f4a 100%);
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+
+        .score-value {
+            font-size: 4em;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .score-bar {
+            height: 40px;
+            background: #2a2f4a;
+            border-radius: 20px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .score-fill {
+            height: 100%;
+            transition: width 0.5s, background 0.5s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .recommendation {
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(90deg, #00ff88, #00cc66);
+            color: #000;
+        }
+
+        .btn-primary:hover {
+            transform: scale(1.02);
+            box-shadow: 0 5px 15px rgba(0, 255, 136, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 Confluence Score Calculator</h1>
+            <p>Symbol: <strong id="symbolName">XRP</strong></p>
+            <p><a href="/cryptointel" style="color: #00ff88;">← Back to Dashboard</a></p>
+        </div>
+
+        <!-- Technical Signals -->
+        <div class="section">
+            <h2>📊 Technical Signals (30 points)</h2>
+            <div class="input-group">
+                <label>RSI (0-100)</label>
+                <input type="number" id="rsi" min="0" max="100" value="50" oninput="calculateScore()">
+            </div>
+            <div class="input-group">
+                <label>MACD Signal</label>
+                <select id="macd_signal" onchange="calculateScore()">
+                    <option value="BULLISH">BULLISH</option>
+                    <option value="NEUTRAL" selected>NEUTRAL</option>
+                    <option value="BEARISH">BEARISH</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>Volume Trend</label>
+                <select id="volume_trend" onchange="calculateScore()">
+                    <option value="INCREASING">INCREASING</option>
+                    <option value="STABLE" selected>STABLE</option>
+                    <option value="DECREASING">DECREASING</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>Current Price ($)</label>
+                <input type="number" id="price" step="0.01" value="2.00" oninput="calculateScore()">
+            </div>
+            <div class="input-group">
+                <label>MA50 ($)</label>
+                <input type="number" id="ma50" step="0.01" value="1.85" oninput="calculateScore()">
+            </div>
+            <div class="input-group">
+                <label>MA200 ($)</label>
+                <input type="number" id="ma200" step="0.01" value="1.45" oninput="calculateScore()">
+            </div>
+        </div>
+
+        <!-- On-Chain Signals -->
+        <div class="section">
+            <h2>🔗 On-Chain Signals (30 points)</h2>
+            <div class="input-group">
+                <label>Whale Holdings (Billions for XRP)</label>
+                <input type="number" id="whale_holdings" step="0.1" value="45" oninput="calculateScore()">
+            </div>
+            <div class="input-group">
+                <label>Exchange Reserves (Billions)</label>
+                <input type="number" id="exchange_reserves" step="0.1" value="3.0" oninput="calculateScore()">
+            </div>
+            <div class="input-group">
+                <label>Velocity</label>
+                <input type="number" id="velocity" step="0.001" value="0.025" oninput="calculateScore()">
+            </div>
+            <div class="input-group">
+                <label>Exchange Flow Ratio</label>
+                <input type="number" id="exchange_flow_ratio" step="0.01" value="0.50" oninput="calculateScore()">
+            </div>
+            <div class="input-group">
+                <label>Dormant Circulation</label>
+                <select id="dormant_circulation" onchange="calculateScore()">
+                    <option value="LOW">LOW (Bullish)</option>
+                    <option value="MEDIUM" selected>MEDIUM</option>
+                    <option value="HIGH">HIGH (Bearish)</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Macro Signals -->
+        <div class="section">
+            <h2>🌍 Macro Signals (20 points)</h2>
+            <div class="input-group">
+                <label>BTC Trend</label>
+                <select id="btc_trend" onchange="calculateScore()">
+                    <option value="BULLISH">BULLISH</option>
+                    <option value="CONSOLIDATING" selected>CONSOLIDATING</option>
+                    <option value="BEARISH">BEARISH</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>BTC Price ($)</label>
+                <input type="number" id="btc_price" value="96800" oninput="calculateScore()">
+            </div>
+            <div class="input-group">
+                <label>Risk Regime</label>
+                <select id="risk_regime" onchange="calculateScore()">
+                    <option value="RISK-ON" selected>RISK-ON</option>
+                    <option value="MIXED">MIXED</option>
+                    <option value="RISK-OFF">RISK-OFF</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>Fed Rate Cut Probability (%)</label>
+                <input type="number" id="fed_rate_cut_prob" min="0" max="100" value="50" oninput="calculateScore()">
+            </div>
+        </div>
+
+        <!-- Fundamental Signals -->
+        <div class="section">
+            <h2>📈 Fundamental Signals (15 points - Forecast Disabled)</h2>
+            <div class="input-group">
+                <label>ETF Inflows (Million $)</label>
+                <input type="number" id="etf_inflows" value="200" oninput="calculateScore()">
+            </div>
+            <div class="input-group">
+                <label>XLM Outperformance (%)</label>
+                <input type="number" id="xlm_outperformance_pct" value="10" oninput="calculateScore()">
+            </div>
+        </div>
+
+        <!-- Score Display -->
+        <div class="score-display">
+            <p style="color: #888;">CONFLUENCE SCORE</p>
+            <div class="score-value" id="totalScore">50</div>
+            <p style="color: #888;">/95 points (Forecast Disabled)</p>
+
+            <div class="score-bar">
+                <div class="score-fill" id="scoreFill"></div>
+            </div>
+
+            <div class="recommendation" id="recommendation">
+                <h3 id="recTitle">HOLD / WAIT</h3>
+                <p id="recPosition">Position Size: 2-4%</p>
+                <p id="recStopLoss">Stop Loss: -7%</p>
+            </div>
+        </div>
+
+        <button class="btn btn-primary" onclick="saveScore()">💾 Save Score & Track</button>
+        <button class="btn btn-secondary" onclick="window.location.href='/cryptointel'">← Back to Dashboard</button>
+    </div>
+
+    <script>
+        // Get symbol from URL parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const symbol = urlParams.get('symbol') || 'XRP';
+        document.getElementById('symbolName').textContent = symbol;
+
+        function calculateScore() {
+            // Technical (30 pts)
+            const rsi = parseFloat(document.getElementById('rsi').value);
+            const rsiScore = (rsi >= 40 && rsi <= 70) ? 5 : (rsi >= 30 && rsi < 40 || rsi > 70 && rsi <= 80) ? 3 : 0;
+
+            const macdSignal = document.getElementById('macd_signal').value;
+            const macdScore = macdSignal === 'BULLISH' ? 8 : macdSignal === 'NEUTRAL' ? 4 : 0;
+
+            const volumeTrend = document.getElementById('volume_trend').value;
+            const volumeScore = volumeTrend === 'INCREASING' ? 7 : volumeTrend === 'STABLE' ? 3 : 0;
+
+            const price = parseFloat(document.getElementById('price').value);
+            const ma50 = parseFloat(document.getElementById('ma50').value);
+            const ma200 = parseFloat(document.getElementById('ma200').value);
+            const maScore = (price > ma50 ? 5 : 0) + (price > ma200 ? 5 : 0);
+
+            const technicalScore = rsiScore + macdScore + volumeScore + maScore;
+
+            // On-Chain (30 pts)
+            const whaleHoldings = parseFloat(document.getElementById('whale_holdings').value);
+            const whaleThreshold = 45; // For XRP
+            const whaleScore = whaleHoldings >= whaleThreshold * 1.05 ? 8 : whaleHoldings >= whaleThreshold ? 6 : whaleHoldings >= whaleThreshold * 0.95 ? 4 : 0;
+
+            const reserves = parseFloat(document.getElementById('exchange_reserves').value);
+            const reservesScore = reserves < 2.5 ? 8 : reserves < 3.0 ? 6 : reserves < 4.0 ? 4 : 0;
+
+            const velocity = parseFloat(document.getElementById('velocity').value);
+            const velocityScore = velocity > 0.030 ? 6 : velocity > 0.020 ? 4 : 2;
+
+            const flowRatio = parseFloat(document.getElementById('exchange_flow_ratio').value);
+            const flowScore = flowRatio < 0.10 ? 8 : flowRatio < 0.30 ? 6 : flowRatio < 0.50 ? 4 : 0;
+
+            const dormant = document.getElementById('dormant_circulation').value;
+            const dormantPenalty = dormant === 'HIGH' ? -8 : 0;
+
+            const onchainScore = Math.max(0, whaleScore + reservesScore + velocityScore + flowScore + dormantPenalty);
+
+            // Macro (20 pts)
+            const btcTrend = document.getElementById('btc_trend').value;
+            const btcTrendScore = btcTrend === 'BULLISH' ? 8 : btcTrend === 'CONSOLIDATING' ? 4 : 0;
+
+            const btcPrice = parseFloat(document.getElementById('btc_price').value);
+            const btcPriceScore = btcPrice > 95000 ? 5 : btcPrice > 90000 ? 3 : 0;
+
+            const riskRegime = document.getElementById('risk_regime').value;
+            const riskScore = riskRegime === 'RISK-ON' ? 5 : riskRegime === 'MIXED' ? 2 : 0;
+
+            const fedProb = parseFloat(document.getElementById('fed_rate_cut_prob').value);
+            const fedScore = fedProb > 80 ? 2 : fedProb > 60 ? 1 : 0;
+
+            const macroScore = btcTrendScore + btcPriceScore + riskScore + fedScore;
+
+            // Fundamental (15 pts - forecast disabled)
+            const etfInflows = parseFloat(document.getElementById('etf_inflows').value);
+            const etfScore = etfInflows > 400 ? 8 : etfInflows > 200 ? 5 : etfInflows > 50 ? 3 : 0;
+
+            const xlmOutperf = parseFloat(document.getElementById('xlm_outperformance_pct').value);
+            const sectorScore = xlmOutperf > 15 ? 7 : xlmOutperf > 10 ? 5 : xlmOutperf > 5 ? 3 : 0;
+
+            const fundamentalScore = etfScore + sectorScore;
+
+            // Total
+            const totalScore = technicalScore + Math.min(onchainScore, 30) + macroScore + fundamentalScore;
+
+            // Update display
+            document.getElementById('totalScore').textContent = totalScore;
+            updateScoreBar(totalScore);
+            updateRecommendation(totalScore);
+        }
+
+        function updateScoreBar(score) {
+            const fill = document.getElementById('scoreFill');
+            const percentage = (score / 95) * 100;
+            fill.style.width = percentage + '%';
+
+            if (score >= 76) {
+                fill.style.background = 'linear-gradient(90deg, #00ff88, #00cc66)';
+                fill.textContent = 'STRONG BUY';
+            } else if (score >= 57) {
+                fill.style.background = 'linear-gradient(90deg, #ffaa00, #ff8800)';
+                fill.textContent = 'CAUTIOUS BUY';
+            } else if (score >= 38) {
+                fill.style.background = 'linear-gradient(90deg, #888888, #666666)';
+                fill.textContent = 'HOLD / WAIT';
+            } else {
+                fill.style.background = 'linear-gradient(90deg, #ff4444, #cc0000)';
+                fill.textContent = 'AVOID';
+            }
+        }
+
+        function updateRecommendation(score) {
+            const rec = document.getElementById('recommendation');
+            const title = document.getElementById('recTitle');
+            const position = document.getElementById('recPosition');
+            const stopLoss = document.getElementById('recStopLoss');
+
+            if (score >= 76) {
+                rec.style.background = 'linear-gradient(90deg, #00ff88, #00cc66)';
+                rec.style.color = '#000';
+                title.textContent = 'STRONG BUY ✅';
+                position.textContent = 'Position Size: 8-10% of portfolio';
+                stopLoss.textContent = 'Stop Loss: -15%';
+            } else if (score >= 57) {
+                rec.style.background = 'linear-gradient(90deg, #ffaa00, #ff8800)';
+                rec.style.color = '#000';
+                title.textContent = 'CAUTIOUS BUY 🟡';
+                position.textContent = 'Position Size: 5-7% of portfolio';
+                stopLoss.textContent = 'Stop Loss: -10%';
+            } else if (score >= 38) {
+                rec.style.background = 'linear-gradient(90deg, #888888, #666666)';
+                rec.style.color = '#fff';
+                title.textContent = 'HOLD / WAIT 🟠';
+                position.textContent = 'Position Size: 2-4% of portfolio';
+                stopLoss.textContent = 'Stop Loss: -7%';
+            } else {
+                rec.style.background = 'linear-gradient(90deg, #ff4444, #cc0000)';
+                rec.style.color = '#fff';
+                title.textContent = 'AVOID ❌';
+                position.textContent = 'Position Size: 0-1% of portfolio';
+                stopLoss.textContent = 'Stop Loss: -5%';
+            }
+        }
+
+        function saveScore() {
+            alert('Score tracking feature coming soon! This will save your daily scores to the database for accuracy tracking.');
+        }
+
+        // Initial calculation
+        calculateScore();
+    </script>
+</body>
+
+</html>

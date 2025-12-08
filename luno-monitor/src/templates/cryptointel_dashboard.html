@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CryptoIntel Hub - Decision Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            color: #fff;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(26, 31, 58, 0.6);
+            border-radius: 15px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #888;
+        }
+
+        .market-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .market-card {
+            background: rgba(26, 31, 58, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .market-card h3 {
+            font-size: 0.9em;
+            color: #888;
+            margin-bottom: 5px;
+        }
+
+        .market-card p {
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+
+        .up {
+            color: #00ff88;
+        }
+
+        .down {
+            color: #ff4444;
+        }
+
+        .coin-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .coin-card {
+            background: rgba(26, 31, 58, 0.9);
+            border-radius: 15px;
+            padding: 25px;
+            border: 2px solid #2a2f4a;
+            transition: all 0.3s;
+        }
+
+        .coin-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 255, 136, 0.2);
+            border-color: #00ff88;
+        }
+
+        .coin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .coin-name h2 {
+            font-size: 1.8em;
+        }
+
+        .coin-name p {
+            color: #888;
+            font-size: 0.9em;
+        }
+
+        .priority-badge {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+
+        .priority-high {
+            background: #ff6b35;
+        }
+
+        .priority-medium {
+            background: #ffaa00;
+        }
+
+        .health-status {
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .health-excellent {
+            background: linear-gradient(90deg, #00ff88, #00cc66);
+            color: #000;
+        }
+
+        .health-good {
+            background: linear-gradient(90deg, #00ccff, #0099cc);
+            color: #000;
+        }
+
+        .health-fair {
+            background: linear-gradient(90deg, #ffaa00, #ff8800);
+            color: #000;
+        }
+
+        .health-poor {
+            background: linear-gradient(90deg, #ff4444, #cc0000);
+        }
+
+        .health-not-validated {
+            background: #444;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .metric {
+            background: rgba(42, 47, 74, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        .metric h4 {
+            font-size: 0.7em;
+            color: #888;
+            margin-bottom: 5px;
+        }
+
+        .metric p {
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .position-range {
+            background: rgba(42, 47, 74, 0.6);
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .position-range p {
+            font-size: 0.9em;
+            color: #aaa;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(90deg, #00ff88, #00cc66);
+            color: #000;
+        }
+
+        .btn-primary:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0, 255, 136, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding: 20px;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 768px) {
+            .coin-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>🎯 CryptoIntel Hub</h1>
+        <p>Professional Trading Decision System | Last Updated: <span id="lastUpdate"></span></p>
+    </div>
+
+    <div class="market-overview" id="marketOverview">
+        <div class="market-card">
+            <h3>BTC Price</h3>
+            <p id="btcPrice" class="up">Loading...</p>
+        </div>
+        <div class="market-card">
+            <h3>Risk Regime</h3>
+            <p id="riskRegime">Loading...</p>
+        </div>
+        <div class="market-card">
+            <h3>Model Status</h3>
+            <p id="modelStatus">Loading...</p>
+        </div>
+    </div>
+
+    <div class="coin-grid" id="coinGrid">
+        <!-- Coins will be loaded here dynamically -->
+    </div>
+
+    <div class="footer">
+        <p>CryptoIntel Hub v1.0 | Powered by Flask + Free APIs |
+            <a href="/api/model_health" style="color: #00ff88;">API Docs</a> |
+            <a href="/confluence" style="color: #00ff88;">Manual Calculator</a>
+        </p>
+    </div>
+
+    <script>
+        // Load data from APIs
+        async function loadDashboard() {
+            try {
+                // Update timestamp
+                document.getElementById('lastUpdate').textContent = new Date().toLocaleString();
+
+                // Fetch model health
+                const healthResponse = await fetch('/api/model_health');
+                const healthData = await healthResponse.json();
+
+                // Fetch tracked coins config
+                const coinsResponse = await fetch('/api/tracked_coins');
+                const coinsData = await coinsResponse.json();
+
+                // Update market overview
+                updateMarketOverview(healthData);
+
+                // Render coin cards
+                renderCoinCards(healthData, coinsData.coins);
+
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+                document.getElementById('coinGrid').innerHTML =
+                    '<p style="color: #ff4444;">Error loading data. Please check API connection.</p>';
+            }
+        }
+
+        function updateMarketOverview(healthData) {
+            // Count model statuses
+            const statuses = Object.values(healthData);
+            const poorCount = statuses.filter(s => s.health_status === 'POOR').length;
+            const goodCount = statuses.filter(s => s.health_status === 'GOOD').length;
+            const excellentCount = statuses.filter(s => s.health_status === 'EXCELLENT').length;
+
+            document.getElementById('modelStatus').textContent =
+                `${excellentCount} Excellent, ${goodCount} Good, ${poorCount} Poor`;
+            document.getElementById('riskRegime').textContent = 'RISK-ON'; // Placeholder
+            document.getElementById('btcPrice').textContent = '$96,800'; // Placeholder
+        }
+
+        function renderCoinCards(healthData, coinsConfig) {
+            const grid = document.getElementById('coinGrid');
+            grid.innerHTML = '';
+
+            // Sort by priority (HIGH first)
+            const sortedCoins = Object.entries(coinsConfig).sort((a, b) => {
+                const priorityOrder = { 'HIGH': 1, 'MEDIUM': 2, 'LOW': 3 };
+                return priorityOrder[a[1].priority] - priorityOrder[b[1].priority];
+            });
+
+            sortedCoins.forEach(([symbol, config]) => {
+                const health = healthData[symbol] || { health_status: 'NOT_VALIDATED', message: 'Run validation first' };
+
+                const card = document.createElement('div');
+                card.className = 'coin-card';
+                card.innerHTML = `
+                    <div class="coin-header">
+                        <div class="coin-name">
+                            <h2>${symbol}</h2>
+                            <p>${config.name} | ${config.category}</p>
+                        </div>
+                        <span class="priority-badge priority-${config.priority.toLowerCase()}">${config.priority}</span>
+                    </div>
+
+                    <div class="health-status health-${health.health_status.toLowerCase().replace('_', '-')}">
+                        ${getHealthEmoji(health.health_status)} Model Health: ${health.health_status}
+                    </div>
+
+                    ${health.win_rate !== undefined ? `
+                        <div class="metrics">
+                            <div class="metric">
+                                <h4>WIN RATE</h4>
+                                <p>${(health.win_rate * 100).toFixed(1)}%</p>
+                            </div>
+                            <div class="metric">
+                                <h4>MAPE</h4>
+                                <p>${(health.mape * 100).toFixed(1)}%</p>
+                            </div>
+                            <div class="metric">
+                                <h4>SHARPE</h4>
+                                <p>${health.sharpe_ratio.toFixed(2)}</p>
+                            </div>
+                        </div>
+                    ` : `
+                        <div class="metric">
+                            <p style="color: #888;">${health.message}</p>
+                        </div>
+                    `}
+
+                    <div class="position-range">
+                        <p><strong>Position Range:</strong> $${config.min_position_size.toLocaleString()} - $${config.max_position_size.toLocaleString()}</p>
+                        <p><strong>Recommended:</strong> ${config.priority === 'HIGH' ? '30-40%' : '5-10%'} of portfolio</p>
+                    </div>
+
+                    <div class="buttons">
+                        <button class="btn btn-primary" onclick="calculateConfluence('${symbol}')">
+                            Calculate Score
+                        </button>
+                        <button class="btn btn-secondary" onclick="viewDetails('${symbol}')">
+                            View Details
+                        </button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function getHealthEmoji(status) {
+            const emojis = {
+                'EXCELLENT': '✅',
+                'GOOD': '🟢',
+                'FAIR': '🟡',
+                'POOR': '🔴',
+                'NOT_VALIDATED': '⚪'
+            };
+            return emojis[status] || '❓';
+        }
+
+        function calculateConfluence(symbol) {
+            window.location.href = `/confluence?symbol=${symbol}`;
+        }
+
+        function viewDetails(symbol) {
+            window.location.href = `/api/confluence_score/${symbol}`;
+        }
+
+        // Auto-refresh every 60 seconds
+        setInterval(loadDashboard, 60000);
+
+        // Load on page load
+        loadDashboard();
+    </script>
+</body>
+
+</html>

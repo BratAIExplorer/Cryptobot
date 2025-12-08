@@ -240,6 +240,18 @@ def get_tracked_coins():
     })
 
 
+@app.route('/cryptointel')
+def cryptointel_dashboard():
+    """CryptoIntel Hub - Unified Decision Dashboard"""
+    return render_template('cryptointel_dashboard.html')
+
+
+@app.route('/confluence')
+def confluence_calculator():
+    """Manual Confluence Score Calculator"""
+    return render_template('confluence_calculator.html')
+
+
 
 @app.route('/status')
 def status_page():
