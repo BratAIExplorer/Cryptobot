@@ -46,6 +46,7 @@ class TradingEngine:
         
         # Milestone tracking
         self.last_milestone = 0
+        self.last_resilience_alert = datetime.min  # For throttling disconnection alerts
         self.milestones = [100, 250, 500, 1000, 2500, 5000, 10000]
         
         # Rate limiting
@@ -346,6 +347,12 @@ class TradingEngine:
                 if not can_trade_resilience:
                     # Print only once every 10 loops to reduce spam
                     print(f"[{bot['name']}] Resilience Block: {reason}")
+                    
+                    # Alert if disconnected for a long time (throttle to once per hour)
+                    if (datetime.now() - self.last_resilience_alert).total_seconds() > 3600:
+                        self.notifier.send_message(f"⚠️ **CRITICAL: Bot Disconnected**\nReason: {reason}\nCheck VPS Internet or API status.")
+                        self.last_resilience_alert = datetime.now()
+                        
                     continue
 
                 current_price = df['close'].iloc[-1]
