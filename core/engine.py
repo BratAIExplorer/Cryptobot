@@ -12,6 +12,8 @@ from .observability import SystemMonitor
 from .notifier import TelegramNotifier
 from utils.indicators import calculate_rsi, calculate_sma
 from strategies.grid_strategy_v2 import DynamicGridStrategy
+from .veto import VetoManager
+
 
 class TradingEngine:
     def __init__(self, mode='paper', telegram_config=None):
@@ -22,7 +24,10 @@ class TradingEngine:
         # Initialize Safety Managers
         self.risk_manager = setup_safe_trading_bot('moderate') # Default to Moderate Risk
         self.resilience_manager = ExchangeResilienceManager("Binance") # Default exchange
+        self.resilience_manager = ExchangeResilienceManager("Binance") # Default exchange
         self.execution_manager = None # Initialized per trade
+        self.veto_manager = VetoManager(self.exchange, self.logger)
+
         
         # Initialize Observability
         # Initialize Observability (Pass risk manager)
@@ -537,7 +542,15 @@ class TradingEngine:
 
                 # Execute BUY
                 if signal == 'BUY':
-                    self.execute_trade(bot, symbol, 'BUY', current_price, rsi)
+                    # --- VETO CHECK (Phase 2) ---
+                    is_allowed, veto_reason = self.veto_manager.check_entry_allowed(symbol, bot['name'])
+                    if is_allowed:
+                        self.execute_trade(bot, symbol, 'BUY', current_price, rsi)
+                    else:
+                        print(f"[{bot['name']}] ⛔ VETO BLOCKED BUY {symbol}: {veto_reason}")
+                        # Optional: Notify if it's a major event?
+                        # self.notifier.send_message(f"⛔ Veto prevented trade on {symbol}: {veto_reason}")
+
                 
             except Exception as e:
                 print(f"Error processing {symbol}: {e}")
