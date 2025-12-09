@@ -453,15 +453,38 @@ class TradingEngine:
                     
                     sell_reason = None
                     
-                    # Priority 1: Stop Loss (always check first)
-                    # Configurable Stop Loss (User Request: Customizable)
-                    stop_loss_enabled = bot.get('stop_loss_enabled', True)
+                    # --- V3 EXIT LOGIC (Centralized in Risk Manager) ---
+                    # Prepare data object for Risk Manager
+                    position_data = {
+                        'entry_price': buy_price,
+                        'current_price': current_price,
+                        'strategy': strategy_type,
+                        'symbol': symbol,
+                        'open_time': buy_timestamp
+                    }
+                    
+                    # Ask Risk Manager what to do
+                    action, risk_reason = self.risk_manager.check_exit_conditions(position_data)
+                    
+                    if action == 'SELL':
+                        sell_reason = risk_reason
+                    elif action == 'ALERT_STOP_LOSS':
+                        # Do NOT sell. Just alert.
+                        # Throttle alerts to avoid spamming (simple throttle: check if we just sent one? For now just print)
+                        print(f"⚠️  MANUAL DECISION NEEDED: {symbol} hit Stop Loss. Bot is HOLDING. {risk_reason}")
+                        # self.notifier.send_message(f"⚠️ STOP LOSS HIT: {symbol}. Please review manually.")
+                    
+                    # Priority 1: User Hard Manual Override (Stop Loss Enabled flag)
+                    # If user explicitly wants automated stop losses, we honor the legacy config
+                    stop_loss_enabled = bot.get('stop_loss_enabled', False) # Default to FALSE for V3 (Human Exits)
                     
                     if stop_loss_enabled and current_price <= buy_price * (1 - sl_pct):
-                        sell_reason = f"SL Hit (-{sl_pct*100:.1f}%)"
-                    
-                    # Priority 2: Strategy Specific Exits
-                    elif strategy_type == 'Buy-the-Dip':
+                         sell_reason = f"Hard SL Hit (-{sl_pct*100:.1f}%)"
+
+                    # Priority 2: Strategy Specific (if not covered by Risk Manager)
+                    if not sell_reason:
+                        if strategy_type == 'Buy-the-Dip':
+
                         # Tiered exits: 50% @ 5%, 25% @ 7%, 25% @ 10%
                         if profit_pct >= 0.10:
                             sell_reason = f"TP3 Hit (+10%)"

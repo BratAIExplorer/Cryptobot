@@ -7,6 +7,11 @@ echo "==================================================="
 echo "🚀 Starting Lumina Crypto Bot (v3.0 Refactor)"
 echo "==================================================="
 
+# 0. Auto-Update
+echo "🔄 Checking for updates..."
+git pull
+
+
 # 1. Check Python Version
 if command -v python3 &>/dev/null; then
     PY_CMD="python3"
