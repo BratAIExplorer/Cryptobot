@@ -71,8 +71,8 @@ def main():
         'amount': 800,  # $800 per coin ($3200 total)
         'initial_balance': 50000,
         'rsi_limit': 30,          # Relaxed from 15 to 30 (Expert Rec)
-        'take_profit_pct': 0.012, # 1.2% Profit (covers fees + buffer)
-        'stop_loss_pct': 0.02,    # 2% Tight stop
+        'take_profit_pct': 0.035, # 3.5% Aggressive Target (Expert Rec)
+        'stop_loss_pct': 0.01,    # 1% Tight stop
         'max_hold_hours': 0.5,    # CRITICAL: 30 minutes max
         'max_exposure_per_coin': 800
     })
@@ -86,8 +86,9 @@ def main():
         'symbols': ['BTC/USDT'],
         'amount': 50,           # Amount per grid level
         'grid_levels': 20,
-        'lower_limit': 90000,   # Placeholder, will be updated by logic if needed, but V2 uses config
-        # We need to set dynamic limits based on current price? 
+        'atr_multiplier': 2.0,  # Dynamic Range
+        'atr_period': 14,
+        'lower_limit': 88000,   # Fallback 
         # For now, let's set a wide fixed range or update V2 to auto-calculate if 0.
         # But V2 takes config. Let's use the backtest values relative to current price.
         # Since I can't get live price easily here, I'll use the values from backtest or expert advice.
@@ -105,6 +106,8 @@ def main():
         'symbols': ['ETH/USDT'],
         'amount': 30,
         'grid_levels': 30,
+        'atr_multiplier': 2.5, # Slightly wider for ETH
+        'atr_period': 14,
         'lower_limit': 2800,
         'upper_limit': 3500,
         'initial_balance': 50000,

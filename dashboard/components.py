@@ -2,7 +2,7 @@ import streamlit as st
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-def plot_candle_chart(df, trades=None, title="Price Chart"):
+def plot_candle_chart(df, trades=None, title="Price Chart", grid_data=None):
     """
     Plot candlestick chart with optional trade markers.
     """
@@ -39,12 +39,24 @@ def plot_candle_chart(df, trades=None, title="Price Chart"):
                 name='Buy'
             ), row=1, col=1)
             
-        if not sells.empty:
             fig.add_trace(go.Scatter(
                 x=sells['timestamp'], y=sells['price'],
                 mode='markers', marker=dict(symbol='triangle-down', size=10, color='red'),
                 name='Sell'
             ), row=1, col=1)
+
+    # Grid Lines
+    if grid_data:
+        # Plot Range Limits
+        if grid_data.get('lower_limit'):
+            fig.add_hline(y=grid_data['lower_limit'], line_dash="dash", line_color="green", opacity=0.7, row=1, col=1)
+        if grid_data.get('upper_limit'):
+            fig.add_hline(y=grid_data['upper_limit'], line_dash="dash", line_color="red", opacity=0.7, row=1, col=1)
+            
+        # Plot Levels (Optional: can be too busy if many levels)
+        if grid_data.get('grid_levels'):
+            for level in grid_data['grid_levels']:
+                fig.add_hline(y=level, line_color="gray", opacity=0.2, row=1, col=1)
 
     fig.update_layout(xaxis_rangeslider_visible=False, height=600)
     st.plotly_chart(fig, width='stretch')

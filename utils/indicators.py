@@ -21,3 +21,15 @@ def calculate_bollinger_bands(series, period=20, std_dev=2):
     upper = sma + (std * std_dev)
     lower = sma - (std * std_dev)
     return upper, lower
+
+def calculate_atr(high, low, close, period=14):
+    """Calculate Average True Range (ATR)"""
+    # TR = Max(High-Low, Abs(High-PrevClose), Abs(Low-PrevClose))
+    high_low = high - low
+    high_close = np.abs(high - close.shift())
+    low_close = np.abs(low - close.shift())
+    
+    ranges = pd.concat([high_low, high_close, low_close], axis=1)
+    true_range = np.max(ranges, axis=1)
+    
+    return true_range.rolling(window=period).mean()

@@ -1,19 +1,32 @@
 import time
+from decimal import Decimal
 import pandas as pd
 from datetime import datetime, timedelta
 from .exchange import ExchangeInterface
 from .logger import TradeLogger
-from .risk_manager import RiskManager
+from .logger import TradeLogger
+from .risk_module import RiskManager, setup_safe_trading_bot
+from .resilience import ExchangeResilienceManager
+from .execution import OrderExecutionManager
+from .observability import SystemMonitor
 from .notifier import TelegramNotifier
 from utils.indicators import calculate_rsi, calculate_sma
-from strategies.grid_strategy_v2 import GridStrategyV2
+from strategies.grid_strategy_v2 import DynamicGridStrategy
 
 class TradingEngine:
     def __init__(self, mode='paper', telegram_config=None):
         self.mode = mode
         self.exchange = ExchangeInterface(mode)
         self.logger = TradeLogger()
-        self.risk_manager = RiskManager()
+        
+        # Initialize Safety Managers
+        self.risk_manager = setup_safe_trading_bot('moderate') # Default to Moderate Risk
+        self.resilience_manager = ExchangeResilienceManager("Binance") # Default exchange
+        self.execution_manager = None # Initialized per trade
+        
+        # Initialize Observability
+        self.system_monitor = SystemMonitor(self.logger, self.risk_manager, self.resilience_manager)
+        
         self.notifier = TelegramNotifier(
             token=telegram_config.get('token') if telegram_config else None,
             chat_id=telegram_config.get('chat_id') if telegram_config else None
@@ -56,7 +69,7 @@ class TradingEngine:
                 # Pass the full config, ensure symbol is set
                 config = strategy_config.copy()
                 config['symbol'] = symbol
-                self.strategies[strategy_config['name']] = GridStrategyV2(config)
+                self.strategies[strategy_config['name']] = DynamicGridStrategy(config)
                 
         print(f"Bot added: {strategy_config['name']}")
 
@@ -131,10 +144,31 @@ class TradingEngine:
             self.logger.update_bot_status(bot['name'], 'RUNNING', 0, total_pnl, wallet_balance)
         
         while self.is_running:
+            # Observability Snapshot (Safety Heartbeat)
+            try:
+                self.system_monitor.snapshot()
+            except Exception as e:
+                print(f"[MONITOR] Snapshot failed: {e}")
+
             # Check circuit breaker with auto-recovery
             if not self.check_circuit_breaker():
                 print("⏸️  Circuit breaker paused. Waiting for auto-recovery...")
                 time.sleep(60)  # Check every minute for auto-recovery
+                continue
+                
+            # --- DAILY LOSS LIMIT CHECK ---
+            can_trade_daily, reason = self.risk_manager.check_daily_loss_limit()
+            if not can_trade_daily:
+                print(f"🔴 RISK STOP: {reason}")
+                self.notifier.send_message(f"🔴 RISK STOP: {reason}")
+                time.sleep(3600) # Pause for an hour
+                continue
+            
+            # --- COOLDOWN CHECK ---
+            can_trade_cooldown, reason = self.risk_manager.check_cooldown()
+            if not can_trade_cooldown:
+                print(f"❄️ COOLDOWN: {reason}")
+                time.sleep(60)
                 continue
             
             # Check watchdog
@@ -149,10 +183,11 @@ class TradingEngine:
             can_trade, drawdown_pct = self.risk_manager.check_drawdown_limit(current_equity, self.logger)
             
             # Alert at 80% of max drawdown (warning)
-            if drawdown_pct >= (self.risk_manager.max_drawdown_pct * 100 * 0.8) and drawdown_pct < (self.risk_manager.max_drawdown_pct * 100):
+            max_drawdown = self.risk_manager.max_drawdown_pct * Decimal("100")
+            if drawdown_pct >= (max_drawdown * Decimal("0.8")) and drawdown_pct < max_drawdown:
                 self.notifier.alert_max_drawdown(
                     drawdown_pct, 
-                    self.risk_manager.max_drawdown_pct * 100,
+                    max_drawdown,
                     current_equity,
                     self.risk_manager.peak_equity
                 )
@@ -161,18 +196,13 @@ class TradingEngine:
                 # Send critical alert when max drawdown hit
                 self.notifier.alert_max_drawdown(
                     drawdown_pct,
-                    self.risk_manager.max_drawdown_pct * 100,
+                    max_drawdown,
                     current_equity,
                     self.risk_manager.peak_equity
                 )
-                print(f"⏸️ Drawdown limit exceeded: {drawdown_pct:.1f}% (max: {self.risk_manager.max_drawdown_pct*100:.0f}%)")
+                print(f"⏸️ Drawdown limit exceeded: {drawdown_pct:.1f}% (max: {max_drawdown:.0f}%)")
                 print(f"   Peak Equity: ${self.risk_manager.peak_equity:.2f} | Current: ${current_equity:.2f}")
                 time.sleep(3600)  # Pause for 1 hour before rechecking
-                continue
-            
-            if not self.risk_manager.can_trade():
-                print("Outside trading hours. Sleeping...")
-                time.sleep(120)
                 continue
             
             # Check for no-activity (6 hour silence)
@@ -299,9 +329,22 @@ class TradingEngine:
         
         for symbol in symbols:
             try:
+                # --- RESILIENCE CHECK ---
+                can_trade_resilience, reason = self.resilience_manager.can_trade()
+                if not can_trade_resilience:
+                    print(f"[{bot['name']}] Resilience Block: {reason}")
+                    continue
+
                 # Fetch data
                 df = self.exchange.fetch_ohlcv(symbol, timeframe='1h', limit=50)
-                if df.empty:
+                
+                # Update Resilience (Heartbeat/Freshness)
+                if not df.empty:
+                    # Simulate latency (can be improved with actual measurement)
+                    self.resilience_manager.update_heartbeat(Decimal("100")) 
+                    self.resilience_manager.update_price_data()
+                else:
+                    self.resilience_manager.record_failure()
                     continue
 
                 current_price = df['close'].iloc[-1]
@@ -312,7 +355,7 @@ class TradingEngine:
                     strategy_instance = self.strategies.get(bot['name'])
                     if strategy_instance:
                         open_positions = self.logger.get_open_positions(symbol)
-                        signal = strategy_instance.get_signal(current_price, open_positions)
+                        signal = strategy_instance.get_signal(current_price, open_positions, df=df)
                         
                         if signal:
                             if signal['side'] == 'SELL':
@@ -321,6 +364,18 @@ class TradingEngine:
                             elif signal['side'] == 'BUY':
                                 print(f"[{bot['name']}] Grid BUY Signal: {signal['reason']}")
                                 self.execute_trade(bot, symbol, 'BUY', current_price, rsi, reason=signal['reason'])
+                        
+                        # Report Grid Status for Visualization
+                        if hasattr(strategy_instance, 'get_grid_metrics'):
+                            metrics = strategy_instance.get_grid_metrics()
+                            if metrics:
+                                self.logger.update_system_health(
+                                    component=f"Strategy: {bot['name']} ({symbol})",
+                                    status="LOCKED" if metrics.get('is_locked') else "ACTIVE",
+                                    message=f"Range: ${metrics.get('lower_limit',0):.0f} - ${metrics.get('upper_limit',0):.0f}",
+                                    metrics=metrics
+                                )
+
                         continue # Skip standard logic for Grid
                 
                 # Check for SELL signals first (FIFO)
@@ -466,12 +521,41 @@ class TradingEngine:
                 print(f"[SKIP] {symbol} exposure limit reached: ${current_exposure:.2f} / ${max_exposure}")
                 return
             
-            # Execute buy
+            # Calculate trade amount
             amount = trade_amount_usd / price
             
+            # --- RISK VALIDATION ---
+            # Count positions (approximate for MVP)
+            current_positions_count = len(self.logger.get_open_positions())
+            correlated_count = len(self.logger.get_open_positions(symbol)) # Simple correlation check (same symbol)
+            
+            is_valid, rejection_reason = self.risk_manager.validate_new_trade(
+                symbol=symbol,
+                proposed_size=Decimal(str(trade_amount_usd)) / self.risk_manager.portfolio_value * Decimal("100"), # Approx %
+                current_positions=current_positions_count,
+                correlated_positions=correlated_count
+            )
+            
+            if not is_valid:
+                print(f"[SKIP] Risk Manager Reject: {rejection_reason}")
+                return
+
             if self.mode == 'paper':
                 print(f"●BUY {symbol}● Price: ${price:.4f}, Amount: {amount:.4f}")
                 
+                # --- EXECUTION SAFETY ---
+                # Simulate execution (slippage check)
+                # In paper mode, we assume fill price = current price, so 0 slippage.
+                # But we should instantiate the manager to show intent
+                exec_manager = OrderExecutionManager(symbol, Decimal(str(price)))
+                exec_result = exec_manager.validate_execution(
+                    Decimal(str(amount)), Decimal(str(amount)), Decimal(str(price))
+                )
+                
+                if not exec_result.success:
+                    print(f"[EXECUTION FAIL] {exec_result.message}")
+                    return
+
                 # Open position (FIFO) with entry RSI
                 position_id = self.logger.open_position(symbol, bot['name'], price, amount, entry_rsi=rsi)
                 
@@ -497,6 +581,10 @@ class TradingEngine:
                 total_pnl = self.logger.get_pnl_summary(bot['name'])
                 wallet_balance = self.logger.get_wallet_balance(bot['name'], initial_balance=bot.get('initial_balance', 50000))
                 self.logger.update_bot_status(bot['name'], 'RUNNING', total_trades, total_pnl, wallet_balance)
+                
+                # Update Risk Manager Portfolio Value
+                # In a real bot, we'd fetch total equity. Here we approximate or use the fixed balance for now.
+                self.risk_manager.update_portfolio_value(Decimal(str(wallet_balance)))
         
         elif side == 'SELL' and position_id:
             # Get position details
@@ -547,6 +635,9 @@ class TradingEngine:
                 # Send Notification
                 profit_str = f"Profit: ${profit:.2f}"
                 self.notifier.notify_trade(symbol, side, price, amount, reason=profit_str)
+                
+                # Record result in Risk Manager (for consecutive loss logic)
+                self.risk_manager.record_trade_result(was_profitable=(profit > 0))
                 
                 # Reset circuit breaker on successful trade
                 self.reset_circuit_breaker()

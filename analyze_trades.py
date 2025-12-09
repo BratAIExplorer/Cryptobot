@@ -5,7 +5,7 @@ import sqlite3
 import pandas as pd
 
 # Connect to database
-conn = sqlite3.connect('crypto_trading_bot/data/trades.db')
+conn = sqlite3.connect('data/trades.db')
 
 # 1. Strategy Summary
 print("=" * 100)

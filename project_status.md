@@ -33,6 +33,7 @@ A "set-and-forget" passive income generator that:
   - Updated `core/engine.py` to define a default RSI value (50.0) in the `cleanup_aged_positions` method.
   - Created and executed `force_cleanup.py` to manually purge 12 stuck positions from the database.
 - **Result:** Bot now has free capacity to trade. Watchdog sensitivity also adjusted (10:1 → 20:1 ratio) to reduce false alarms.
+- **Verification (Dec 9):** Confirmed 28 active positions with 23 free slots available. Bug is effectively squashed.
 - **Monitoring Tool:** Created `health_check.py` for periodic status checks every 2-4 hours.
 
 ---
@@ -87,18 +88,23 @@ The system currently supports the following active strategies:
 ---
 
 ## 5. Performance to Date
-*As of Dec 5, 2025*
+*As of Dec 9, 2025*
 
 | Metric | Value | Notes |
 | :--- | :--- | :--- |
-| **Total Trades** | ~140 | Mostly Hyper-Scalper activity. |
-| **Net P&L** | Flat / Slightly Negative | Impacted by 48h downtime and unrealized losses in "Dip" positions. |
-| **Win Rate** | N/A | Insufficient closed trades to calculate reliable win rate yet. |
-| **Uptime** | **Healthy** | Downtime resolved. Bot is running and trading. |
+| **Total Closed Trades** | **105** |  |
+| **Net Realized P&L** | **-$278.54** | Primarily due to earlier "dip" losses. |
+| **Win Rate** | **60.0%** | Healthy win rate on scalping activities. |
+| **Uptime** | **100%** | Services running stable via PM2. |
+| **Active Positions** | **28** | Within safe limits (Capacity: 55%). |
 
-**Current Holdings:**
-- **Bag:** XRP, UNI, BTC, NEAR, PEPE (from Buy-the-Dip).
-- **Status:** Waiting for market recovery to hit sell targets.
+**Current Holdings Breakdown:**
+- **Buy-the-Dip (16):** Holding major bags (ADA, LINK, DOGE, SHIB, DOT, etc.). Waiting for market reversal.
+- **Hidden Gem (6):** New entries in UNI, MANA, etc. (Paper Trading/monitoring).
+- **Hyper-Scalper (2):** Active BTC & ETH positions.
+- **Grid Bots (3):** BTC & ETH grids active and printing small profits.
+- **SMA Trend (1):** 1 active trend position.
+- **Status:** **Active & Accumulating.** The high number of "Dip" positions indicates the market has been down; bot is doing its job by accumulating cheap coins.
 
 ---
 

@@ -20,6 +20,70 @@ exchange = ExchangeInterface()
 
 # Sidebar
 st.sidebar.title("⚙️ Settings")
+
+# --- OBSERVABILITY SECTION ---
+st.sidebar.subheader("🏥 System Health")
+try:
+    health_df = logger.get_system_health()
+    if not health_df.empty:
+        for _, row in health_df.iterrows():
+            # Status Color Mapping
+            status_map = {
+                "HEALTHY": "🟢",
+                "WARNING": "🟡",
+                "BLOCKED": "🔴",
+                "UNKNOWN": "⚪"
+            }
+            icon = status_map.get(row['status'], "⚪")
+            
+            with st.sidebar.expander(f"{icon} {row['component']}", expanded=(row['status'] != 'HEALTHY')):
+                st.write(f"**Status:** {row['status']}")
+                st.write(f"**Msg:** {row['message']}")
+                st.caption(f"Updated: {row['last_updated']}")
+                
+                # Parse Metrics JSON
+                try:
+                    import json
+                    metrics = json.loads(row['metrics_json'])
+                    if metrics:
+                        st.divider()
+                        for k, v in metrics.items():
+                            st.write(f"{k.replace('_', ' ').title()}: `{v}`")
+                except:
+                    pass
+    else:
+        st.sidebar.info("Waiting for health snapshot...")
+except Exception as e:
+    st.sidebar.error(f"Health Monitor Error: {e}")
+
+st.sidebar.markdown("---")
+st.sidebar.subheader("⚖️ Legal & Compliance")
+if st.sidebar.button("📄 Generate Tax & Audit Reports"):
+    with st.spinner("Generating CSV reports..."):
+        tax_path, audit_path = logger.export_compliance_reports()
+        
+        if tax_path and os.path.exists(tax_path):
+            with open(tax_path, "rb") as f:
+                st.sidebar.download_button(
+                    label="📥 Download Tax Report",
+                    data=f,
+                    file_name=os.path.basename(tax_path),
+                    mime="text/csv"
+                )
+        
+        if audit_path and os.path.exists(audit_path):
+            with open(audit_path, "rb") as f:
+                st.sidebar.download_button(
+                    label="📥 Download Audit Log",
+                    data=f,
+                    file_name=os.path.basename(audit_path),
+                    mime="text/csv"
+                )
+        
+        if tax_path and audit_path:
+            st.sidebar.success("Reports generated!")
+
+st.sidebar.markdown("---")
 st.sidebar.info("The bot is running as a separate service. Use this dashboard to monitor performance.")
 
 # Main Dashboard
@@ -160,7 +224,22 @@ with tab3:
         # Get trades for this symbol
         symbol_trades = trades[trades['symbol'] == selected_symbol] if not trades.empty else None
         
-        plot_candle_chart(df, symbol_trades, title=f"{selected_symbol} Price Action")
+        # Get Grid Data for Visualization
+        grid_data = None
+        try:
+            health_df = logger.get_system_health()
+            if not health_df.empty:
+                # Find component matching "Strategy: ... (Symbol)"
+                # We look for partial match since strategy name is variable
+                for _, row in health_df.iterrows():
+                    if f"Strategy:" in row['component'] and f"({selected_symbol})" in row['component']:
+                        import json
+                        grid_data = json.loads(row['metrics_json'])
+                        break
+        except:
+            pass
+
+        plot_candle_chart(df, symbol_trades, title=f"{selected_symbol} Price Action", grid_data=grid_data)
         
         col1, col2, col3 = st.columns(3)
         with col1:

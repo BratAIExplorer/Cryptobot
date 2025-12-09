@@ -8,6 +8,6 @@ class BaseStrategy:
         """
         Analyze data and return a signal.
         Returns:
-            dict: {'side': 'BUY'/'SELL', 'amount': float, 'reason': str} or None
+            dict: {'side': 'BUY'/'SELL', 'amount': Decimal, 'reason': str} or None
         """
         raise NotImplementedError("Strategies must implement generate_signal")

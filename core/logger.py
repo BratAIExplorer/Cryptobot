@@ -130,7 +130,19 @@ class TradeLogger:
         ''')
         
         # Initialize circuit breaker if not exists
+        # Initialize circuit breaker if not exists
         c.execute('INSERT OR IGNORE INTO circuit_breaker (id, is_open, consecutive_errors, total_trips) VALUES (1, 0, 0, 0)')
+        
+        # System Health table (Observability)
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS system_health (
+                component TEXT PRIMARY KEY,
+                status TEXT,
+                message TEXT,
+                last_updated DATETIME,
+                metrics_json TEXT
+            )
+        ''')
         
         conn.commit()
         conn.close()
@@ -148,7 +160,7 @@ class TradeLogger:
         conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
         
-        required_tables = ['trades', 'positions', 'bot_status', 'circuit_breaker']
+        required_tables = ['trades', 'positions', 'bot_status', 'circuit_breaker', 'system_health']
         c.execute("SELECT name FROM sqlite_master WHERE type='table'")
         existing_tables = [row[0] for row in c.fetchall()]
         
@@ -428,4 +440,70 @@ class TradeLogger:
         conn.commit()
         conn.close()
         print(f"[SKIP-LOG] {skip_reason}: {side} {symbol} @ ${price:.4f}")
+
+
+    # ==================== OBSERVABILITY METHODS ====================
+
+    def update_system_health(self, component, status, message, metrics=None):
+        """Update health status for a system component"""
+        import json
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        
+        metrics_json = json.dumps(metrics) if metrics else "{}"
+        
+        c.execute('''
+            INSERT OR REPLACE INTO system_health (component, status, message, last_updated, metrics_json)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (component, status, message, datetime.now(), metrics_json))
+        
+        conn.commit()
+        conn.close()
+
+    def get_system_health(self):
+        """Get latest health status for all components"""
+        conn = sqlite3.connect(self.db_path)
+        df = pd.read_sql_query("SELECT * FROM system_health", conn)
+        conn.close()
+        return df
+
+    def export_compliance_reports(self, output_dir=None):
+        """
+        Generate compliance reports (Tax & Audit)
+        Returns: Tuple of (tax_report_path, audit_log_path)
+        """
+        if output_dir is None:
+            output_dir = os.path.dirname(self.db_path)
+            
+        date_str = datetime.now().strftime('%Y-%m-%d')
+        conn = sqlite3.connect(self.db_path)
+        
+        # 1. Tax Report (Closed Positions with PnL)
+        try:
+            positions_df = pd.read_sql_query('''
+                SELECT id, symbol, strategy, buy_timestamp, buy_price, 
+                       sell_timestamp, sell_price, amount, cost, profit, status 
+                FROM positions 
+                WHERE status = 'CLOSED'
+            ''', conn)
+            
+            tax_path = os.path.join(output_dir, f'Lumina_Tax_Report_{date_str}.csv')
+            positions_df.to_csv(tax_path, index=False)
+            print(f"[Export] Tax report saved: {tax_path}")
+        except Exception as e:
+            print(f"[Export] Error generating tax report: {e}")
+            tax_path = None
+
+        # 2. Audit Log (All Raw Trades)
+        try:
+            trades_df = pd.read_sql_query("SELECT * FROM trades", conn)
+            audit_path = os.path.join(output_dir, f'Lumina_Audit_Log_{date_str}.csv')
+            trades_df.to_csv(audit_path, index=False)
+            print(f"[Export] Audit log saved: {audit_path}")
+        except Exception as e:
+            print(f"[Export] Error generating audit log: {e}")
+            audit_path = None
+            
+        conn.close()
+        return tax_path, audit_path
 
