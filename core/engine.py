@@ -482,12 +482,12 @@ class TradingEngine:
                          sell_reason = f"Hard SL Hit (-{sl_pct*100:.1f}%)"
 
                     # Priority 2: Strategy Specific (if not covered by Risk Manager)
+                    # Priority 2: Strategy Specific (if not covered by Risk Manager)
                     if not sell_reason:
                         if strategy_type == 'Buy-the-Dip':
-
-                        # Tiered exits: 50% @ 5%, 25% @ 7%, 25% @ 10%
-                        if profit_pct >= 0.10:
-                            sell_reason = f"TP3 Hit (+10%)"
+                            # Tiered exits: 50% @ 5%, 25% @ 7%, 25% @ 10%
+                            if profit_pct >= 0.10:
+                                sell_reason = f"TP3 Hit (+10%)"
                         elif profit_pct >= 0.07:
                             sell_reason = f"TP2 Hit (+7%)"
                         elif profit_pct >= 0.05:
