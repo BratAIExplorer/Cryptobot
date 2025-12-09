@@ -254,6 +254,51 @@ class RiskManager:
         
         return is_profitable, profit_pct
 
+    def check_exit_conditions(self, position_data):
+        """
+        V3 PHILOSOPHY ENGINE:
+        1. Automated Profit Taking (Bots sell when green)
+        2. Manual Loss Management (Bots alert, Humans act)
+        
+        Args:
+            position_data: Dict with entry_price, current_price, strategy, etc.
+            
+        Returns:
+            (Action, Reason)
+            Action: 'SELL', 'HOLD', 'ALERT_STOP_LOSS', 'ALERT_STALE'
+        """
+        current_price = Decimal(str(position_data['current_price']))
+        entry_price = Decimal(str(position_data['entry_price']))
+        strategy = position_data.get('strategy', 'Unknown')
+        
+        # 1. Calculate PnL
+        pnl_pct = (current_price - entry_price) / entry_price
+        
+        # 2. Strategy Specific Targets
+        # TODO: Move these targets to config/strategy limits
+        tp_target = Decimal("0.03") # Default 3%
+        sl_threshold = Decimal("-0.05") # Default -5%
+        
+        if strategy == "Hyper-Scalper Bot":
+            tp_target = Decimal("0.01") # 1% for scalpers
+            
+        if strategy == "Buy-the-Dip Strategy":
+            tp_target = Decimal("0.05") # 5% for dips
+        
+        # 3. PROFIT LOGIC (AUTOMATED)
+        if pnl_pct >= tp_target:
+             return 'SELL', f"Take Profit Reached (+{pnl_pct*100:.2f}%)"
+             
+        # 4. LOSS LOGIC (MANUAL / ALERT)
+        # Note: We do NOT return 'SELL' for losses unless user enables hard stops.
+        # Default behavior is ALERT.
+        if pnl_pct <= sl_threshold:
+            # Check if we already alerted (optimization for later)
+            return 'ALERT_STOP_LOSS', f"Stop Loss Threshold Hit ({pnl_pct*100:.2f}%) - Review Required"
+            
+        return 'HOLD', None
+
+
     def check_drawdown_limit(self, current_equity, logger=None):
         """
         Check if current drawdown from PEAK exceeds maximum allowed.
