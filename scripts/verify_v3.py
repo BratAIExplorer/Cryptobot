@@ -30,14 +30,29 @@ def verify_migration():
     else:
         print("   No trades found.")
 
-    # 3. Check PnL
-    # Strategy specific PnL check
-    dip_pnl = logger.get_pnl_summary('Buy-the-Dip Strategy')
-    scalper_pnl = logger.get_pnl_summary('Hyper-Scalper Bot')
+    # 3. Check PnL (Dynamic)
+    print(f"\n[PnL Summary by Strategy]")
     
-    print(f"\n[PnL Summary]")
-    print(f"   Buy-the-Dip: ${dip_pnl:.2f}")
-    print(f"   Hyper-Scalper: ${scalper_pnl:.2f}")
+    # Get all unique strategies from trades or bot_status
+    session = logger.db.get_session()
+    try:
+        # distinct strategies from positions
+        strategies = pd.read_sql_query("SELECT DISTINCT strategy FROM positions", logger.db.engine)
+        strategy_list = strategies['strategy'].tolist()
+        
+        total_pnl = 0.0
+        for strat in strategy_list:
+            pnl = logger.get_pnl_summary(strat)
+            print(f"   {strat:<25}: ${pnl:.2f}")
+            total_pnl += pnl
+            
+        print(f"   {'-'*35}")
+        print(f"   {'TOTAL PROJECT PnL':<25}: ${total_pnl:.2f}")
+        
+    except Exception as e:
+        print(f"   Error fetching strategies: {e}")
+    finally:
+        session.close()
 
     print("\n✅ Verification Complete")
     
