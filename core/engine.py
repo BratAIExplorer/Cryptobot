@@ -166,6 +166,8 @@ class TradingEngine:
                 continue
             
             # --- COOLDOWN CHECK ---
+            # Now requires symbol for per-coin 7-day cooldown
+            # We check general cooldown here, strategy loop checks per-coin
             can_trade_cooldown, reason = self.risk_manager.check_cooldown()
             if not can_trade_cooldown:
                 print(f"❄️ COOLDOWN: {reason}")
@@ -254,6 +256,27 @@ class TradingEngine:
         elif hours_since_trade < 6:
             self.no_activity_alert_sent = False  # Reset flag
     
+    def check_position_age_alerts(self, position, age_days):
+        """Send alerts for long-held positions (User Decision Mode)"""
+        # Alerts at 100, 125, 150, 200 days
+        alert_days = [100, 125, 150, 200]
+        
+        # We need a state to prevent spamming the same alert. 
+        # For now, we'll check if we are 'close' to the milestone (within 4 hours)
+        # A better way would be storing 'last_alert_day' in the position metadata, 
+        # but for this iteration, we calculate proximity.
+        
+        for day in alert_days:
+            # Check if age is within a 4-hour window of the milestone
+            if abs(age_days - day) < (4/24): 
+                # Ideally, check if alert already sent. 
+                # Implementation Note: This might span multiple loops, so we rely on the Notifier's 
+                # built-in throttling or we add a 'last_alert' timestamp column in future.
+                # For this MVP, we just print/log.
+                print(f"⚠️ AGE ALERT: Position #{position['id']} ({position['symbol']}) held for {age_days:.1f} days.")
+                # self.notifier.send_message(...) # Uncomment when integrated
+                pass
+
     def check_profit_milestones(self, total_pnl):
         """Check and alert on profit milestones"""
         if total_pnl <= 0:
@@ -266,12 +289,18 @@ class TradingEngine:
                 break
     
     def cleanup_aged_positions(self):
-        """Automatically force-close positions that are older than 3x their max hold time"""
+        """
+        Check aged positions.
+        - Hyper-Scalper: Force close after max hold (failed scalp).
+        - SMA Trend: NO force close (let trend run).
+        - Buy-the-Dip: NO force close (Indefinite Hold) + Alerting.
+        """
         # Strategy max hold times (in hours)
+        # 0 means "Do not auto-close"
         max_hold_times = {
             'Hyper-Scalper Bot': 0.5,  # 30 minutes
-            'Buy-the-Dip Strategy': 2880,  # 120 days
-            'SMA Trend Bot': 24  # 24 hours
+            'Buy-the-Dip Strategy': 0,  # Indefinite Hold (Alert only)
+            'SMA Trend Bot': 0  # Indefinite Hold (Trend following)
         }
         
         open_positions = self.logger.get_open_positions()
@@ -286,10 +315,17 @@ class TradingEngine:
             
             # Calculate position age
             age_hours = (datetime.now() - buy_timestamp).total_seconds() / 3600
+            age_days = age_hours / 24
+            
+            # --- ALERTING LOGIC (Buy-The-Dip) ---
+            if strategy == 'Buy-the-Dip Strategy':
+                self.check_position_age_alerts(position, age_days)
+
+            # --- CLEANUP LOGIC ---
             max_hold = max_hold_times.get(strategy, 24)
             
-            # Force close if older than 3x max hold time (severe aging)
-            if age_hours > (max_hold * 3):
+            # Only force close if max_hold > 0 (enabled) AND age > 3x limit
+            if max_hold > 0 and age_hours > (max_hold * 3):
                 print(f"[AUTO-CLEANUP] Force-closing aged position #{position_id}: {symbol} ({age_hours:.1f}h old, max: {max_hold}h)")
                 
                 try:
@@ -412,7 +448,10 @@ class TradingEngine:
                     sell_reason = None
                     
                     # Priority 1: Stop Loss (always check first)
-                    if current_price <= buy_price * (1 - sl_pct):
+                    # Configurable Stop Loss (User Request: Customizable)
+                    stop_loss_enabled = bot.get('stop_loss_enabled', True)
+                    
+                    if stop_loss_enabled and current_price <= buy_price * (1 - sl_pct):
                         sell_reason = f"SL Hit (-{sl_pct*100:.1f}%)"
                     
                     # Priority 2: Strategy Specific Exits
@@ -426,7 +465,9 @@ class TradingEngine:
                             sell_reason = f"TP1 Hit (+5%)"
                         # Emergency exit after 120 days
                         elif position_age_hours >= (120 * 24) and profit_pct >= -0.05:
-                            sell_reason = f"Time Exit 120d ({profit_pct*100:.1f}%)"
+                            # START CHANGE: Remove auto-sell for Dip Strategy
+                            # sell_reason = f"Time Exit 120d ({profit_pct*100:.1f}%)"
+                            pass # User requested "Hold Indefinitely"
                             
                     elif strategy_type == 'Hyper-Scalper':
                         # Scalper should exit within 30 minutes if profitable

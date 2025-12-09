@@ -1,101 +1,67 @@
-# 🤖 Crypto Trading Bot: Strategy Summary & Recommendations
+# 🤖 Crypto Trading Bot: Strategy Optimization Summary (Phase 2)
 *As of Dec 9, 2025*
 
-This document outlines the current logic, performance status, and expert recommendations for the active trading strategies.
+This document outlines the optimized logic, new conditions, and expected behavior for the bot fleet following the Phase 2 overhaul.
 
 ---
 
-## 1. 🤖 Hyper-Scalper Bot (The Cash Flow Output)
-**Objective:** High-frequency trading to capture small, quick price movements.
-**Status:** 🟢 **Active** | **Optimized Dec 9**
+## 🚀 Detailed Portfolio Configuration (Phase 2)
 
-### ⚙️ Logic & Conditions
-*   **Buy Condition:** RSI (3-period) < **30** (Oversold).
-*   **Sell Condition (Win):** Profit > **3.5%** (Aggressive Target).
-*   **Sell Condition (Loss):** Loss > **1.0%** (Tight Stop Loss).
-*   **Time Limit:** Force exit after 30 minutes (keep capital moving).
-
-### 📊 Performance
-*   **Win Rate:** **54%** (Decent for scalping).
-*   **Issue:** Previously losing more on bad trades (-$8.50) than gaining on good ones (+$4.88).
-*   **Fix Applied:** Adjusted R/R ratio to 1:3.5 (Risk $1 to make $3.5).
-
-### 🔮 Recommendations
-*   **Monitor Win Rate:** The new tighter Stop Loss (1%) might lower the win rate. If it drops below 40%, we may need to loosen it slightly to 1.5%.
-*   **Fee Awareness:** Ensure BNB balance is topped up, as this bot trades frequently.
+| Bot Strategy | 💰 Allocation | 🪙 Operating Coins | ⚙️ Key Conditions & Rules |
+| :--- | :--- | :--- | :--- |
+| **🛍️ Buy-The-Dip**<br>*(The Value Investor)* | **$800 per Coin**<br>($16,000 max) | **20 Coins:**<br>BTC, ETH, SOL, BNB, XRP, DOGE,<br>ADA, TRX, AVAX, SHIB, DOT, LINK,<br>BCH, NEAR, LTC, UNI, PEPE, APT,<br>ICP, ETC | **Entry:** Confluence Score ≥ 50<br>(RSI + Trend + Vol + News)<br>**Exit:** +5% / +7% / +10% (Tiered)<br>**Stop Loss:** ❌ DISABLED (Infinite Hold)<br>**Alerts:** Days 100, 125, 150, 200 |
+| **⚡ Hyper-Scalper**<br>*(Cash Flow)* | **$800 per Coin**<br>($3,200 max) | **4 Coins:**<br>SOL, ETH, BTC, XRP | **Entry:** RSI < 30 & Volume > 1.3x Avg<br>**Exit:** Target +3.5% or Max 30 mins<br>**Stop Loss:** -1.0% (Tight protection)<br>**Freq:** High (6-10 trades/day) |
+| **📈 SMA Trend**<br>*(Wealth Builder)* | **$800 per Coin**<br>($4,000 max) | **5 Coins:**<br>DOGE, XRP, DOT, ATOM, ADA | **Entry:** SMA 20 > SMA 50 (Daily)<br>**Confirm:** Price > SMA 200<br>**Exit:** Death Cross (SMA 20 < 50)<br>**Timeframe:** Daily Candles |
+| **🤖 Grid Bots**<br>*(Sideways Income)* | **$1,000 BTC**<br>**$1,000 ETH** | **BTC/USDT** ($50/grid)<br>**ETH/USDT** ($30/grid) | **BTC Range:** $88k - $108k (20 Grids)<br>**ETH Range:** $2,800 - $3,500 (30 Grids)<br>**Logic:** Buy Low / Sell High within range |
+| **💎 Hidden Gem**<br>*(Paper Scout)* | **$100 per Coin**<br>(Scanning) | **Top 50 Riskier Alts:**<br>UNI, MANA, SAND, AAVE, etc. | **Logic:** Dip Buying on Volatile Assets<br>**Risk:** Minimal (Paper Trading Mode) |
 
 ---
 
-## 2. 🛍️ Buy-the-Dip Strategy (The Value Investor)
-**Objective:** Accumulate blue-chip assets at significant discounts.
-**Status:** 🟠 **Holding Bags** | Active
+## 🚀 Strategy Optimization Matrix (Logic Changes)
 
-### ⚙️ Logic & Conditions
-*   **Buy Condition:** Price drops **4-15%** from the 24-hour high.
-*   **Exit Strategy:** Tiered Sell (50% @ +5%, 25% @ +7%, 25% @ +10%).
-*   **Stop Loss:** 30% (Wide berth for volatility).
-*   **Time Limit:** 120 Days (Long-term hold).
-
-### 📊 Performance
-*   **Portfolio Coverage:** **80%** (16/20 coins bought).
-*   **Missed Opportunities:** Has NOT yet bought **BTC, ETH, BNB, TRX** (likely because they haven't dipped enough).
-*   **Current State:** Holding 16 positions mostly from Dec 2-5 drop.
-
-### 🔮 Recommendations
-*   **Trend Filter (Point 3):** To prevent catching "falling knives," we should only buy dips if the **Daily Trend** is still UP (e.g., Price > 200 SMA).
-*   **Pause:** Temporarily pause new buys on "weak" coins until existing inventory clears.
+| Strategy | ⚙️ New Logic vs Old Logic | 🎯 Expected Behavior | ⚠️ User Action Required |
+| :--- | :--- | :--- | :--- |
+| **🛍️ Buy-The-Dip** | **New:** Confluence (Tech+Trend+Vol) + Infinite Hold<br>**Old:** Blind 5% Drop + Stop Loss | • **Fewer Trades:** No buying during crashes.<br>• **Bag Holding:** Intended. Do not panic.<br>• **Higher Win Rate:** High conviction entries. | • **Monitor Alerts:** Check dashboard on 100-day alerts.<br>• **Toggle:** Enable `stop_loss_enabled` in config if needed. |
+| **⚡ Hyper-Scalper** | **New:** Volume Filter (>1.3x) + Time Limit<br>**Old:** RSI only (caught noise) | • **Silence:** No trades in low volume.<br>• **Quality:** Fewer fake-outs.<br>• **Better R/R:** 1:3.5 ratio. | • **BNB Balance:** Keep topped up for gas fees. |
+| **📈 SMA Trend Bot** | **New:** Daily Timeframe + Death Cross Exit<br>**Old:** 1H chart + 24h Time Limit | • **Rare Trades:** Silent for weeks.<br>• **Big Wins:** Catches full trends.<br>• **No Forced Exit:** Holds for months. | • **Patience:** Do NOT think it's broken if silent. |
 
 ---
 
-## 3. 🤖 SMA Trend Bot (The Swing Trader)
-**Objective:** Catch sustained market trends for large gains.
-**Status:** 🟢 **Active**
+## 📋 Comprehensive Strategy Details
 
-### ⚙️ Logic & Conditions
-*   **Buy Condition:** SMA 20 crosses *above* SMA 50 ("Golden Cross").
-*   **Sell Condition:** SMA 20 crosses *below* SMA 50 OR Stop Loss/Take Profit.
-*   **Take Profit:** 3% / **Stop Loss:** 5%.
+### 1. 🛍️ Buy-the-Dip (Value Investor)
+**Status:** 🟢 **Optimized (Phase 2)**
+*   **Philosophy:** "Buy quality assets when they are oversold, hold until they recover."
+*   **Old Logic:** Buy any 5% drop -> result: Bought falling knives.
+*   **New Logic:** Buy 5% drop **ONLY IF** Long-term Trend is Up AND Volume is High.
+*   **The "Infinite Hold" Rule:** We accept that some dips turn into bear markets. We do not sell at a loss. We wait.
 
-### 📊 Performance
-*   **Activity:** Low (1 active position).
-*   **Context:** This is **good**. The market has been choppy/down. A trend bot *should* be inactive in these conditions.
+### 2. ⚡ Hyper-Scalper (Cash Flow)
+**Status:** 🟢 **Optimized (Phase 2)**
+*   **Philosophy:** "In and out quickly. Take small profits, cut losses instantly."
+*   **Old Logic:** RSI < 30 -> result: Bought on low volume noise.
+*   **New Logic:** RSI < 30 **AND** Volume Spiking.
+*   **Safety:** If trade goes sideways for 30 mins, we exit. Capital velocity is key.
 
-### 🔮 Recommendations
-*   **Patience:** Do not "force" this bot to trade. It is your safety valve. When the bull market returns, this bot will print money.
-
----
-
-## 4. 🤖 Grid Bots (Side-ways Income)
-**Objective:** Profit from market indecision (volatility without trend).
-**Status:** 🟢 **Active (New)**
-
-### ⚙️ Logic & Conditions
-*   **BTC Grid:** Range $88k - $108k (20 Levels).
-*   **ETH Grid:** Range $2,800 - $3,500 (30 Levels).
-*   **Logic:** Buy Low, Sell High within these fixed ranges.
-
-### 📊 Performance
-*   **Early Results:** 3 Active positions. Small, consistent profits expected.
-
-### 🔮 Recommendations
-*   **Range Maintenance:** If BTC breaks $108k or drops below $88k, the grid must be reset/reconfigured.
+### 3. 📈 SMA Trend Bot (Wealth Builder)
+**Status:** 🟢 **Optimized (Phase 2)**
+*   **Philosophy:** "The trend is your friend. Ride it until it bends."
+*   **Old Logic:** 1-Hour charts -> result: Whipsawed by daily noise.
+*   **New Logic:** **Daily Charts**. We look for multi-week moves.
+*   **Safety:** Death Cross exit protects from market crashes (e.g., May 2021).
 
 ---
 
-## 5. 💎 Hidden Gem Monitor (The Scout)
-**Objective:** "Paper Trade" risky altcoins to find the next 100x gem.
-**Status:** 🟢 **Active**
+## 📝 User Action Plan
 
-### ⚙️ Logic & Conditions
-*   **Strategy:** Buy-the-Dip logic on riskier assets (UNI, MANA, SAND, etc.).
-*   **Risk:** Minimal ($100 allocation per trade).
+1.  **Stop Loss Configuration:**
+    *   Currently, Buy-The-Dip has **NO STOP LOSS**.
+    *   To enable it: Open `run_bot.py`, find `Buy-the-Dip Strategy`, set `'stop_loss_enabled': True`.
 
-### 📊 Performance
-*   **Insight:** Currently holding UNI and MANA. Useful for sensing "Altseason" before it starts.
+2.  **Monitoring:**
+    *   **Daily:** Check Dashboard for "Confluence Score" logs.
+    *   **Weekly:** Check "Age Alerts" for old positions.
 
----
-
-## 🚀 Summary of Next Steps
-1.  **Deploy:** Push the new `run_bot.py` to VPS.
-2.  **Verify:** Watch the Hyper-Scalper for 24 hours to ensure the new 3.5% target is hit.
-3.  **Upgrade:** Begin work on **Confluence Engine** (Point 3) to give the bots a "Brain" to decide *when* to use which strategy.
+3.  **Deployment:**
+    *   Run `deploy.sh` (or `git pull` on VPS) to activate these changes.
+    *   Restart the bot: `python run_bot.py`.

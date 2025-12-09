@@ -57,8 +57,9 @@ def main():
         'amount': 800,  # $800 per coin ($2400 total)
         'initial_balance': 50000,
         'take_profit_pct': 0.10,  # Target 10% (Tiered exits handle the rest)
-        'stop_loss_pct': 0.30,    # Max drawdown 30%
-        'max_hold_hours': 2880,   # 120 days
+        'stop_loss_pct': 0.30,    # Max drawdown 30% (Reference only, disabled below)
+        'stop_loss_enabled': False, # User Request: Infinite Hold + Alerts
+        'max_hold_hours': 0,      # 0 = Indefinite Hold
         'max_exposure_per_coin': 800
     })
     

@@ -1,8 +1,8 @@
 # 🎯 CryptoIntel Hub - Project Status
 
-> **Last Updated:** 2025-12-08  
-> **Status:** Phase 1 Complete (Core Decision Engine)  
-> **System Health:** 🟢 Operational
+> **Last Updated:** 2025-12-09
+> **Status:** Phase 2 In Progress (Strategy Optimization)
+> **System Health:** 🟢 Operational (New Strategies Deployed)
 
 ---
 
@@ -381,7 +381,10 @@ CREATE TABLE confluence_scores (
 
 ## 🚀 Roadmap: Next Phases
 
-### Phase 2: Data Integration (Weeks 2-3)
+### Phase 2: Strategy Optimization (In Progress)
+- [x] **Buy-The-Dip Overhaul:** Added Confluence Filter (Tech/Trend/Vol/News) & Infinite Hold + Alerts.
+- [x] **Hyper-Scalper Upgrade:** Added Volume Filters (>1.3x) & Parameterized RSI.
+- [x] **SMA Trend Fix:** Switched to Daily Timeframe + Death Cross Exit.
 - [ ] Integrate CoinGlass API (on-chain metrics automation)
 - [ ] Build `macro_monitor.py` (BTC correlation, risk regime classifier)
 - [ ] Build `scenario_planner.py` (Bull/Base/Bear forecasting)

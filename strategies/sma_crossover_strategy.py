@@ -4,12 +4,15 @@ from utils.indicators import calculate_sma, calculate_rsi
 class SMACrossoverStrategy(BaseStrategy):
     def __init__(self, config):
         super().__init__(config)
-        self.fast_period = config.get('fast_period', 50)
-        self.slow_period = config.get('slow_period', 200)
+        self.fast_period = config.get('fast_period', 20)  # Standard Golden Cross: 50
+        self.slow_period = config.get('slow_period', 50)  # Standard Golden Cross: 200
         self.amount = config.get('amount', 100)
+        # Force Daily Timeframe (User Requirement)
+        self.timeframe = '1d'
 
     def generate_signal(self, df):
-        if len(df) < self.slow_period:
+        # Ensure we have enough data for the slow SMA + buffer
+        if len(df) < self.slow_period + 5:
             return None
             
         fast_sma = calculate_sma(df['close'], self.fast_period)
@@ -21,20 +24,24 @@ class SMACrossoverStrategy(BaseStrategy):
         curr_fast = fast_sma.iloc[-1]
         curr_slow = slow_sma.iloc[-1]
         
-        # Golden Cross (Fast crosses above Slow)
+        current_price = df['close'].iloc[-1]
+        
+        # 1. Golden Cross (Fast crosses above Slow)
         if prev_fast <= prev_slow and curr_fast > curr_slow:
-            return {
-                'side': 'BUY',
-                'amount': self.amount,
-                'reason': "Golden Cross (SMA 50 > SMA 200)"
-            }
+            # FILTER: Price must be above both SMAs (Strength confirmation)
+            if current_price > curr_fast and current_price > curr_slow:
+                return {
+                    'side': 'BUY',
+                    'amount': self.amount,
+                    'reason': f"Golden Cross ({self.fast_period} > {self.slow_period}) on Daily"
+                }
             
-        # Death Cross (Fast crosses below Slow)
+        # 2. Death Cross (Fast crosses below Slow) - EXIT SIGNAL
         elif prev_fast >= prev_slow and curr_fast < curr_slow:
             return {
                 'side': 'SELL',
-                'amount': self.amount,
-                'reason': "Death Cross (SMA 50 < SMA 200)"
+                'amount': self.amount, # Amount logic handled by engine (sells all)
+                'reason': f"Death Cross ({self.fast_period} < {self.slow_period}) on Daily"
             }
             
         return None
