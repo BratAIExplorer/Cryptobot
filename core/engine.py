@@ -329,13 +329,7 @@ class TradingEngine:
         
         for symbol in symbols:
             try:
-                # --- RESILIENCE CHECK ---
-                can_trade_resilience, reason = self.resilience_manager.can_trade()
-                if not can_trade_resilience:
-                    print(f"[{bot['name']}] Resilience Block: {reason}")
-                    continue
-
-                # Fetch data
+                # Fetch data first to allow resilience recovery
                 df = self.exchange.fetch_ohlcv(symbol, timeframe='1h', limit=50)
                 
                 # Update Resilience (Heartbeat/Freshness)
@@ -345,6 +339,13 @@ class TradingEngine:
                     self.resilience_manager.update_price_data()
                 else:
                     self.resilience_manager.record_failure()
+                    continue
+
+                # --- RESILIENCE CHECK ---
+                can_trade_resilience, reason = self.resilience_manager.can_trade()
+                if not can_trade_resilience:
+                    # Print only once every 10 loops to reduce spam
+                    print(f"[{bot['name']}] Resilience Block: {reason}")
                     continue
 
                 current_price = df['close'].iloc[-1]
