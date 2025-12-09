@@ -25,6 +25,7 @@ class TradingEngine:
         self.execution_manager = None # Initialized per trade
         
         # Initialize Observability
+        # Initialize Observability (Pass risk manager)
         self.system_monitor = SystemMonitor(self.logger, self.risk_manager, self.resilience_manager)
         
         self.notifier = TelegramNotifier(
@@ -662,15 +663,17 @@ class TradingEngine:
                 
                 # Safety check: Handle case where position wasn't found
                 if profit is None:
-                    print(f"[SKIP] Position #{position_id} already processed")
-                    return  # Exit early, don't continue with logging/notification
+                    # Position likely handled by another thread or process
+                    return  # Exit early
                 
                 # Calculate fee (0.1% Binance standard)
                 fee = price * amount * 0.001
                 
                 # Alert on large losses
                 if profit < -50:  # Loss greater than $50
-                    profit_pct = (profit / position['cost']) * 100
+                    # cost might be needed from position object if not available in profit
+                    cost = position['cost'] # position here is the Series
+                    profit_pct = (profit / cost) * 100 if cost > 0 else 0
                     self.notifier.alert_large_loss(symbol, abs(profit), abs(profit_pct))
                 
                 # Update last trade time for no-activity monitoring
