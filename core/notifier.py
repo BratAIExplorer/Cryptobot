@@ -110,3 +110,43 @@ class TelegramNotifier:
               f"Keep up the great work!"
         self.send_message(msg)
 
+    # ==================== INTELLIGENCE ALERTS (PHASE 2) ====================
+
+    def notify_confluence_signal(self, symbol, score, breakdown):
+        """
+        Alert on high-conviction setup found by Confluence Engine.
+        """
+        # Determine emoji based on score
+        if score >= 80:
+            header = "🚀 *HIGH CONVICTION SETUP*"
+        elif score >= 60:
+            header = "✨ *POTENTIAL OPPORTUNITY*"
+        else:
+            header = "👀 *WATCHLIST UPDATE*"
+            
+        # Format breakdown string
+        tech = breakdown.get('technical', {}).get('score', 0)
+        onchain = breakdown.get('onchain', {}).get('score', 0)
+        macro = breakdown.get('macro', {}).get('score', 0)
+        fund = breakdown.get('fundamental', {}).get('score', 0)
+        
+        msg = f"{header}\n\n" \
+              f"Symbol: *{symbol}*\n" \
+              f"Confluence Score: *{score}/100* 🎯\n\n" \
+              f"*Score Breakdown:*\n" \
+              f"📈 Technical: `{tech}`\n" \
+              f"🔗 On-Chain: `{onchain}`\n" \
+              f"🌍 Macro: `{macro}`\n" \
+              f"🏛️ Fundamental: `{fund}`\n\n" \
+              f"Recommendation: *STRNG BUY* if >80"
+        self.send_message(msg)
+
+    def notify_veto_trigger(self, symbol, reason):
+        """Alert when a trade is BLOCKED by the Veto Guardian."""
+        msg = f"🛡️ *VETO GUARDIAN ACTIVE*\n\n" \
+              f"Trade Blocked for: *{symbol}*\n" \
+              f"Reason: _{reason}_\n\n" \
+              f"Account protected from risky entry."
+        self.send_message(msg)
+
+

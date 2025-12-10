@@ -136,7 +136,8 @@ class RiskManager:
     def calculate_position_size(
         self, 
         current_positions: int,
-        market_volatility_percentile: Decimal
+        market_volatility_percentile: Decimal,
+        confluence_score: Optional[int] = None
     ) -> Tuple[Decimal, str]:
         """
         Calculate safe position size based on current market conditions.
@@ -144,24 +145,40 @@ class RiskManager:
         Args:
             current_positions: Number of currently open positions
             market_volatility_percentile: Current volatility (0-100)
+            confluence_score: Optional Confluence Score (0-100)
             
         Returns:
             Tuple of (position_size_pct, explanation)
         """
         base_size = self.limits.max_position_size_pct
-        explanation = f"Using standard position size of {base_size}%"
+        explanation_parts = [f"Base size: {base_size}%"]
         
-        # Scale down if high volatility
+        # 1. Confluence Scaling (Intel)
+        # Higher conviction = Full size. Lower conviction = Reduced size.
+        if confluence_score is not None:
+            if confluence_score >= 80:
+                # High Conviction: No reduction
+                explanation_parts.append(f"High Confluence ({confluence_score}) ✅")
+            elif confluence_score >= 60:
+                # Medium Conviction: 75% size
+                base_size = base_size * Decimal("0.75")
+                explanation_parts.append(f"Medium Confluence ({confluence_score}) -> 75% size")
+            else:
+                # Low Conviction: 50% size
+                base_size = base_size * Decimal("0.50")
+                explanation_parts.append(f"Low Confluence ({confluence_score}) -> 50% size")
+
+        # 2. Volatility Scaling (Risk)
         if market_volatility_percentile > self.limits.volatility_scale_threshold:
             base_size = base_size * Decimal("0.5")
-            explanation = (f"Position size reduced to {base_size}% due to "
-                          f"high market volatility ({market_volatility_percentile}th percentile)")
+            explanation_parts.append(f"High Volatility ({market_volatility_percentile}th) -> 50% reduction")
         
-        # Further reduce if many positions open (diversification)
+        # 3. Diversification Scaling (Portfolio)
         if current_positions >= self.limits.max_concurrent_positions - 1 and current_positions > 0:
             base_size = base_size * Decimal("0.75")
-            explanation += f" and adjusted down due to {current_positions} open positions"
+            explanation_parts.append(f"High Load ({current_positions} pos) -> 75% reduction")
         
+        explanation = "; ".join(explanation_parts)
         return base_size, explanation
     
     def validate_new_trade(
