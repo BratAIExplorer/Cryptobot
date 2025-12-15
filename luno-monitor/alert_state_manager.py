@@ -10,7 +10,10 @@ class AlertStateManager:
     """Manages persistent alert state with time-based cooldowns"""
     
     def __init__(self, state_file='alert_state.json'):
-        self.state_file = state_file
+        # Use absolute path based on script location
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        self.state_file = os.path.join(script_dir, state_file)
+        
         self.alerted_targets = {}
         self.cooldowns = {
             'profit_target': 24,  # 24 hours
@@ -27,8 +30,12 @@ class AlertStateManager:
                     # Convert ISO timestamps to datetime
                     for key, timestamp_str in data.items():
                         self.alerted_targets[key] = datetime.fromisoformat(timestamp_str)
+                print(f"✓ Loaded alert state from: {self.state_file}")
+                print(f"  {len(self.alerted_targets)} alerts in cooldown")
             except Exception as e:
                 print(f"⚠ Could not load alert state: {e}")
+        else:
+            print(f"ℹ No existing alert state file: {self.state_file}")
     
     def save_state(self):
         """Save alert state to file"""

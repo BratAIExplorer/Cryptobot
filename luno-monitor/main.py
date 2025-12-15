@@ -11,6 +11,7 @@ from src.luno_client import LunoClient
 from src.price_monitor import PriceMonitor
 from src.alert_manager import AlertManager
 from src.portfolio_analyzer import PortfolioAnalyzer
+from alert_state_manager import AlertStateManager
 
 # Initialize colorama for colored console output
 init()
@@ -55,8 +56,9 @@ class LunoPortfolioMonitor:
             print(f"{Fore.RED}✗ Failed to connect to Luno API{Style.RESET_ALL}")
             raise ConnectionError("Could not connect to Luno API")
         
-        # Track alerted targets to avoid duplicate alerts
-        self.alerted_targets = {}
+        # Initialize alert state manager (prevents duplicate alerts)
+        self.alert_state = AlertStateManager()
+        print(f"{Fore.GREEN}✓ Alert cooldown manager initialized{Style.RESET_ALL}")
     
     def monitor_prices(self):
         """Main monitoring loop - check prices and send alerts"""
@@ -75,26 +77,68 @@ class LunoPortfolioMonitor:
                 # Detect alerts
                 alerts = self.price_monitor.detect_price_alerts(coin, current_price, target_prices)
                 
-                # Send alerts
+                # Send alerts with cooldown check
                 for alert in alerts:
-                    alert_key = f"{coin}_{alert['type']}_{alert.get('profit_pct', alert.get('drop_pct'))}"
-                    
-                    # Avoid duplicate alerts (only alert once per target)
-                    if alert_key not in self.alerted_targets:
-                        if alert['type'] == 'target_reached':
-                            self.alert_manager.send_profit_target_alert(alert)
-                            self.alerted_targets[alert_key] = datetime.now()
-                            print(f"{Fore.GREEN}🎯 {alert['message']}{Style.RESET_ALL}")
+                    if alert['type'] == 'target_reached':
+                        alert_key = f"{coin}_target_{alert['profit_pct']}"
                         
-                        elif alert['type'] == 'price_drop':
+                        # Check cooldown (24 hours for profit targets)
+                        if self.alert_state.is_allowed(alert_key, 'profit_target'):
+                            self.alert_manager.send_profit_target_alert(alert)
+                            self.alert_state.mark_sent(alert_key)
+                            print(f"{Fore.GREEN}🎯 {alert['message']}{Style.RESET_ALL}")
+                        else:
+                            print(f"{Fore.YELLOW}⏳ Skipping {coin} {alert['profit_pct']}% alert (cooldown){Style.RESET_ALL}")
+                    
+                    elif alert['type'] == 'price_drop':
+                        alert_key = f"{coin}_drop_{alert['drop_pct']:.1f}"
+                        
+                        # Check cooldown (2 hours for price drops)
+                        if self.alert_state.is_allowed(alert_key, 'price_drop'):
                             self.alert_manager.send_price_drop_alert(alert)
+                            self.alert_state.mark_sent(alert_key)
                             print(f"{Fore.RED}⚠️ {alert['message']}{Style.RESET_ALL}")
+                        else:
+                            print(f"{Fore.YELLOW}⏳ Skipping {coin} drop alert (cooldown){Style.RESET_ALL}")
             
             # Display summary in MYR
             print(f"{Fore.CYAN}Portfolio Value: {self.portfolio_analyzer.currency.format_myr_primary(snapshot['total_value'])} ({snapshot['total_profit_pct']:+.2f}%){Style.RESET_ALL}")
             
         except Exception as e:
             print(f"{Fore.RED}✗ Error during monitoring: {e}{Style.RESET_ALL}")
+    
+    def initialize_alert_state(self):
+        """
+        Initialize alert state on startup to prevent spam
+        Pre-populates already-reached targets without sending alerts
+        """
+        print(f"\n{Fore.YELLOW}Initializing alert state (suppressing startup alerts)...{Style.RESET_ALL}")
+        
+        try:
+            snapshot = self.portfolio_analyzer.get_portfolio_snapshot()
+            initialized_count = 0
+            
+            for holding in snapshot['holdings']:
+                coin = holding['coin']
+                current_price = holding['current_price']
+                target_prices = holding['target_prices']
+                
+                # Check which targets are already reached
+                for profit_pct, target_price in target_prices.items():
+                    if current_price >= target_price:
+                        alert_key = f"{coin}_target_{profit_pct}"
+                        
+                        # Pre-populate alert state without sending alert
+                        if alert_key not in self.alert_state.alerted_targets:
+                            self.alert_state.mark_sent(alert_key)
+                            initialized_count += 1
+                            print(f"{Fore.CYAN}  • {coin} {profit_pct}% already reached - marked as notified{Style.RESET_ALL}")
+            
+            print(f"{Fore.GREEN}✓ Initialized {initialized_count} already-reached targets{Style.RESET_ALL}")
+            print(f"{Fore.GREEN}✓ Future alerts will only trigger on NEW target crossings{Style.RESET_ALL}")
+            
+        except Exception as e:
+            print(f"{Fore.RED}✗ Error initializing alert state: {e}{Style.RESET_ALL}")
     
     def daily_summary(self):
         """Send daily portfolio summary"""
@@ -150,13 +194,17 @@ class LunoPortfolioMonitor:
         # Print initial report
         self.print_portfolio_report()
         
+        # Initialize alert state to prevent startup spam
+        self.initialize_alert_state()
+        
         # Schedule tasks
         schedule.every(config.PRICE_CHECK_INTERVAL_SECONDS).seconds.do(self.monitor_prices)
         schedule.every().day.at("09:00").do(self.daily_summary)
         schedule.every().hour.do(self.print_portfolio_report)
         
-        # Run immediately
-        self.monitor_prices()
+        # DON'T run monitor_prices() immediately - wait for first scheduled check
+        # This prevents alert spam on startup for already-reached targets
+        print(f"{Fore.CYAN}⏳ Waiting for first scheduled check in {config.PRICE_CHECK_INTERVAL_SECONDS} seconds...{Style.RESET_ALL}")
         
         # Main loop
         try:

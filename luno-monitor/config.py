@@ -22,7 +22,7 @@ TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 
 # Profit Targets (percentages)
-PROFIT_TARGETS = [float(x.strip()) for x in os.getenv('PROFIT_TARGETS', '10,15,20,25').split(',')]
+PROFIT_TARGETS = [float(x.strip()) for x in os.getenv('PROFIT_TARGETS', '20,35,50').split(',')]
 
 # Alert Preferences
 ENABLE_DESKTOP_NOTIFICATIONS = os.getenv('ENABLE_DESKTOP_NOTIFICATIONS', 'true').lower() == 'true'
@@ -37,7 +37,8 @@ ALERT_ON_PRICE_DROP_PERCENT = float(os.getenv('ALERT_ON_PRICE_DROP_PERCENT', '5'
 DASHBOARD_PORT = int(os.getenv('DASHBOARD_PORT', '5000'))
 DASHBOARD_HOST = os.getenv('DASHBOARD_HOST', 'localhost')
 
-# Cryptocurrency pairs on Luno (based on user's portfolio)
+# Cryptocurrency pairs on Luno
+# NOTE: Using MYR (Malaysian Ringgit) pairs for Malaysia region
 CRYPTO_PAIRS = {
     'BTC': 'XBTMYR',   # Bitcoin
     'XRP': 'XRPMYR',   # Ripple
@@ -74,8 +75,7 @@ ESTIMATED_TAKER_FEE = 0.0025 # 0.25%
 
 # Currency Display Settings
 DISPLAY_CURRENCY = 'MYR'  # Malaysian Ringgit
-BASE_CURRENCY = 'MYR'     # API now returns MYR directly
-ZAR_TO_MYR_RATE = 1.0     # No conversion needed
+BASE_CURRENCY = 'MYR'     # Luno API returns MYR (Malaysian market)
 
 def validate_config():
     """Validate that all required configuration is present"""

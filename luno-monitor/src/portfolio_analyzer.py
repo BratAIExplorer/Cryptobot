@@ -35,7 +35,7 @@ class PortfolioAnalyzer:
         current_prices = self.price_monitor.get_all_prices()
         
         holdings = []
-        total_value_zar = 0
+        total_value_myr = 0
         total_cost_basis = 0
         
         for coin, balance_info in balances.items():
@@ -68,7 +68,7 @@ class PortfolioAnalyzer:
                 'current_price': current_price,
                 'current_value': current_value,
                 'cost_basis': cost_basis,
-                'profit_loss_zar': current_value - cost_basis,
+                'profit_loss_myr': current_value - cost_basis,
                 'profit_loss_pct': pl_metrics['profit_loss_percent'],
                 'status': pl_metrics['status'],
                 'target_prices': target_prices,
@@ -76,11 +76,11 @@ class PortfolioAnalyzer:
                 'targets_reached': self._check_targets_reached(current_price, target_prices)
             })
             
-            total_value_zar += current_value
+            total_value_myr += current_value
             total_cost_basis += cost_basis
         
         # Calculate overall metrics
-        total_profit_loss = total_value_zar - total_cost_basis
+        total_profit_loss = total_value_myr - total_cost_basis
         total_profit_pct = (total_profit_loss / total_cost_basis * 100) if total_cost_basis > 0 else 0
         
         # Sort holdings by value (descending)
@@ -88,7 +88,7 @@ class PortfolioAnalyzer:
         
         return {
             'timestamp': datetime.now(),
-            'total_value': total_value_zar,
+            'total_value': total_value_myr,
             'total_cost_basis': total_cost_basis,
             'total_profit_loss': total_profit_loss,
             'total_profit_pct': total_profit_pct,
@@ -169,7 +169,7 @@ class PortfolioAnalyzer:
             report.append(f"  Avg Buy Price: {self.currency.format_myr_primary(holding['avg_buy_price'])}")
             report.append(f"  Current Price: {self.currency.format_myr_primary(holding['current_price'])}")
             report.append(f"  Current Value: {self.currency.format_myr_primary(holding['current_value'])}")
-            report.append(f"  Profit/Loss:   {self.currency.format_myr_primary(holding['profit_loss_zar'])} ({holding['profit_loss_pct']:+.2f}%)")
+            report.append(f"  Profit/Loss:   {self.currency.format_myr_primary(holding['profit_loss_myr'])} ({holding['profit_loss_pct']:+.2f}%)")
             
             if holding['targets_reached']:
                 report.append(f"  🎯 Targets Reached: {', '.join([f'{t}%' for t in holding['targets_reached']])}")

@@ -156,11 +156,11 @@ class DipMonitor:
         if tier == 1:
             emoji = "💰"
             urgency = "BUYING OPPORTUNITY"
-            recommendation = "Consider starting your position"
+            recommendation = "Consider starting a position - 15% drop detected"
         else:  # tier == 2
             emoji = "🚨"
-            urgency = "DEEP DIP ALERT"
-            recommendation = "Strong buying opportunity - Research and consider larger position"
+            urgency = "🔴 CRITICAL DIP ALERT"
+            recommendation = "EXCEPTIONAL BUYING OPPORTUNITY - 50%+ crash detected! Research immediately and consider strong position"
         
         # Desktop notification
         title = f"{emoji} {name} Dip Alert!"

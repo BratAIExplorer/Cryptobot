@@ -9,36 +9,36 @@ DIP_WATCH_LIST = {
     'SOL': {
         'pair': 'SOLMYR',
         'name': 'Solana',
-        'tier1_drop': 10,  # Alert at 10% drop (first buying opportunity)
-        'tier2_drop': 20,  # Alert at 20% drop (deep dip buying)
+        'tier1_drop': 15,  # Alert at 15% drop (buying opportunity)
+        'tier2_drop': 50,  # Alert at 50% drop (CRITICAL - deep dip)
         'baseline_price': 511.00  # Current price as baseline (will auto-update)
     },
     'LINK': {
         'pair': 'LINKMYR', 
         'name': 'Chainlink',
-        'tier1_drop': 10,
-        'tier2_drop': 20,
+        'tier1_drop': 15,
+        'tier2_drop': 50,
         'baseline_price': 49.21
     },
     'POL': {
         'pair': 'POLMYR',
         'name': 'Polygon',
-        'tier1_drop': 10,
-        'tier2_drop': 20,
+        'tier1_drop': 15,
+        'tier2_drop': 50,
         'baseline_price': 0.49
     },
     'ETH': {
         'pair': 'ETHMYR',
         'name': 'Ethereum',
-        'tier1_drop': 10,
-        'tier2_drop': 20,
+        'tier1_drop': 15,
+        'tier2_drop': 50,
         'baseline_price': 11308.00
     },
     'AVAX': {
         'pair': 'AVAXMYR',
         'name': 'Avalanche',
-        'tier1_drop': 15,  # Slightly higher threshold (more volatile)
-        'tier2_drop': 25,
+        'tier1_drop': 15,
+        'tier2_drop': 50,
         'baseline_price': 52.23
     }
 }

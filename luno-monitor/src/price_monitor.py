@@ -28,7 +28,7 @@ class PriceMonitor:
             coin: Cryptocurrency symbol
         
         Returns:
-            Current price in ZAR or None if error
+            Current price in MYR or None if error
         """
         try:
             pair = config.CRYPTO_PAIRS.get(coin)
@@ -49,20 +49,20 @@ class PriceMonitor:
             coin: Cryptocurrency symbol
         
         Returns:
-            Current price in ZAR or None if error
+            Current price in MYR or None if error
         """
         try:
             coin_id = config.COINGECKO_IDS.get(coin)
             if not coin_id:
                 return None
             
-            # Get price in USD first, then convert to ZAR
+            # Get price in MYR from CoinGecko
             price_data = self.coingecko_client.get_price(
                 ids=coin_id,
-                vs_currencies='zar'
+                vs_currencies='myr'
             )
             
-            return price_data[coin_id]['zar']
+            return price_data[coin_id]['myr']
         except Exception as e:
             print(f"Error fetching CoinGecko price for {coin}: {e}")
             return None
@@ -76,7 +76,7 @@ class PriceMonitor:
             coin: Cryptocurrency symbol
         
         Returns:
-            Current price in ZAR
+            Current price in MYR
         """
         # Try Luno first (most accurate for your exchange)
         price = self.get_luno_price(coin)
@@ -130,18 +130,18 @@ class PriceMonitor:
         """
         if avg_buy_price == 0:
             return {
-                'profit_loss_zar': 0,
+                'profit_loss_myr': 0,
                 'profit_loss_percent': 0,
                 'status': 'unknown'
             }
         
         profit_loss_percent = ((current_price - avg_buy_price) / avg_buy_price) * 100
-        profit_loss_zar = current_price - avg_buy_price
+        profit_loss_myr = current_price - avg_buy_price
         
         status = 'profit' if profit_loss_percent > 0 else 'loss' if profit_loss_percent < 0 else 'break_even'
         
         return {
-            'profit_loss_zar': profit_loss_zar,
+            'profit_loss_myr': profit_loss_myr,
             'profit_loss_percent': profit_loss_percent,
             'status': status
         }
