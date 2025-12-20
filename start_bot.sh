@@ -1,42 +1,51 @@
 #!/bin/bash
 
-# Clear screen
-clear
+# ==========================================
+# 🚀 CryptoBot V2.1 Deployment Script
+# ==========================================
 
-echo "==================================================="
-echo "🚀 Starting Lumina Crypto Bot (v3.0 Refactor)"
-echo "==================================================="
+echo "=========================================="
+echo "    🚀 STARTING DEPLOYMENT (V2.1)"
+echo "=========================================="
 
-# 0. Auto-Update
-echo "🔄 Checking for updates..."
-git pull
+# 1. Pull Latest Code
+echo "📥 1. Pulling latest code from git..."
+git pull origin main
 
+# 2. Update Dependencies
+echo "📦 2. Checking dependencies..."
+pip install -r requirements.txt
 
-# 1. Check Python Version
-if command -v python3 &>/dev/null; then
-    PY_CMD="python3"
-elif command -v python &>/dev/null; then
-    PY_CMD="python"
-else
-    echo "❌ Error: Python 3 not found! Please install python3."
-    exit 1
-fi
+# 3. Secure Permissions
+echo "🔒 3. Securing secrets..."
+chmod 600 .env
+chmod 700 start_bot.sh
 
-echo "✅ Using Python: $($PY_CMD --version)"
+# 4. Database Backup (Safety First)
+echo "💾 4. Running Pre-Start Backup..."
+python scripts/auto_backup.py &
+BACKUP_PID=$!
+echo "   -> Backup Service Started (PID: $BACKUP_PID)"
 
-# 2. Install Requirements (Quietly)
-echo "📦 Checking dependencies..."
-$PY_CMD -m pip install -q -r requirements.txt
+# 5. Start Dashboard (Background)
+echo "📊 5. Starting Dashboard..."
+pm2 delete dashboard 2>/dev/null
+pm2 start dashboard/app.py --name dashboard --interpreter python3 -- --server.port 8501
+echo "   -> Dashboard running on :8501"
 
-# 3. Check for Database Migration
-if [ ! -f "data/trades_v3.db" ]; then
-    echo "⚠️  V3 Database not found. Running migration..."
-    $PY_CMD scripts/migrate_v3.py
-else
-    echo "✅ V3 Database found."
-fi
+# 6. Start Trading Bot (Background)
+echo "🤖 6. Starting Trading Bot..."
+pm2 delete crypto_bot 2>/dev/null
+pm2 start run_bot.py --name crypto_bot --interpreter python3
+echo "   -> Bot Service running"
 
-# 4. Run the Bot
-echo "🤖 Launching Engine..."
-echo "---------------------------------------------------"
-$PY_CMD run_bot.py
+# 7. Verification
+echo "✅ 7. Assessing Status..."
+pm2 save
+pm2 list
+
+echo "=========================================="
+echo "🎉 DEPLOYMENT COMPLETE! "
+echo "   -> Dashboard: http://$(curl -s ifconfig.me):8501"
+echo "   -> Password:  admin123"
+echo "=========================================="

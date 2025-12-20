@@ -126,27 +126,34 @@ class TelegramNotifier:
             
         # Format breakdown string
         tech = breakdown.get('technical', {}).get('score', 0)
-        onchain = breakdown.get('onchain', {}).get('score', 0)
-        macro = breakdown.get('macro', {}).get('score', 0)
-        fund = breakdown.get('fundamental', {}).get('score', 0)
-        
-        msg = f"{header}\n\n" \
-              f"Symbol: *{symbol}*\n" \
-              f"Confluence Score: *{score}/100* 🎯\n\n" \
-              f"*Score Breakdown:*\n" \
-              f"📈 Technical: `{tech}`\n" \
-              f"🔗 On-Chain: `{onchain}`\n" \
-              f"🌍 Macro: `{macro}`\n" \
-              f"🏛️ Fundamental: `{fund}`\n\n" \
-              f"Recommendation: *STRNG BUY* if >80"
+    def notify_confluence_signal(self, symbol, score, details, timeframe):
+        """Send Rich Confluence Alert"""
+        msg = (
+            f"🧠 *High Conviction Signal* 🧠\n\n"
+            f"Symbol: *{symbol}*\n"
+            f"Score: *{score}/100*\n"
+            f"Timeframe: {timeframe}\n\n"
+            f"🔍 *Details*:\n{details}"
+        )
         self.send_message(msg)
 
-    def notify_veto_trigger(self, symbol, reason):
-        """Alert when a trade is BLOCKED by the Veto Guardian."""
-        msg = f"🛡️ *VETO GUARDIAN ACTIVE*\n\n" \
-              f"Trade Blocked for: *{symbol}*\n" \
-              f"Reason: _{reason}_\n\n" \
-              f"Account protected from risky entry."
+    def notify_veto_trigger(self, symbol, reason, rule_type):
+        """Send Veto Alert"""
+        msg = (
+            f"🛡️ *Trade Vetoed* 🛡️\n\n"
+            f"Symbol: *{symbol}*\n"
+            f"Rule: {rule_type}\n"
+            f"Reason: {reason}"
+        )
         self.send_message(msg)
 
-
+    def notify_startup(self, mode, active_bots):
+        """Send Startup Summary"""
+        bots_list = "\n".join([f"- {b['name']} ({len(b['symbols'])} symbols)" for b in active_bots])
+        msg = (
+            f"🚀 *Bot Started* 🚀\n\n"
+            f"Mode: *{mode.upper()}*\n"
+            f"Active Strategies:\n{bots_list}\n\n"
+            f"✅ Systems Check: OK"
+        )
+        self.send_message(msg)

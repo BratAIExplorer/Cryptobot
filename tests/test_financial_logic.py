@@ -1,6 +1,6 @@
 import pytest
 from decimal import Decimal
-from core.risk_manager import RiskManager
+from core.risk_module import RiskManager, RiskLimits, RiskLevel
 
 class TestFinancialLogic:
     def test_precision_math(self):
@@ -8,10 +8,6 @@ class TestFinancialLogic:
         Test that Decimal handles floating point artifacts correctly.
         Case: 0.1 + 0.1 + 0.1 - 0.3 should be EXACTLY 0.
         """
-        # Float fail case (reference only, not asserting)
-        f_res = 0.1 + 0.1 + 0.1 - 0.3
-        # In float architecture this is usually 5.55e-17, not 0
-        
         # Decimal success case
         d1 = Decimal('0.1')
         d_res = d1 + d1 + d1 - Decimal('0.3')
@@ -21,8 +17,9 @@ class TestFinancialLogic:
         """
         Verify check_profit_guard handles fees with high precision.
         """
-        # 0.1% fee, 0.5% min profit
-        rm = RiskManager(min_profit_pct=0.5, fee_rate=0.001)
+        # New RiskManager requires Limits
+        limits = RiskLimits.from_risk_level(RiskLevel.MODERATE)
+        rm = RiskManager(limits, portfolio_value=Decimal("1000"))
         
         # Buy at 100
         buy_price = Decimal('100.00')
@@ -35,7 +32,8 @@ class TestFinancialLogic:
         # Profit = 100.899 - 100.10 = 0.799
         # Return = 0.799 / 100.10 ~= 0.798%
         
-        is_prof, actual_pct = rm.check_profit_guard(sell_price, buy_price)
+        # Ported method signature: check_profit_guard(current_price, buy_price, fee_rate=Decimal("0.001"), min_profit_pct=Decimal("0.005"))
+        is_prof, actual_pct = rm.check_profit_guard(sell_price, buy_price, fee_rate=Decimal("0.001"), min_profit_pct=Decimal("0.005"))
         
         assert is_prof is True
         # Check strict decimal value
@@ -48,7 +46,9 @@ class TestFinancialLogic:
         """
         Test heavy drawdown decimals
         """
-        rm = RiskManager(max_drawdown_pct=0.10) # 10%
+        limits = RiskLimits.from_risk_level(RiskLevel.MODERATE)
+        limits.max_drawdown_pct = Decimal("10.0") # Override for test
+        rm = RiskManager(limits, portfolio_value=Decimal("1000"))
         
         # Start 1000
         rm.check_drawdown_limit(Decimal('1000'), None)
@@ -59,10 +59,3 @@ class TestFinancialLogic:
         
         assert can_trade is False
         assert dd_pct > Decimal('10.0')
-
-    def test_input_sanitization(self):
-        """
-        Ensure RiskManager accepts floats in __init__ but converts to Decimal internally
-        """
-        rm = RiskManager(min_profit_pct=0.5)
-        assert isinstance(rm.min_profit_pct, Decimal)

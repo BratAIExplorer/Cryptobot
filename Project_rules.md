@@ -2,8 +2,15 @@
 
 **Project Name:** Lumina
 **Codename:** Antigravity
-**Version:** 2.1
+**Version:** 3.0 - MEXC Migration Edition
+**Exchange:** MEXC Global (migrating from Binance)
 **Source of Truth:** This document governs all development, product decisions, and AI-generated code.
+
+**CRITICAL MIGRATION STATUS (Dec 14, 2025):**
+- 🔴 **Binance:** STOPPED & ARCHIVED (backup complete)
+- 🟢 **MEXC:** PRIMARY TARGET (12-month backtest in progress)
+- 📊 **Phase:** Backtest & Optimization (Week 1-4)
+- 🎯 **Goal:** Deploy 2-3 proven strategies to MEXC live by Week 6-8
 
 ---
 
@@ -46,6 +53,60 @@ All contributors (including AI Agents) must strictly adhere to these standards t
 ---
 
 ## 3. Product & Architecture Requirements
+
+### 3.0 CRITICAL FILE PATHS & ORGANIZATION (Non-Technical User Reference)
+
+**VPS Paths (SSH Access Required):**
+```
+/Antigravity/antigravity/scratch/
+├── crypto_trading_bot/          # BINANCE (ARCHIVED - DO NOT MODIFY)
+│   ├── data/BINANCE_BACKUP_*.db # Database backups
+│   └── BINANCE_FINAL_BACKUP.db  # Master backup
+│
+└── crypto_bot_mexc/             # MEXC (ACTIVE DEVELOPMENT)
+    ├── data/
+    │   ├── trades_v3_mexc_paper.db  # Paper trading database
+    │   └── trades_v3_mexc_live.db   # Live trading database (future)
+    ├── strategies/              # Trading strategy code
+    ├── core/                    # Core engine
+    └── run_bot.py              # Main bot runner
+```
+
+**Local PC Paths (Windows):**
+```
+C:\CryptoBot_Project\
+├── backups_binance/                 # BINANCE ARCHIVED DATA
+│   ├── BINANCE_FINAL_BACKUP.db      # Database backup
+│   ├── binance_final_audit_*.json   # Performance audit
+│   └── data/                        # Full data copy
+│
+├── backtest_results/                # MEXC BACKTEST OUTPUTS
+│   ├── grid_btc_mexc_12m_report.json
+│   └── comparison_binance_vs_mexc.html
+│
+├── data/mexc_history/              # 12-MONTH MEXC DATA
+│   ├── BTC_USDT_1h.csv
+│   └── ETH_USDT_1h.csv
+│
+└── strategies/                     # Optimized for MEXC
+```
+
+**Key Documents (Artifacts):**
+```
+C:\Users\user\.gemini\antigravity\brain\de0d15b3-f30b-4028-b41d-187cd48de787\
+├── mexc_migration_execution_plan.md    # 6-phase migration plan
+├── production_readiness_assessment.md  # Binance performance analysis
+├── mexc_migration_risk_assessment.md   # MEXC vs Binance comparison
+├── vps_analysis_quickstart.md         # VPS commands quick reference
+└── quick_vps_commands.txt             # Copy-paste ready commands
+```
+
+**⚠️ NON-TECHNICAL USER RULES:**
+1. **NEVER delete Binance backups** (located in `backups_binance/`)
+2. **NEVER edit files directly on VPS** (use local, then upload)
+3. **ALWAYS backup before deploying** (`cp trades_db trades_db.backup`)
+4. **NEVER switch to live mode** without 14+ days paper trading validation
+5. **CONSULT mexc_migration_execution_plan.md** before making any changes
 
 ### 3.1 Security & Data
 * **Zero-Trust Secrets:** API Keys are encrypted at rest and in transit.

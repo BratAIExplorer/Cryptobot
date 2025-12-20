@@ -66,6 +66,7 @@ class Decision(Base):
     decision_type = Column(String(50)) # SELL_100, SELL_50, HOLD, SNOOZE, DCA
     price_at_decision = Column(Float)
     rationale = Column(Text, nullable=True)
+    status = Column(String(20), default="PENDING") # PENDING, APPROVED, REJECTED, EXECUTED
     
     decided_at = Column(DateTime, default=datetime.utcnow)
     executed_at = Column(DateTime, nullable=True)
@@ -160,6 +161,63 @@ class SystemHealth(Base):
     message = Column(Text)
     last_updated = Column(DateTime, default=datetime.utcnow)
     metrics_json = Column(Text, nullable=True)
+
+class ConfluenceScore(Base):
+    __tablename__ = 'confluence_scores'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    symbol = Column(String(20))
+    
+    technical_score = Column(Float)
+    onchain_score = Column(Float)
+    macro_score = Column(Float)
+    fundamental_score = Column(Float)
+    
+    total_score = Column(Float) # The weighted total
+    raw_score = Column(Float)   # Pre-regime/scaling
+    v1_score = Column(Float, nullable=True) # For calibration
+    
+    regime_state = Column(String(50))
+    regime_multiplier = Column(Float)
+    
+    recommendation = Column(String(50))
+    position_size = Column(String(50))
+    stop_loss_pct = Column(Float)
+    details = Column(Text, nullable=True) # JSON details
+
+class MarketRegime(Base):
+    __tablename__ = 'market_regimes'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    regime_state = Column(String(50))
+    confidence = Column(Float)
+    
+    btc_price = Column(Float)
+    btc_ma50 = Column(Float)
+    btc_ma200 = Column(Float)
+    volatility_percentile = Column(Float)
+    higher_highs = Column(Boolean)
+    lower_lows = Column(Boolean)
+    volume_trend = Column(String(20))
+    recent_drawdown_pct = Column(Float)
+
+class PortfolioSnapshot(Base):
+    """Tracks account equity over time for Drawdown Velocity checks"""
+    __tablename__ = 'portfolio_history'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    
+    total_equity_usd = Column(Float)
+    cash_balance_usd = Column(Float)
+    active_positions_value_usd = Column(Float)
+    unrealized_pnl_usd = Column(Float)
+    
+    # Track metadata
+    risk_multiplier = Column(Float, default=1.0) # From current regime
+    active_positions_count = Column(Integer)
 
 
 

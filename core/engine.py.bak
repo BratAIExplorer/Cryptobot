@@ -1,17 +1,11 @@
-import sys
-import os
 import time
 from decimal import Decimal
 import pandas as pd
 from datetime import datetime, timedelta
 from .exchange import ExchangeInterface
-from .exchange_unified import UnifiedExchange
+from .logger import TradeLogger
 from .logger import TradeLogger
 from .risk_module import RiskManager, setup_safe_trading_bot
-
-# Add luno-monitor to path for Confluence Engine
-root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(os.path.join(root_dir, 'luno-monitor', 'src'))
 from .resilience import ExchangeResilienceManager
 from .execution import OrderExecutionManager
 from .observability import SystemMonitor
@@ -22,22 +16,10 @@ from .veto import VetoManager
 
 
 class TradingEngine:
-    def __init__(self, mode='paper', telegram_config=None, exchange='Binance', db_path=None):
+    def __init__(self, mode='paper', telegram_config=None):
         self.mode = mode
-        self.exchange_name = exchange
-        
-        # Use unified exchange if not Binance
-        if exchange.upper() != 'BINANCE':
-            from .exchange_unified import UnifiedExchange
-            self.exchange = UnifiedExchange(exchange_name=exchange, mode=mode)
-        else:
-            self.exchange = ExchangeInterface(mode)
-        
-        # Initialize logger with db_path if provided, otherwise use default
-        if db_path:
-            self.logger = TradeLogger(db_path=db_path)
-        else:
-            self.logger = TradeLogger()
+        self.exchange = ExchangeInterface(mode)
+        self.logger = TradeLogger(mode=mode)
         
         # Initialize Safety Managers
         self.risk_manager = setup_safe_trading_bot('moderate') # Default to Moderate Risk
@@ -169,95 +151,96 @@ class TradingEngine:
             self.logger.update_bot_status(bot['name'], 'RUNNING', 0, total_pnl, wallet_balance)
         
         while self.is_running:
-            self.run_cycle()
+            # Observability Snapshot (Safety Heartbeat)
+            try:
+                self.system_monitor.snapshot()
+            except Exception as e:
+                print(f"[MONITOR] Snapshot failed: {e}")
+
+            # Check circuit breaker with auto-recovery
+            if not self.check_circuit_breaker():
+                print("⏸️  Circuit breaker paused. Waiting for auto-recovery...")
+                time.sleep(60)  # Check every minute for auto-recovery
+                continue
+                
+            # --- DAILY LOSS LIMIT CHECK ---
+            can_trade_daily, reason = self.risk_manager.check_daily_loss_limit()
+            if not can_trade_daily:
+                print(f"🔴 RISK STOP: {reason}")
+                self.notifier.send_message(f"🔴 RISK STOP: {reason}")
+                time.sleep(3600) # Pause for an hour
+                continue
+            
+            # --- COOLDOWN CHECK ---
+            # Now requires symbol for per-coin 7-day cooldown
+            # We check general cooldown here, strategy loop checks per-coin
+            can_trade_cooldown, reason = self.risk_manager.check_cooldown()
+            if not can_trade_cooldown:
+                print(f"❄️ COOLDOWN: {reason}")
+                time.sleep(60)
+                continue
+            
+            # Check watchdog
+            self.check_watchdog()
+            
+            # Clean up stuck positions
+            self.cleanup_aged_positions()
+            
+            # Check max drawdown limit (Industry standard safety feature)
+            total_pnl = self.logger.get_pnl_summary()  # All strategies combined
+            current_equity = 50000 + total_pnl  # Initial balance + realized P&L
+            can_trade, drawdown_pct = self.risk_manager.check_drawdown_limit(current_equity, self.logger)
+            
+            # Alert at 80% of max drawdown (warning)
+            max_drawdown = self.risk_manager.max_drawdown_pct * Decimal("100")
+            if drawdown_pct >= (max_drawdown * Decimal("0.8")) and drawdown_pct < max_drawdown:
+                self.notifier.alert_max_drawdown(
+                    drawdown_pct, 
+                    max_drawdown,
+                    current_equity,
+                    self.risk_manager.peak_equity
+                )
+            
+            if not can_trade:
+                # Send critical alert when max drawdown hit
+                self.notifier.alert_max_drawdown(
+                    drawdown_pct,
+                    max_drawdown,
+                    current_equity,
+                    self.risk_manager.peak_equity
+                )
+                print(f"⏸️ Drawdown limit exceeded: {drawdown_pct:.1f}% (max: {max_drawdown:.0f}%)")
+                print(f"   Peak Equity: ${self.risk_manager.peak_equity:.2f} | Current: ${current_equity:.2f}")
+                time.sleep(3600)  # Pause for 1 hour before rechecking
+                continue
+            
+            # Check for no-activity (6 hour silence)
+            self.check_no_activity()
+
+            for bot in self.active_bots:
+                # --- Heartbeat & Status Update ---
+                # 1. Get stats
+                all_trades = self.logger.get_trades()
+                if not all_trades.empty:
+                    # Filter trades for this specific bot strategy
+                    bot_trades = all_trades[all_trades['strategy'] == bot['name']]
+                    total_trades = len(bot_trades)
+                else:
+                    total_trades = 0
+                
+                total_pnl = self.logger.get_pnl_summary(bot['name'])
+                wallet_balance = self.logger.get_wallet_balance(bot['name'], initial_balance=bot.get('initial_balance', 50000))
+                
+                # Check for profit milestones
+                self.check_profit_milestones(total_pnl)
+                
+                # 2. Update DB
+                self.logger.update_bot_status(bot['name'], 'RUNNING', total_trades, total_pnl, wallet_balance)
+                
+                # 3. Process Strategy
+                self.process_bot(bot)
+            
             time.sleep(180)  # Loop interval - 180s for better rate limiting
-
-    def run_cycle(self):
-        """Execute one full pass of the trading logic and safety checks"""
-        # Observability Snapshot (Safety Heartbeat)
-        try:
-            self.system_monitor.snapshot()
-        except Exception as e:
-            print(f"[MONITOR] Snapshot failed: {e}")
-
-        # Check circuit breaker with auto-recovery
-        if not self.check_circuit_breaker():
-            print("⏸️  Circuit breaker paused. Waiting for auto-recovery...")
-            return
-            
-        # --- DAILY LOSS LIMIT CHECK ---
-        can_trade_daily, reason = self.risk_manager.check_daily_loss_limit()
-        if not can_trade_daily:
-            print(f"🔴 RISK STOP: {reason}")
-            # Throttled notification could go here if needed
-            return
-        
-        # --- COOLDOWN CHECK ---
-        can_trade_cooldown, reason = self.risk_manager.check_cooldown()
-        if not can_trade_cooldown:
-            print(f"❄️ COOLDOWN: {reason}")
-            return
-        
-        # Check watchdog
-        self.check_watchdog()
-        
-        # Clean up stuck positions
-        self.cleanup_aged_positions()
-        
-        # --- PORTFOLIO SNAPSHOT (Institutional Hardening) ---
-        self._take_portfolio_snapshot()
-        
-        # Check max drawdown limit (Industry standard safety feature)
-        total_pnl = self.logger.get_pnl_summary()  # All strategies combined
-        current_equity = 50000 + total_pnl  # Initial balance + realized P&L
-        can_trade, drawdown_pct = self.risk_manager.check_drawdown_limit(current_equity, self.logger)
-        
-        # Alert at 80% of max drawdown (warning)
-        max_drawdown = self.risk_manager.max_drawdown_pct * Decimal("100")
-        if drawdown_pct >= (max_drawdown * Decimal("0.8")) and drawdown_pct < max_drawdown:
-            self.notifier.alert_max_drawdown(
-                drawdown_pct, 
-                max_drawdown,
-                current_equity,
-                self.risk_manager.peak_equity
-            )
-        
-        if not can_trade:
-            # Send critical alert when max drawdown hit
-            self.notifier.alert_max_drawdown(
-                drawdown_pct,
-                max_drawdown,
-                current_equity,
-                self.risk_manager.peak_equity
-            )
-            print(f"⏸️ Drawdown limit exceeded: {drawdown_pct:.1f}% (max: {max_drawdown:.0f}%)")
-            return
-        
-        # Check for no-activity (6 hour silence)
-        self.check_no_activity()
-
-        for bot in self.active_bots:
-            # --- Heartbeat & Status Update ---
-            # 1. Get stats
-            all_trades = self.logger.get_trades()
-            if not all_trades.empty:
-                # Filter trades for this specific bot strategy
-                bot_trades = all_trades[all_trades['strategy'] == bot['name']]
-                total_trades = len(bot_trades)
-            else:
-                total_trades = 0
-            
-            total_pnl = self.logger.get_pnl_summary(bot['name'])
-            wallet_balance = self.logger.get_wallet_balance(bot['name'], initial_balance=bot.get('initial_balance', 50000))
-            
-            # Check for profit milestones
-            self.check_profit_milestones(total_pnl)
-            
-            # 2. Update DB
-            self.logger.update_bot_status(bot['name'], 'RUNNING', total_trades, total_pnl, wallet_balance)
-            
-            # 3. Process Strategy
-            self.process_bot(bot)
 
     def stop(self):
         self.is_running = False
@@ -512,42 +495,71 @@ class TradingEngine:
                     sell_reason = None
                     
                     # --- V3 EXIT LOGIC (Centralized in Risk Manager) ---
-                    # Get current market regime for exit context
-                    from luno_monitor.src.regime_detector import RegimeDetector
-                    regime_det = RegimeDetector()
-                    btc_df = self.exchange.fetch_ohlcv('BTC/USDT', timeframe='1d', limit=250)
-                    regime_state, _, _ = regime_det.detect_regime(btc_df)
-                    
                     # Prepare data object for Risk Manager
                     position_data = {
                         'entry_price': buy_price,
                         'current_price': current_price,
                         'strategy': strategy_type,
                         'symbol': symbol,
-                        'entry_date': buy_timestamp,
-                        'entry_regime': oldest_position.get('entry_regime', 'UNDEFINED') # V2 metadata
+                        'open_time': buy_timestamp
                     }
                     
                     # Ask Risk Manager what to do
-                    action, risk_reason = self.risk_manager.check_exit_conditions(
-                        position_data, 
-                        regime_state=regime_state.value if hasattr(regime_state, 'value') else str(regime_state)
-                    )
+                    action, risk_reason = self.risk_manager.check_exit_conditions(position_data)
                     
                     if action == 'SELL':
                         sell_reason = risk_reason
                     elif action == 'ALERT_STOP_LOSS':
+                        # Do NOT sell. Just alert.
+                        # Throttle alerts to avoid spamming (simple throttle: check if we just sent one? For now just print)
                         print(f"⚠️  MANUAL DECISION NEEDED: {symbol} hit Stop Loss. Bot is HOLDING. {risk_reason}")
+                        # self.notifier.send_message(f"⚠️ STOP LOSS HIT: {symbol}. Please review manually.")
                     
                     # Priority 1: User Hard Manual Override (Stop Loss Enabled flag)
-                    stop_loss_enabled = bot.get('stop_loss_enabled', False)
+                    # If user explicitly wants automated stop losses, we honor the legacy config
+                    stop_loss_enabled = bot.get('stop_loss_enabled', False) # Default to FALSE for V3 (Human Exits)
+                    
                     if stop_loss_enabled and current_price <= buy_price * (1 - sl_pct):
                          sell_reason = f"Hard SL Hit (-{sl_pct*100:.1f}%)"
 
-                    if sell_reason:
-                        print(f"[{bot['name']}] Selling {symbol}: {sell_reason}")
-                        self.execute_trade(bot, symbol, 'SELL', current_price, rsi, position_id=position_id, reason=sell_reason)
-                        continue  # Skip buy check after selling
+                    # Priority 2: Strategy Specific (if not covered by Risk Manager)
+                    # Priority 2: Strategy Specific (if not covered by Risk Manager)
+                    if not sell_reason:
+                        if strategy_type == 'Buy-the-Dip':
+                            # Tiered exits: 50% @ 5%, 25% @ 7%, 25% @ 10%
+                            if profit_pct >= 0.10:
+                                sell_reason = f"TP3 Hit (+10%)"
+                        elif profit_pct >= 0.07:
+                            sell_reason = f"TP2 Hit (+7%)"
+                        elif profit_pct >= 0.05:
+                            sell_reason = f"TP1 Hit (+5%)"
+                        # Emergency exit after 120 days
+                        elif position_age_hours >= (120 * 24) and profit_pct >= -0.05:
+                            # START CHANGE: Remove auto-sell for Dip Strategy
+                            # sell_reason = f"Time Exit 120d ({profit_pct*100:.1f}%)"
+                            pass # User requested "Hold Indefinitely"
+                            
+                    elif strategy_type == 'Hyper-Scalper':
+                        # Scalper should exit within 30 minutes if profitable
+                        # Minimum 0.75% to cover 0.2-0.4% round-trip fees
+                        if position_age_hours >= 0.5 and profit_pct >= 0.0075:  # 0.75% minimum
+                            sell_reason = f"Scalp Exit +{profit_pct*100:.2f}% ({position_age_hours*60:.0f}min)"
+                        # Standard TP
+                        elif current_price >= buy_price * (1 + tp_pct):
+                            sell_reason = f"TP Hit (+{tp_pct*100:.1f}%)"
+                    
+                    # Priority 3: Standard Take Profit (for other strategies)
+                    elif current_price >= buy_price * (1 + tp_pct):
+                        sell_reason = f"TP Hit (+{tp_pct*100:.1f}%)"
+                    
+                    # Priority 4: Time-based exit for aging positions
+                    elif position_age_hours >= max_hold_hours:
+                        sell_reason = f"Time Exit ({position_age_hours:.1f}h old, {profit_pct*100:.1f}%)"
+                    
+                    # Priority 5: Break-even exit for stuck positions (after 6 hours)
+                    # Raised to 0.75% to cover fees
+                    elif position_age_hours >= 6 and profit_pct >= 0.0075:  # 0.75% minimum
+                         sell_reason = f"Break-Even Exit ({position_age_hours:.1f}h old)"
                     
                     if sell_reason:
                         print(f"[{bot['name']}] Selling {symbol}: {sell_reason}")
@@ -639,72 +651,29 @@ class TradingEngine:
             # Calculate trade amount
             amount = trade_amount_usd / price
             
-            # --- V2 CONFLUENCE CHECK ---
-            from luno_monitor.src.confluence_engine import ConfluenceEngine
-            c_engine = ConfluenceEngine()
-            
-            # Fetch daily data for regime detection
-            btc_df = self.exchange.fetch_ohlcv('BTC/USDT', timeframe='1d', limit=250)
-            
-            # Simplified manual inputs (in production, these should be more accurate)
-            manual_inputs = {
-                'rsi': rsi,
-                'price': price,
-                'volume_trend': 'INCREASING' if rsi > 50 else 'STABLE' # Proxy
-            }
-            
-            v2_result = c_engine.get_total_confluence_score(
-                symbol.split('/')[0],
-                manual_inputs=manual_inputs,
-                btc_df=btc_df
-            )
-            
-            # Record V2 result to DB for dashboard/calibration
-            self.logger.log_confluence_score(v2_result)
-            
-            if v2_result['scores']['final_total'] < 40: # Conservative threshold
-                print(f"[SKIP] Confluence V2 Reject: Score {v2_result['scores']['final_total']}/100")
-                return
-
-            # --- RISK VALIDATION (V2) ---
+            # --- RISK VALIDATION ---
+            # Count positions (approximate for MVP)
             open_positions_df = self.logger.get_open_positions()
             current_positions_count = len(open_positions_df)
             correlated_count = len(open_positions_df[open_positions_df['symbol'] == symbol]) if not open_positions_df.empty else 0
             
-            total_exp_usd = Decimal(str(self.logger.get_total_exposure()))
-            sector_exp_usd = self._get_sector_exposure(symbol, open_positions_df)
+            # Phase 4: Get list of active symbols for Correlation Check
+            active_symbols = open_positions_df['symbol'].unique().tolist() if not open_positions_df.empty else []
             
             is_valid, rejection_reason = self.risk_manager.validate_new_trade(
                 symbol=symbol,
-                proposed_size=Decimal(str(trade_amount_usd)) / self.risk_manager.portfolio_value * Decimal("100"),
+                proposed_size=Decimal(str(trade_amount_usd)) / self.risk_manager.portfolio_value * Decimal("100"), # Approx %
                 current_positions=current_positions_count,
                 correlated_positions=correlated_count,
-                active_symbols=open_positions_df['symbol'].tolist() if not open_positions_df.empty else [],
-                total_exposure_usd=total_exp_usd,
-                sector_exposure_usd=sector_exp_usd,
-                logger_instance=self.logger,
-                exchange_instance=self.exchange
+                active_symbols=active_symbols
             )
             
             if not is_valid:
                 print(f"[SKIP] Risk Manager Reject: {rejection_reason}")
                 return
 
-            if self.mode == 'live':
-                print(f"🚀 EXECUTING LIVE BUY: {symbol} @ ${price:.4f} (Amt: {amount:.4f})")
-                
-                # EXECUTE ON EXCHANGE
-                order = self.exchange.create_order(symbol, 'BUY', amount, price)
-                
-                if not order:
-                    print(f"❌ LIVE ORDER FAILED. Aborting.")
-                    return
-                
-                print(f"✅ ORDER FILLED: ID {order.get('id')}")
-                
-            if self.mode == 'paper' or self.mode == 'live': # Log for both
-                if self.mode == 'paper':
-                    print(f"●BUY {symbol}● Price: ${price:.4f}, Amount: {amount:.4f}")
+            if self.mode == 'paper':
+                print(f"●BUY {symbol}● Price: ${price:.4f}, Amount: {amount:.4f}")
                 
                 # --- EXECUTION SAFETY ---
                 # Simulate execution (slippage check)
@@ -761,23 +730,8 @@ class TradingEngine:
             position = open_positions[open_positions['id'] == position_id].iloc[0]
             amount = position['amount']
             
-            if self.mode == 'live':
-                print(f"🚀 EXECUTING LIVE SELL: {symbol} @ ${price:.4f} (Amt: {amount:.4f})")
-                
-                # EXECUTE ON EXCHANGE
-                order = self.exchange.create_order(symbol, 'SELL', amount, price)
-                
-                if not order:
-                    print(f"❌ LIVE ORDER FAILED. Retrying as Market Order...")
-                    # Fallback to market order if limit fails? Or just abort. 
-                    # For safety, we abort and let next loop retry.
-                    return 
-                    
-                print(f"✅ ORDER FILLED: ID {order.get('id')}")
-
-            if self.mode == 'paper' or self.mode == 'live':
-                if self.mode == 'paper':
-                    print(f"●SELL {symbol}● Price: ${price:.4f}, Amount: {amount:.4f}")
+            if self.mode == 'paper':
+                print(f"●SELL {symbol}● Price: ${price:.4f}, Amount: {amount:.4f}")
                 
                 # Double-check position still exists (race condition protection)
                 # Refresh positions right before closing
@@ -829,65 +783,3 @@ class TradingEngine:
                 total_pnl = self.logger.get_pnl_summary(bot['name'])
                 wallet_balance = self.logger.get_wallet_balance(bot['name'], initial_balance=bot.get('initial_balance', 50000))
                 self.logger.update_bot_status(bot['name'], 'RUNNING', total_trades, total_pnl, wallet_balance)
-                
-                # Update Risk Manager Portfolio Value
-                self.risk_manager.update_portfolio_value(Decimal(str(wallet_balance)))
-
-    def _get_sector_exposure(self, symbol: str, open_positions_df: pd.DataFrame) -> Decimal:
-        """Calculate current exposure for the sector of the given symbol"""
-        from core.risk_module import SECTOR_MAP
-        base = symbol.split('/')[0].split(':')[0]
-        target_sector = SECTOR_MAP.get(base, 'ALT')
-        
-        exposure = Decimal("0")
-        if open_positions_df.empty:
-            return exposure
-            
-        for _, pos in open_positions_df.iterrows():
-            pos_symbol = pos['symbol']
-            pos_base = pos_symbol.split('/')[0].split(':')[0]
-            if SECTOR_MAP.get(pos_base, 'ALT') == target_sector:
-                exposure += Decimal(str(pos.get('cost', 0)))
-                
-        return exposure
-    def _take_portfolio_snapshot(self):
-        """Record current portfolio state to DB for performance & safety tracking"""
-        try:
-            # 1. Get current balance and positions
-            balance = self.exchange.fetch_balance()
-            equity = balance.get('total', 0)
-            cash = balance.get('free', 0)
-            
-            # 2. Get unrealized P&L
-            open_positions = self.logger.get_open_positions()
-            unrealized_pnl = 0.0
-            pos_value = 0.0
-            if not open_positions.empty:
-                for _, pos in open_positions.iterrows():
-                    try:
-                        ticker = self.exchange.fetch_ticker(pos['symbol'])
-                        curr_val = ticker['last'] * pos['amount']
-                        pos_value += curr_val
-                        unrealized_pnl += (ticker['last'] - pos['buy_price']) * pos['amount']
-                    except:
-                        pass
-            
-            # 3. Log it
-            # We can also fetch the current risk_multiplier from regime detector if needed
-            from luno_monitor.src.regime_detector import RegimeDetector
-            regime_det = RegimeDetector()
-            btc_df = self.exchange.fetch_ohlcv('BTC/USDT', timeframe='1d', limit=250)
-            _, _, metrics = regime_det.detect_regime(btc_df)
-            risk_mult = regime_det.get_risk_multiplier(regime_det.last_state)
-            
-            self.logger.log_portfolio_snapshot(
-                equity=float(equity),
-                cash=float(cash),
-                pos_value=float(pos_value),
-                unrealized_pnl=float(unrealized_pnl),
-                risk_mult=float(risk_mult),
-                pos_count=len(open_positions)
-            )
-            
-        except Exception as e:
-            print(f"[Engine] Portfolio snapshot failed: {e}")

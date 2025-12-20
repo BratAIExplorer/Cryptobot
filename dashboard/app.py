@@ -14,12 +14,101 @@ st.set_page_config(page_title="Crypto Bot Dashboard", layout="wide", page_icon="
 
 st.title("🤖 Crypto Algo Trading Bot Dashboard")
 
-# Initialize
-logger = TradeLogger()
-exchange = ExchangeInterface()
+# --- RISK METER (Regime Detection) ---
+# Fetch latest market regime from DB
+try:
+    regime_df = logger.get_recent_market_regimes(limit=1)
+    if not regime_df.empty:
+        latest = regime_df.iloc[0]
+        state = latest['regime']
+        risk_multiplier = latest['risk_multiplier']
+        
+        # Color Mapping
+        regime_colors = {
+            'BULL_CONFIRMED': '#00FF00',
+            'TRANSITION_BULLISH': '#90EE90',
+            'UNDEFINED': '#FFFF00',
+            'TRANSITION_BEARISH': '#FFA500',
+            'BEAR_CONFIRMED': '#FF4500',
+            'CRISIS': '#8B0000'
+        }
+        
+        st.sidebar.markdown("### 🧭 Risk Meter")
+        import plotly.graph_objects as go
+        
+        # Gauge Chart for Risk Multiplier
+        fig_risk = go.Figure(go.Indicator(
+            mode = "gauge+number",
+            value = risk_multiplier * 100,
+            domain = {'x': [0, 1], 'y': [0, 1]},
+            title = {'text': f"Market Regime: {state}", 'font': {'size': 16}},
+            gauge = {
+                'axis': {'range': [0, 125], 'tickwidth': 1},
+                'bar': {'color': regime_colors.get(state, "gray")},
+                'steps': [
+                    {'range': [0, 25], 'color': "rgba(255, 69, 0, 0.3)"},
+                    {'range': [25, 75], 'color': "rgba(255, 165, 0, 0.3)"},
+                    {'range': [75, 125], 'color': "rgba(0, 255, 0, 0.3)"}
+                ],
+                'threshold': {
+                    'line': {'color': "white", 'width': 4},
+                    'thickness': 0.75,
+                    'value': risk_multiplier * 100
+                }
+            }
+        ))
+        fig_risk.update_layout(height=180, margin=dict(l=10, r=10, t=30, b=10))
+        st.sidebar.plotly_chart(fig_risk, use_container_width=True)
+except Exception as e:
+    st.sidebar.info("Regime monitoring inactive...")
 
-# Sidebar
+# --- AUTHENTICATION ---
+import hashlib
+def check_password():
+    """Returns `True` if the user had a correct password."""
+    def password_entered():
+        # SHA256 for "admin123": 240be518fabd2724ddb6f04eeb1da596740641078f7d5c90380bcbf29ef65302
+        # TO CHANGE PASSWORD: Run `python scripts/generate_password.py` and paste the new hash below.
+        input_hash = hashlib.sha256(st.session_state["password"].encode()).hexdigest()
+        MASTER_HASH = "240be518fabd2724ddb6f04eeb1da596740641078f7d5c90380bcbf29ef65302" # Default: admin123
+        
+        if input_hash == MASTER_HASH: 
+            st.session_state["password_correct"] = True
+            del st.session_state["password"]  # don't store password
+        else:
+            st.session_state["password_correct"] = False
+
+    if "password_correct" not in st.session_state:
+        # First run, show input for password.
+        st.text_input(
+            "Password", type="password", on_change=password_entered, key="password"
+        )
+        return False
+    elif not st.session_state["password_correct"]:
+        # Password corrupted, verify again.
+        st.text_input(
+            "Password", type="password", on_change=password_entered, key="password"
+        )
+        st.error("😕 Password incorrect")
+        return False
+    else:
+        # Password correct.
+        return True
+
+if not check_password():
+    st.stop()
+
+# --- ENVIRONMENT SELECTOR ---
 st.sidebar.title("⚙️ Settings")
+env_mode = st.sidebar.radio("Environment", ["Paper Trading", "LIVE TRADING"], index=0)
+mode_slug = 'live' if env_mode == "LIVE TRADING" else 'paper'
+
+if env_mode == "LIVE TRADING":
+    st.sidebar.warning("⚠️ YOU ARE VIEWING LIVE DATA")
+
+# Initialize Logger with selected mode
+logger = TradeLogger(mode=mode_slug)
+exchange = ExchangeInterface(mode=mode_slug)
 
 # --- OBSERVABILITY SECTION ---
 st.sidebar.subheader("🏥 System Health")
@@ -53,8 +142,49 @@ try:
                     pass
     else:
         st.sidebar.info("Waiting for health snapshot...")
-except Exception as e:
     st.sidebar.error(f"Health Monitor Error: {e}")
+
+# Kill Switch
+st.sidebar.subheader("🚨 Emergency Control")
+if st.sidebar.button("🛑 STOP BOT IMMEDIATElY"):
+    with open("STOP_SIGNAL", "w") as f:
+        f.write("STOP")
+    st.sidebar.error("STOP SIGNAL SENT! Bot should exit shortly.")
+
+# --- PENDING APPROVALS ---
+# Query Pending Decisions directly for UI speed or add method to logger
+try:
+    # Quick dirty query using session from logger (or add method)
+    # Adding method 'get_all_pending_decisions' in logger would be cleaner but for now manual query logic
+    # Actually, let's just inspect active positions with decisions?
+    # Better: Add 'get_active_decisions' to Logger. I'll rely on a direct session here for MVP speed.
+    session = logger.db.get_session()
+    from core.database import Decision, Position
+    pending = session.query(Decision, Position).join(Position).filter(Decision.status == 'PENDING').all()
+    session.close()
+    
+    if pending:
+        st.sidebar.error(f"🚨 {len(pending)} PENDING DECISIONS")
+        for decision, pos in pending:
+            with st.sidebar.form(key=f"decision_{decision.id}"):
+                st.write(f"**{pos.symbol}**")
+                st.caption(decision.rationale)
+                st.write(f"Current PnL: {pos.unrealized_pnl_pct*100:.1f}%")
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    if st.form_submit_button("✅ SELL"):
+                        # Update DB
+                        logger.update_decision_status(decision.id, 'APPROVED')
+                        st.success("Approved!")
+                        st.rerun()
+                with col2:
+                    if st.form_submit_button("❌ HOLD"):
+                        logger.update_decision_status(decision.id, 'REJECTED')
+                        st.info("Rejected. HODLing.")
+                        st.rerun()
+except Exception as e:
+    pass # Don't crash UI on DB lock
 
 st.sidebar.markdown("---")
 st.sidebar.subheader("⚖️ Legal & Compliance")
@@ -124,7 +254,7 @@ st.markdown("---")
 st.markdown("---")
 
 # Tabs
-tab1, tab2, tab3 = st.tabs(["📈 Open Positions", "📜 Trade History", "📊 Market Overview"])
+tab1, tab2, tab3, tab4 = st.tabs(["📈 Open Positions", "🔍 Confluence V2", "📜 Trade History", "📊 Market Overview"])
 
 with tab1:
     st.subheader("Open Positions (FIFO)")
@@ -169,6 +299,92 @@ with tab1:
         st.metric("Total Unrealized P&L", f"${total_unrealized:.2f}", delta=f"{(total_unrealized/total_cost)*100:.2f}%")
     else:
         st.info("No open positions. The bot will buy when conditions are met.")
+
+with tab2:
+    st.subheader("Confluence Engine V2 Monitoring")
+    symbol_to_monitor = st.selectbox("Select Coin for Scoring History", ["BTC", "ETH", "SOL", "XRP", "DOGE"])
+    
+    # Get latest scores
+    scores_df = logger.get_latest_confluence_scores(symbol=f"{symbol_to_monitor}/USDT", limit=20)
+    
+    if not scores_df.empty:
+        latest_score = scores_df.iloc[0]
+        
+        col1, col2 = st.columns([1, 2])
+        
+        with col1:
+             # Gauge for current score
+            score_val = latest_score['total_score']
+            v1_score = latest_score.get('v1_score', score_val) # Fallback if missing
+            
+            fig_score = go.Figure(go.Indicator(
+                mode = "gauge+number+delta",
+                value = score_val,
+                delta = {'reference': v1_score, 'relative': False, 'increasing': {'color': "green"}},
+                title = {'text': f"Latest V2 Score: {symbol_to_monitor}", 'font': {'size': 20}},
+                domain = {'x': [0, 1], 'y': [0, 1]},
+                gauge = {
+                    'axis': {'range': [0, 100]},
+                    'bar': {'color': "gold" if score_val > 50 else "gray"},
+                    'steps': [
+                        {'range': [0, 40], 'color': "rgba(255, 0, 0, 0.2)"},
+                        {'range': [40, 60], 'color': "rgba(255, 255, 0, 0.2)"},
+                        {'range': [60, 100], 'color': "rgba(0, 255, 0, 0.2)"}
+                    ]
+                }
+            ))
+            fig_score.update_layout(height=250, margin=dict(l=10, r=10, t=50, b=10))
+            st.plotly_chart(fig_score, use_container_width=True)
+            
+            # Show penalty info
+            penalty = latest_score.get('redundancy_penalty', 1.0)
+            if penalty < 1.0:
+                st.warning(f"⚠️ Redundancy Penalty: **{penalty:.2f}x** (Signal Overlap detected)")
+            else:
+                st.success("✅ Signal Independence: 100%")
+
+        with col2:
+            st.write("**Score Breakdown**")
+            # Horizontal Bar Chart for categories
+            # Mocking categories as they are often derived but we can show technical vs final
+            breakdown_data = {
+                'Metric': ['Technical', 'On-Chain', 'Macro', 'Fundamental', 'V1 Total', 'V2 FINAL'],
+                'Score': [
+                    latest_score.get('technical_score', 0),
+                    latest_score.get('onchain_score', 0),
+                    latest_score.get('macro_score', 0),
+                    latest_score.get('fundamental_score', 0),
+                    v1_score,
+                    score_val
+                ]
+            }
+            breakdown_df = pd.DataFrame(breakdown_data)
+            fig_bar = go.Figure(go.Bar(
+                x=breakdown_df['Score'],
+                y=breakdown_df['Metric'],
+                orientation='h',
+                marker_color=['blue', 'blue', 'blue', 'blue', 'orange', 'gold']
+            ))
+            fig_bar.update_layout(height=250, margin=dict(l=10, r=10, t=10, b=10), xaxis_range=[0, 100])
+            st.plotly_chart(fig_bar, use_container_width=True)
+
+        st.divider()
+        st.write("**Historical Calibration (V1 vs V2)**")
+        
+        # Plot V1 vs V2 Comparison
+        fig_comp = go.Figure()
+        fig_comp.add_trace(go.Scatter(x=scores_df['timestamp'], y=scores_df['v1_score'], name='V1 (Raw)', line=dict(color='gray', dash='dot')))
+        fig_comp.add_trace(go.Scatter(x=scores_df['timestamp'], y=scores_df['total_score'], name='V2 (Hardened)', line=dict(color='gold', width=3)))
+        
+        # Add a "Veto Zone" where score is low
+        fig_comp.add_hline(y=40, line_dash="dash", line_color="red", annotation_text="Trade Veto Threshold")
+        
+        fig_comp.update_layout(height=350, title="V1 vs V2 Scoring Stability", hovermode='x unified')
+        st.plotly_chart(fig_comp, use_container_width=True)
+        
+        st.dataframe(scores_df.head(10))
+    else:
+        st.info(f"No score history for {symbol_to_monitor}. Bot calibration in progress.")
 
 with tab2:
     st.subheader("Trade History")

@@ -1,0 +1,24 @@
+{
+  "strategy": "Grid_Bot_BTC_USDT",
+  "exchange": "MEXC",
+  "mode": "backtest",
+  "backtest_date": "2025-12-14T20:27:46.123746",
+  "initial_capital": 1000,
+  "final_capital": 906.43780504598,
+  "total_pnl": -90.11644362295385,
+  "roi_pct": -9.356219495402001,
+  "total_trades": 13,
+  "winning_trades": 12,
+  "losing_trades": 1,
+  "win_rate_pct": 92.3076923076923,
+  "avg_win": 16.259762829812768,
+  "avg_loss": -285.23359758070706,
+  "risk_reward_ratio": 0.05700507572643877,
+  "sharpe_ratio": -1.0066480888922165,
+  "avg_hold_hours": 441.9230769230769,
+  "total_fees_paid": 6.869829570787212,
+  "fee_structure": {
+    "maker": "0.000%",
+    "taker": "0.025%"
+  }
+}

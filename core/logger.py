@@ -5,10 +5,19 @@ import os
 import uuid
 
 # Import new V3 Database models
-from core.database import Database, Position, Trade, BotStatus, CircuitBreaker, SystemHealth
+from core.database import Database, Position, Trade, BotStatus, CircuitBreaker, SystemHealth, Decision
 
 class TradeLogger:
-    def __init__(self, db_path=None):
+    def __init__(self, db_path=None, mode='paper'):
+        # Determine DB based on mode if path not explicit
+        if db_path is None:
+            db_filename = 'trades_v3_live.db' if mode == 'live' else 'trades_v3_paper.db'
+            # We let the Database class construct the full path, but we need to pass the filename differently or path.
+            # Database class assumes full path or constructs 'trades_v3.db'.
+            # Let's construct full path here to be explicit.
+            root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            db_path = os.path.join(root_dir, 'data', db_filename)
+
         # Initialize V3 Database Manager
         self.db = Database(db_path)
         self.db.init_db()  # Ensures tables exist
@@ -224,6 +233,52 @@ class TradeLogger:
         realized = self.get_pnl_summary(strategy)
         return max(initial_balance, 50000.0) - exposure + realized
 
+    # --- DECISION MAKING (HUMAN IN LOOP) ---
+    def create_decision(self, position_id, decision_type, rationale, price):
+        session = self.db.get_session()
+        try:
+            # Check if pending exists
+            existing = session.query(Decision).filter_by(position_id=position_id, status='PENDING').first()
+            if existing: return
+            
+            new_decision = Decision(
+                position_id=position_id,
+                decision_type=decision_type,
+                rationale=rationale,
+                price_at_decision=price,
+                status='PENDING'
+            )
+            session.add(new_decision)
+            session.commit()
+        except Exception as e:
+            print(f"[DB] Error creating decision: {e}")
+        finally:
+            session.close()
+
+    def get_pending_decision(self, position_id):
+        session = self.db.get_session()
+        try:
+            return session.query(Decision).filter_by(position_id=position_id, status='PENDING').first()
+        except:
+            return None
+        finally:
+            session.close()
+
+    def update_decision_status(self, decision_id, new_status):
+        session = self.db.get_session()
+        try:
+            d = session.query(Decision).filter_by(id=decision_id).first()
+            if d:
+                d.status = new_status
+                d.executed_at = datetime.utcnow()
+                session.commit()
+        except Exception as e:
+            print(f"[DB] Error updating decision: {e}")
+        finally:
+            session.close()
+
+    # --- END CLASS ---
+
     # --- BOT STATUS ---
 
     def update_bot_status(self, strategy, status, total_trades=0, total_pnl=0.0, wallet_balance=20000.0):
@@ -382,3 +437,123 @@ class TradeLogger:
             audit_path = None
             
         return tax_path, audit_path
+
+    # --- CONFLUENCE V2 & REGIME METHODS ---
+
+    def log_market_regime(self, state, confidence, metrics):
+        """Log regime detection results"""
+        session = self.db.get_session()
+        try:
+            regime = MarketRegime(
+                timestamp=datetime.utcnow(),
+                regime_state=str(state),
+                confidence=confidence,
+                btc_price=metrics.get('btc_price', 0),
+                btc_ma50=metrics.get('btc_ma50', 0),
+                btc_ma200=metrics.get('btc_ma200', 0),
+                volatility_percentile=metrics.get('volatility_percentile', 0),
+                higher_highs=metrics.get('higher_highs', False),
+                lower_lows=metrics.get('lower_lows', False),
+                volume_trend=metrics.get('volume_trend', 'UNKNOWN'),
+                recent_drawdown_pct=metrics.get('recent_drawdown_pct', 0)
+            )
+            session.add(regime)
+            session.commit()
+        except Exception as e:
+            print(f"[DB] Error logging regime: {e}")
+            session.rollback()
+        finally:
+            session.close()
+
+    def log_confluence_score(self, result: dict):
+        """Log full confluence score result"""
+        session = self.db.get_session()
+        try:
+            scores = result.get('scores', {})
+            regime = result.get('regime', {})
+            rec = result.get('recommendation', {})
+            
+            score_entry = ConfluenceScore(
+                timestamp=datetime.utcnow(),
+                symbol=result.get('symbol'),
+                technical_score=scores.get('technical', 0),
+                onchain_score=scores.get('onchain', 0),
+                macro_score=scores.get('macro', 0),
+                fundamental_score=scores.get('fundamental', 0),
+                total_score=scores.get('final_total', 0),
+                raw_score=scores.get('raw_total', 0),
+                v1_score=scores.get('v1_total', 0),
+                regime_state=regime.get('state', 'UNKNOWN'),
+                regime_multiplier=regime.get('multiplier', 1.0),
+                recommendation=rec.get('rating', 'UNKNOWN'),
+                position_size=rec.get('position_size', 'NONE'),
+                stop_loss_pct=rec.get('stop_loss_pct', 0),
+                details=json.dumps(result)
+            )
+            session.add(score_entry)
+            session.commit()
+        except Exception as e:
+            print(f"[DB] Error logging confluence: {e}")
+            session.rollback()
+        finally:
+            session.close()
+
+    def log_portfolio_snapshot(self, equity: float, cash: float, pos_value: float, unrealized_pnl: float, risk_mult: float = 1.0, pos_count: int = 0):
+        """Record portfolio status for drawdown velocity tracking"""
+        session = self.db.get_session()
+        try:
+            snap = PortfolioSnapshot(
+                timestamp=datetime.utcnow(),
+                total_equity_usd=equity,
+                cash_balance_usd=cash,
+                active_positions_value_usd=pos_value,
+                unrealized_pnl_usd=unrealized_pnl,
+                risk_multiplier=risk_mult,
+                active_positions_count=pos_count
+            )
+            session.add(snap)
+            session.commit()
+        except Exception as e:
+            print(f"[DB] Error logging portfolio snapshot: {e}")
+            session.rollback()
+        finally:
+            session.close()
+
+    def get_latest_confluence_scores(self, symbol=None, limit=10):
+        """Get latest confluence scores for V2 monitoring"""
+        session = self.db.get_session()
+        try:
+            from core.database import ConfluenceScore
+            query = session.query(ConfluenceScore)
+            if symbol:
+                query = query.filter(ConfluenceScore.symbol == symbol)
+            query = query.order_by(ConfluenceScore.timestamp.desc()).limit(limit)
+            return pd.read_sql(query.statement, session.bind)
+        except Exception as e:
+            print(f"[DB] Error fetching confluence scores: {e}")
+            return pd.DataFrame()
+        finally:
+            session.close()
+
+    def get_recent_market_regimes(self, limit=24):
+        """Get recent market regime history"""
+        session = self.db.get_session()
+        try:
+            from core.database import MarketRegime
+            query = session.query(MarketRegime).order_by(MarketRegime.timestamp.desc()).limit(limit)
+            df = pd.read_sql(query.statement, session.bind)
+            
+            if not df.empty and 'regime_state' in df.columns:
+                df = df.rename(columns={'regime_state': 'regime'})
+                multipliers = {
+                    'BULL_CONFIRMED': 1.25, 'TRANSITION_BULLISH': 0.60, 
+                    'UNDEFINED': 0.20, 'TRANSITION_BEARISH': 0.25, 
+                    'BEAR_CONFIRMED': 0.0, 'CRISIS': 0.0
+                }
+                df['risk_multiplier'] = df['regime'].apply(lambda x: multipliers.get(x, 0.2))
+            return df
+        except Exception as e:
+            print(f"[DB] Error fetching market regimes: {e}")
+            return pd.DataFrame()
+        finally:
+            session.close()

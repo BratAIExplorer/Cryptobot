@@ -1,14 +1,32 @@
 import ccxt
 import pandas as pd
 import time
+import os
 
 class ExchangeInterface:
     def __init__(self, mode='paper'):
-        # mode is ignored for now - we always use Binance public API
+        self.mode = mode
         self.exchange_id = 'binance'
-        self.exchange = ccxt.binance({
-            'enableRateLimit': True,  # Required by CCXT
-        })
+        
+        # Load API keys from environment
+        api_key = os.environ.get('BINANCE_API_KEY')
+        secret = os.environ.get('BINANCE_SECRET_KEY')
+        
+        config = {
+            'enableRateLimit': True,
+            'options': {
+                'defaultType': 'spot',  # spot trading
+            }
+        }
+        
+        if api_key and secret:
+            config['apiKey'] = api_key
+            config['secret'] = secret
+            print(f"✅ Authenticated with Binance API")
+        else:
+            print(f"⚠️  Running in Public/Read-Only Mode (No Keys Found)")
+
+        self.exchange = ccxt.binance(config)
         
         # Load markets
         try:
@@ -41,3 +59,26 @@ class ExchangeInterface:
         """Get trading fee rate"""
         # Default to 0.1% if not found
         return 0.001 
+
+    def create_order(self, symbol, side, amount, price=None):
+        """Execute a live order on Binance"""
+        try:
+            if price:
+                # Limit Order
+                order = self.exchange.create_order(symbol, 'limit', side, amount, price)
+            else:
+                # Market Order
+                order = self.exchange.create_order(symbol, 'market', side, amount)
+            return order
+        except Exception as e:
+            print(f"❌ EXECUTION ERROR: {e}")
+            return None
+
+    def get_balance(self, currency='USDT'):
+        """Get live wallet balance"""
+        try:
+            balance = self.exchange.fetch_balance()
+            return balance['total'].get(currency, 0.0)
+        except Exception as e:
+            print(f"Error fetching balance: {e}")
+            return 0.0

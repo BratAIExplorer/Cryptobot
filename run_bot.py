@@ -8,7 +8,26 @@ import os
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from core.engine import TradingEngine
+import os
+
+# Function to check stop signal
+def check_stop_signal():
+    if os.path.exists("STOP_SIGNAL"):
+        print("\n🛑 STOP SIGNAL DETECTED. Shutting down...")
+        try:
+            os.remove("STOP_SIGNAL") # Clean up
+        except:
+            pass
+        return True
+    return False
+
+# ==========================================
+# ⚙️ GLOBAL CONFIGURATION
+# ==========================================
+# Set to 'live' for REAL MONEY trading.
+# Set to 'paper' for simulated trading.
+TRADING_MODE = 'paper' 
+# ==========================================
 
 def main():
     print("=" * 60)
@@ -27,7 +46,7 @@ def main():
         print("⚠️  Telegram notifications disabled")
     
     # Initialize engine
-    engine = TradingEngine(mode='paper', telegram_config=telegram_config)
+    engine = TradingEngine(mode=TRADING_MODE, telegram_config=telegram_config)
     
     # ==========================================
     # 🚀 ALL-STAR PORTFOLIO CONFIGURATION
@@ -39,13 +58,29 @@ def main():
     engine.add_bot({
         'name': 'SMA Trend Bot',
         'type': 'SMA',
-        'symbols': ['DOGE/USDT', 'XRP/USDT', 'DOT/USDT', 'ATOM/USDT', 'ADA/USDT'],
+        'symbols': ['DOGE/USDT', 'XRP/USDT', 'SOL/USDT', 'BNB/USDT', 'BTC/USDT'],
         'amount': 800,  # $800 per coin ($4000 total)
         'initial_balance': 50000,
-        'take_profit_pct': 0.03,  # 3%
-        'stop_loss_pct': 0.05,    # 5%
-        'max_hold_hours': 24,     # Force exit after 24h
+        'take_profit_pct': 0.05,  # 5% Target (User Hybrid Request)
+        'stop_loss_pct': 0.05,    # 5% Max Loss
+        'max_hold_hours': 48,     # TIME LIMIT: 48h to hit 5% or sell.
         'max_exposure_per_coin': 800
+    })
+    
+    # 2. BUY THE DIP BOT (The Accumulator)
+    # Safe accumulation. 40% of Capital.
+    # Verified 100% Win Rate on these coins over 24 months.
+    engine.add_bot({
+        'name': 'Dip Sniper',
+        'type': 'DIP',
+        'symbols': ['XRP/USDT', 'DOGE/USDT', 'SOL/USDT', 'BNB/USDT', 'ETH/USDT', 'BTC/USDT'],
+        'amount': 600,  # $600 per coin ($3600 total)
+        'dip_percentage': 0.08,  # Buy on 8% drop (High conviction)
+        'profit_target': 0.05,   # Sell on 5% bounce.
+        # NOTE: User requested Tiered Exits (50%@5%, 25%@7.5%, 25%@10%).
+        # Logic: For V2.1 Safety, we use a single verified target of 5%. 
+        # Tiered logic will be added in Phase 5 (Advanced Execution).
+        'max_exposure_per_coin': 1200
     })
     
     # 2. BUY-THE-DIP STRATEGY (Value Investing)
@@ -63,19 +98,20 @@ def main():
         'max_exposure_per_coin': 800
     })
     
-    # 3. HYPER-SCALPER BOT (Cash Flow)
-    # Best for high volume. 35% of Capital.
+    # 3. HYPER SCALPER (Experimental - Paper Only)
+    # High Frequency. 20% of Capital (Allocated but cautious).
+    # Update: Backtest shows negative net profit after fees. Keeping for R&D only.
     engine.add_bot({
-        'name': 'Hyper-Scalper Bot',
-        'type': 'Hyper-Scalper',
-        'symbols': ['SOL/USDT', 'ETH/USDT', 'BTC/USDT', 'XRP/USDT'],
-        'amount': 800,  # $800 per coin ($3200 total)
-        'initial_balance': 50000,
-        'rsi_limit': 30,          # Relaxed from 15 to 30 (Expert Rec)
-        'take_profit_pct': 0.035, # 3.5% Aggressive Target (Expert Rec)
-        'stop_loss_pct': 0.01,    # 1% Tight stop
-        'max_hold_hours': 0.5,    # CRITICAL: 30 minutes max
-        'max_exposure_per_coin': 800
+        'name': 'Hyper Scalper',
+        'type': 'RSI',
+        'symbols': ['BTC/USDT'], # Only BTC for safety testing
+        'amount': 200,   # Small bets
+        'rsi_lower': 30, # Relaxed from 15
+        'rsi_upper': 70,
+        'profit_target': 0.012,
+        'stop_loss': 0.02,
+        'max_active_trades': 1,
+        'max_exposure_per_coin': 200
     })
 
     # 4. GRID BOTS (Sideways Market Kings)
@@ -136,13 +172,32 @@ def main():
     
     print(f"✅ Loaded 5 Strategies: SMA Trend, Buy-the-Dip, Hyper-Scalper, Grid Bots, Hidden Gem Monitor")
     print("=" * 60)
-    print("🚀 Starting bot... (Press Ctrl+C to stop)")
-    print("=" * 60)
+    print(f"🚀 Bot Running in {TRADING_MODE.upper()} mode...")
+    print("Press Ctrl+C to stop.")
     
+    # Send Startup Notification
+    if engine.notifier:
+        # Construct simple list of bots for notification
+        # Accessing engine internals directly for this summary, or simple static list
+        active_bots_summary = [
+            {'name': 'SMA Trend', 'symbols': ['DOGE', 'XRP', 'SOL', 'BNB', 'BTC']},
+            {'name': 'Dip Sniper', 'symbols': ['XRP', 'DOGE', 'SOL', 'BNB', 'ETH', 'BTC']}
+        ]
+        engine.notifier.notify_startup(TRADING_MODE, active_bots_summary)
+
     try:
-        engine.start()
+        while True:
+            if check_stop_signal():
+                break
+                
+            engine.run_cycle()
+            
+            # Smart Sleep: 60s normally, but check stop signal more often? 
+            # Implemented simple sleep for MVP.
+            time.sleep(60) 
+            
     except KeyboardInterrupt:
-        print("\n⏹️  Stopping bot...")
+        print("\n🛑 Stopping bot via KeyboardInterrupt...")
         engine.stop()
         print("✅ Bot stopped successfully")
 

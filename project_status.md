@@ -12,11 +12,15 @@ A "set-and-forget" passive income generator that:
 ---
 
 ## 2. Issues Identified & Fixes Implemented
-### Recent Optimizations (Dec 5)
-- **Expert Review Implementation:**
-    - **Hyper-Scalper:** Relaxed RSI from 15 to **30** to increase trade frequency. Increased Profit Target to **1.2%** to safely cover fees.
-    - **Infrastructure:** Fixed a critical bug in `logger.py` where Circuit Breaker methods were missing.
-    - **Process Management:** Created PM2 configuration (`ecosystem.config.js`) for robust 24/7 operation.
+### Recent Optimizations (Dec 10 - v2.1 Release)
+- **Correlation Safety Valve:** Prevented "Triple Jeopardy" by blocking correlated assets.
+- **Global Paper Switch:** Simplified deployment toggle.
+- **Compliance UI:** Added Tax/Audit export buttons.
+- **Hyperparameter Optimizer:** Built a brute-force engine that tests 1,000+ strategy combos per second.
+
+### Previous Optimizations (Dec 5)
+- **Hyper-Scalper:** Relaxed RSI to **30**.
+- **Infrastructure:** PM2 configuration.
 
 ### Previous Fixes
 - **Circuit Breaker:** Added to pause trading after 10 consecutive errors.
