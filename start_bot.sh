@@ -21,9 +21,10 @@ echo "🔒 3. Securing secrets..."
 chmod 600 .env
 chmod 700 start_bot.sh
 
-# 4. Database Backup (Safety First)
-echo "💾 4. Running Pre-Start Backup..."
-python scripts/auto_backup.py &
+# 4. Database Backup & Migration
+echo "💾 4. Running Pre-Start Backup & Migration..."
+python3 migrate_confluence_v2.py
+python3 scripts/auto_backup.py &
 BACKUP_PID=$!
 echo "   -> Backup Service Started (PID: $BACKUP_PID)"
 
