@@ -9,6 +9,12 @@ from core.database import Database, Position, Trade, BotStatus, CircuitBreaker, 
 
 class TradeLogger:
     def __init__(self, db_path=None, mode='paper'):
+        """
+        Initialize TradeLogger with database connection.
+        Args:
+            db_path: Explicit path to DB file (optional)
+            mode: 'live' or 'paper' to determine default DB filename
+        """
         # Determine DB based on mode if path not explicit
         if db_path is None:
             db_filename = 'trades_v3_live.db' if mode == 'live' else 'trades_v3_paper.db'
