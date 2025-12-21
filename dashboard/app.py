@@ -19,35 +19,35 @@ import hashlib
 import plotly.graph_objects as go
 
 def check_password():
-    """Returns `True` if the user had a correct password."""
-    def password_entered():
-        # SHA256 for "admin123": 240be518fabd2724ddb6f04eeb1da596740641078f7d5c90380bcbf29ef65302
-        # TO CHANGE PASSWORD: Run `python scripts/generate_password.py` and paste the new hash below.
-        input_hash = hashlib.sha256(st.session_state["password"].strip().encode()).hexdigest()
-        MASTER_HASH = "240be518fabd2724ddb6f04eeb1da596740641078f7d5c90380bcbf29ef65302" # Default: admin123
-        
-        if input_hash == MASTER_HASH: 
-            st.session_state["password_correct"] = True
-            del st.session_state["password"]  # don't store password
-        else:
-            st.session_state["password_correct"] = False
-
-    if "password_correct" not in st.session_state:
-        # First run, show input for password.
-        st.text_input(
-            "Password", type="password", on_change=password_entered, key="password"
-        )
-        return False
-    elif not st.session_state["password_correct"]:
-        # Password corrupted, verify again.
-        st.text_input(
-            "Password", type="password", on_change=password_entered, key="password"
-        )
-        st.error("😕 Password incorrect")
-        return False
-    else:
-        # Password correct.
+    """Returns True if the user had a correct password."""
+    if st.session_state.get("password_correct", False):
         return True
+
+    # Show input for password
+    password = st.text_input("Password", type="password", key="login_password_input")
+    
+    if password:
+        # Check against environment variable FIRST (if set)
+        env_password = os.environ.get("DASHBOARD_PASSWORD")
+        if env_password and password.strip() == env_password:
+            st.session_state["password_correct"] = True
+            st.rerun()
+            return True
+            
+        # Check against hardcoded hash (admin123)
+        input_hash = hashlib.sha256(password.strip().encode()).hexdigest()
+        MASTER_HASH = "240be518fabd2724ddb6f04eeb1da596740641078f7d5c90380bcbf29ef65302"
+        
+        if input_hash == MASTER_HASH:
+            st.session_state["password_correct"] = True
+            st.rerun()
+            return True
+        else:
+            st.error("😕 Password incorrect")
+            st.write(f"Entry length: {len(password.strip())} characters")
+            return False
+            
+    return False
 
 if not check_password():
     st.stop()
