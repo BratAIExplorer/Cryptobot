@@ -3,7 +3,7 @@ import os
 
 def migrate_database():
     root_dir = os.path.dirname(os.path.abspath(__file__))
-    db_path = os.path.join(root_dir, 'data', 'trades.db')
+    db_path = os.path.join(root_dir, 'data', 'trades_v3.db')
     
     print(f"Migrating database at: {db_path}")
     
