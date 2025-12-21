@@ -14,56 +14,10 @@ st.set_page_config(page_title="Crypto Bot Dashboard", layout="wide", page_icon="
 
 st.title("🤖 Crypto Algo Trading Bot Dashboard")
 
-# --- RISK METER (Regime Detection) ---
-# Fetch latest market regime from DB
-try:
-    regime_df = logger.get_recent_market_regimes(limit=1)
-    if not regime_df.empty:
-        latest = regime_df.iloc[0]
-        state = latest['regime']
-        risk_multiplier = latest['risk_multiplier']
-        
-        # Color Mapping
-        regime_colors = {
-            'BULL_CONFIRMED': '#00FF00',
-            'TRANSITION_BULLISH': '#90EE90',
-            'UNDEFINED': '#FFFF00',
-            'TRANSITION_BEARISH': '#FFA500',
-            'BEAR_CONFIRMED': '#FF4500',
-            'CRISIS': '#8B0000'
-        }
-        
-        st.sidebar.markdown("### 🧭 Risk Meter")
-        import plotly.graph_objects as go
-        
-        # Gauge Chart for Risk Multiplier
-        fig_risk = go.Figure(go.Indicator(
-            mode = "gauge+number",
-            value = risk_multiplier * 100,
-            domain = {'x': [0, 1], 'y': [0, 1]},
-            title = {'text': f"Market Regime: {state}", 'font': {'size': 16}},
-            gauge = {
-                'axis': {'range': [0, 125], 'tickwidth': 1},
-                'bar': {'color': regime_colors.get(state, "gray")},
-                'steps': [
-                    {'range': [0, 25], 'color': "rgba(255, 69, 0, 0.3)"},
-                    {'range': [25, 75], 'color': "rgba(255, 165, 0, 0.3)"},
-                    {'range': [75, 125], 'color': "rgba(0, 255, 0, 0.3)"}
-                ],
-                'threshold': {
-                    'line': {'color': "white", 'width': 4},
-                    'thickness': 0.75,
-                    'value': risk_multiplier * 100
-                }
-            }
-        ))
-        fig_risk.update_layout(height=180, margin=dict(l=10, r=10, t=30, b=10))
-        st.sidebar.plotly_chart(fig_risk, use_container_width=True)
-except Exception as e:
-    st.sidebar.info("Regime monitoring inactive...")
-
 # --- AUTHENTICATION ---
 import hashlib
+import plotly.graph_objects as go
+
 def check_password():
     """Returns `True` if the user had a correct password."""
     def password_entered():
@@ -110,6 +64,49 @@ if env_mode == "LIVE TRADING":
 logger = TradeLogger(mode=mode_slug)
 exchange = ExchangeInterface(mode=mode_slug)
 
+# --- RISK METER (Regime Detection) ---
+try:
+    regime_df = logger.get_recent_market_regimes(limit=1)
+    if not regime_df.empty:
+        latest = regime_df.iloc[0]
+        state = latest['regime']
+        risk_multiplier = latest['risk_multiplier']
+        
+        regime_colors = {
+            'BULL_CONFIRMED': '#00FF00',
+            'TRANSITION_BULLISH': '#90EE90',
+            'UNDEFINED': '#FFFF00',
+            'TRANSITION_BEARISH': '#FFA500',
+            'BEAR_CONFIRMED': '#FF4500',
+            'CRISIS': '#8B0000'
+        }
+        
+        st.sidebar.markdown("### 🧭 Risk Meter")
+        fig_risk = go.Figure(go.Indicator(
+            mode = "gauge+number",
+            value = risk_multiplier * 100,
+            domain = {'x': [0, 1], 'y': [0, 1]},
+            title = {'text': f"Market Regime: {state}", 'font': {'size': 16}},
+            gauge = {
+                'axis': {'range': [0, 125], 'tickwidth': 1},
+                'bar': {'color': regime_colors.get(state, "gray")},
+                'steps': [
+                    {'range': [0, 25], 'color': "rgba(255, 69, 0, 0.3)"},
+                    {'range': [25, 75], 'color': "rgba(255, 165, 0, 0.3)"},
+                    {'range': [75, 125], 'color': "rgba(0, 255, 0, 0.3)"}
+                ],
+                'threshold': {
+                    'line': {'color': "white", 'width': 4},
+                    'thickness': 0.75,
+                    'value': risk_multiplier * 100
+                }
+            }
+        ))
+        fig_risk.update_layout(height=180, margin=dict(l=10, r=10, t=30, b=10))
+        st.sidebar.plotly_chart(fig_risk, use_container_width=True)
+except Exception as e:
+    st.sidebar.info("Regime monitoring inactive...")
+
 # --- OBSERVABILITY SECTION ---
 st.sidebar.subheader("🏥 System Health")
 try:
@@ -142,6 +139,7 @@ try:
                     pass
     else:
         st.sidebar.info("Waiting for health snapshot...")
+except Exception as e:
     st.sidebar.error(f"Health Monitor Error: {e}")
 
 # Kill Switch
