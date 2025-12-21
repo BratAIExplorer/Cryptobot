@@ -190,11 +190,19 @@ def main():
         while True:
             if check_stop_signal():
                 break
-                
-            engine.run_cycle()
             
-            # Smart Sleep: 60s normally, but check stop signal more often? 
-            # Implemented simple sleep for MVP.
+            try:
+                engine.run_cycle()
+            except Exception as e:
+                print(f"❌ CRASH in run_cycle: {e}")
+                import traceback
+                traceback.print_exc()
+                # Sleep to prevent rapid restart loops
+                print("💤 Sleeping 30s before retry/restart...")
+                time.sleep(30)
+                raise e # Re-raise to let PM2 restart (but slowly)
+            
+            # Smart Sleep: 60s normally
             time.sleep(60) 
             
     except KeyboardInterrupt:
