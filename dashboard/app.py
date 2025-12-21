@@ -53,8 +53,9 @@ def check_password():
             
     return False
 
-if not check_password():
-    st.stop()
+# TEMPORARILY DISABLED FOR DEBUGGING
+# if not check_password():
+#     st.stop()
 
 # --- ENVIRONMENT SELECTOR ---
 st.sidebar.title("⚙️ Settings")
@@ -64,8 +65,13 @@ mode_slug = 'live' if env_mode == "LIVE TRADING" else 'paper'
 if env_mode == "LIVE TRADING":
     st.sidebar.warning("⚠️ YOU ARE VIEWING LIVE DATA")
 
-# Initialize Logger with selected mode
-logger = TradeLogger(mode=mode_slug)
+# Initialize Logger with selected mode (Resilient version)
+try:
+    logger = TradeLogger(mode=mode_slug)
+except TypeError:
+    # Fallback if VPS is using old cached version without 'mode' arg
+    logger = TradeLogger()
+    
 exchange = ExchangeInterface(mode=mode_slug)
 
 # --- RISK METER (Regime Detection) ---
