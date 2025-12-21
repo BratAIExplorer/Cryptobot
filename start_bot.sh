@@ -31,7 +31,7 @@ echo "   -> Backup Service Started (PID: $BACKUP_PID)"
 # 5. Start Dashboard (Background)
 echo "📊 5. Starting Dashboard..."
 pm2 delete dashboard 2>/dev/null
-pm2 start dashboard/app.py --name dashboard --interpreter python3 -- --server.port 8501
+pm2 start "streamlit run dashboard/app.py --server.port 8501" --name dashboard
 echo "   -> Dashboard running on :8501"
 
 # 6. Start Trading Bot (Background)
