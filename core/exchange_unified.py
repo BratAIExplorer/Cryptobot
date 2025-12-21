@@ -157,6 +157,14 @@ class UnifiedExchange:
             logger.error(f"{self.exchange_name} - Error fetching balance: {e}")
             return 0.0
     
+    def fetch_balance(self):
+        """Fetch full balance object from exchange"""
+        try:
+            return self.exchange.fetch_balance()
+        except Exception as e:
+            logger.error(f"{self.exchange_name} - Error fetching full balance: {e}")
+            return {'total': {}, 'free': {}}
+    
     def fetch_markets(self):
         """Fetch available markets"""
         try:
@@ -179,6 +187,7 @@ class ExchangeInterface:
         self.get_fee_rate = self.exchange.get_fee_rate
         self.create_order = self.exchange.create_order
         self.get_balance = self.exchange.get_balance
+        self.fetch_balance = self.exchange.fetch_balance
         self.fetch_markets = self.exchange.fetch_markets
         self.get_exchange_metadata = self.exchange.get_exchange_metadata
 

@@ -443,7 +443,21 @@ class RiskManager:
             
         return 'HOLD', None
 
-
+    def check_drawdown_limit(self, current_equity: Decimal, logger=None) -> Tuple[bool, Decimal]:
+        """
+        Check if total account drawdown exceeds max allowed limit.
+        """
+        if current_equity > self.peak_equity:
+            self.peak_equity = current_equity
+            
+        drawdown_pct = Decimal("0")
+        if self.peak_equity > 0:
+            drawdown_pct = (self.peak_equity - current_equity) / self.peak_equity * Decimal("100")
+            
+        # Comparison with limit (already in pct)
+        if drawdown_pct >= self.limits.max_drawdown_pct:
+            return False, drawdown_pct
+            
         return True, drawdown_pct
 
     def check_drawdown_velocity(self, logger=None) -> Tuple[bool, Optional[str]]:

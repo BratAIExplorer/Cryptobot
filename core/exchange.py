@@ -82,3 +82,11 @@ class ExchangeInterface:
         except Exception as e:
             print(f"Error fetching balance: {e}")
             return 0.0
+
+    def fetch_balance(self):
+        """Fetch full balance object from exchange"""
+        try:
+            return self.exchange.fetch_balance()
+        except Exception as e:
+            print(f"Error fetching balance: {e}")
+            return {'total': {}, 'free': {}}

@@ -209,11 +209,11 @@ class TradingEngine:
         
         # Check max drawdown limit (Industry standard safety feature)
         total_pnl = self.logger.get_pnl_summary()  # All strategies combined
-        current_equity = 50000 + total_pnl  # Initial balance + realized P&L
+        current_equity = Decimal(str(self.risk_manager.portfolio_value)) + Decimal(str(total_pnl))
         can_trade, drawdown_pct = self.risk_manager.check_drawdown_limit(current_equity, self.logger)
         
         # Alert at 80% of max drawdown (warning)
-        max_drawdown = self.risk_manager.max_drawdown_pct * Decimal("100")
+        max_drawdown = self.risk_manager.max_drawdown_pct
         if drawdown_pct >= (max_drawdown * Decimal("0.8")) and drawdown_pct < max_drawdown:
             self.notifier.alert_max_drawdown(
                 drawdown_pct, 
