@@ -23,7 +23,7 @@ def check_password():
     def password_entered():
         # SHA256 for "admin123": 240be518fabd2724ddb6f04eeb1da596740641078f7d5c90380bcbf29ef65302
         # TO CHANGE PASSWORD: Run `python scripts/generate_password.py` and paste the new hash below.
-        input_hash = hashlib.sha256(st.session_state["password"].encode()).hexdigest()
+        input_hash = hashlib.sha256(st.session_state["password"].strip().encode()).hexdigest()
         MASTER_HASH = "240be518fabd2724ddb6f04eeb1da596740641078f7d5c90380bcbf29ef65302" # Default: admin123
         
         if input_hash == MASTER_HASH: 
