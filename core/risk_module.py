@@ -118,6 +118,7 @@ class RiskManager:
         
         # Institutional Hardening
         self.portfolio_analyzer = PortfolioCorrelationAnalyzer()
+        self.peak_equity = Decimal("0")
 
         
     @property
