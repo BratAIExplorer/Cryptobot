@@ -513,7 +513,7 @@ class TradingEngine:
                     
                     # --- V3 EXIT LOGIC (Centralized in Risk Manager) ---
                     # Get current market regime for exit context
-                    from luno_monitor.src.regime_detector import RegimeDetector
+                    from core.regime_detector import RegimeDetector
                     regime_det = RegimeDetector()
                     btc_df = self.exchange.fetch_ohlcv('BTC/USDT', timeframe='1d', limit=250)
                     regime_state, _, _ = regime_det.detect_regime(btc_df)
@@ -640,7 +640,7 @@ class TradingEngine:
             amount = trade_amount_usd / price
             
             # --- V2 CONFLUENCE CHECK ---
-            from luno_monitor.src.confluence_engine import ConfluenceEngine
+            from core.confluence_engine import ConfluenceEngine
             c_engine = ConfluenceEngine()
             
             # Fetch daily data for regime detection
@@ -874,7 +874,7 @@ class TradingEngine:
             
             # 3. Log it
             # We can also fetch the current risk_multiplier from regime detector if needed
-            from luno_monitor.src.regime_detector import RegimeDetector
+            from core.regime_detector import RegimeDetector
             regime_det = RegimeDetector()
             btc_df = self.exchange.fetch_ohlcv('BTC/USDT', timeframe='1d', limit=250)
             _, _, metrics = regime_det.detect_regime(btc_df)
