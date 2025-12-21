@@ -9,6 +9,7 @@ import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 import os
+from core.engine import TradingEngine
 
 # Function to check stop signal
 def check_stop_signal():
