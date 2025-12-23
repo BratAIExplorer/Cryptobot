@@ -154,7 +154,7 @@ class TelegramNotifier:
 
     def notify_startup(self, mode, active_bots):
         """Send Startup Summary"""
-        bots_list = "\n".join([f"- {b['name']} ({len(b['symbols'])} symbols)" for b in active_bots])
+        bots_list = "\n".join([f"- {b['name']} ({b.get('total_count', len(b['symbols']))} symbols)" for b in active_bots])
         msg = (
             f"🚀 *Bot Started* 🚀\n\n"
             f"Mode: *{mode.upper()}*\n"

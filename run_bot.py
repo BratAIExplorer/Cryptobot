@@ -185,7 +185,8 @@ def main():
             if len(b.get('symbols', [])) > 5: syms.append("...")
             active_bots_summary.append({
                 'name': b['name'],
-                'symbols': syms
+                'symbols': syms,
+                'total_count': len(b.get('symbols', []))
             })
         engine.notifier.notify_startup(TRADING_MODE, active_bots_summary)
 
