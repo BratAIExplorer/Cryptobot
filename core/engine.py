@@ -196,19 +196,22 @@ class TradingEngine:
         # Update bot status on start for ALL bots
         all_trades = self.logger.get_trades()
         for bot in self.active_bots:
-            # Get actual trade count for this bot
-            if not all_trades.empty:
-                bot_trades = all_trades[all_trades['strategy'] == bot['name']]
-                total_trades = len(bot_trades)
-            else:
-                total_trades = 0
+            try:
+                # Get actual trade count for this bot
+                if not all_trades.empty:
+                    bot_trades = all_trades[all_trades['strategy'] == bot['name']]
+                    total_trades = len(bot_trades)
+                else:
+                    total_trades = 0
+                    
+                total_pnl = self.logger.get_pnl_summary(bot['name'])
+                initial_bal = bot.get('initial_balance', 0.0)
+                wallet_balance = self.logger.get_wallet_balance(bot['name'], initial_balance=initial_bal)
                 
-            total_pnl = self.logger.get_pnl_summary(bot['name'])
-            initial_bal = bot.get('initial_balance', 0.0)
-            wallet_balance = self.logger.get_wallet_balance(bot['name'], initial_balance=initial_bal)
-            
-            print(f"[STARTUP] Updating {bot['name']}: Trades={total_trades}, PnL=${total_pnl}, Balance=${wallet_balance}")
-            self.logger.update_bot_status(bot['name'], 'RUNNING', total_trades, total_pnl, wallet_balance)
+                print(f"[STARTUP] Updating {bot['name']}: Trades={total_trades}, PnL=${total_pnl}, Balance=${wallet_balance}")
+                self.logger.update_bot_status(bot['name'], 'RUNNING', total_trades, total_pnl, wallet_balance)
+            except Exception as e:
+                print(f"❌ Error initializing status for bot {bot.get('name', 'Unknown')}: {e}")
 
     def run_cycle(self):
         """Execute one full pass of the trading logic and safety checks"""
@@ -651,12 +654,14 @@ class TradingEngine:
                     if current_price < sma_50 * 0.97:
                         signal = 'BUY'
                 
-                elif strategy_type == 'Buy-the-Dip':
-                    # Buy on 8-10% dips from 24h high
+                elif strategy_type in ['Buy-the-Dip', 'DIP']:
+                    # Buy on 8-15% dips from 24h high
                     recent_high = df['high'].rolling(window=24).max().iloc[-1]
                     drop_pct = ((current_price - recent_high) / recent_high)
                     
-                    if -0.15 <= drop_pct <= -0.04:  # Widened to 4-15% drop
+                    # Use bot-specific dip threshold if provided, else default to 8%
+                    dip_threshold = bot.get('dip_percentage', 0.08)
+                    if drop_pct <= -dip_threshold and drop_pct >= -0.15:
                         signal = 'BUY'
 
                 # Execute BUY

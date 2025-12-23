@@ -205,8 +205,8 @@ class TradeLogger:
                 query = query.filter(Position.strategy == strategy)
                 
             positions = query.all()
-            total = sum(p.position_size_usd for p in positions)
-            return total
+            total = sum((p.position_size_usd or 0.0) for p in positions)
+            return float(total)
         except Exception as e:
             print(f"[DB] Error calculating exposure: {e}")
             return 0.0
