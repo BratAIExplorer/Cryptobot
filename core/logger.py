@@ -302,7 +302,7 @@ class TradeLogger:
 
     # --- BOT STATUS ---
 
-    def update_bot_status(self, strategy, status, total_trades=0, total_pnl=0.0, wallet_balance=20000.0):
+    def update_bot_status(self, strategy, status, total_trades=None, total_pnl=None, wallet_balance=None):
         session = self.db.get_session()
         try:
             # Check exist
@@ -313,9 +313,10 @@ class TradeLogger:
             
             bs.status = status
             bs.last_heartbeat = datetime.utcnow()
-            bs.total_trades = total_trades
-            bs.total_pnl = total_pnl
-            bs.wallet_balance = wallet_balance
+            
+            if total_trades is not None: bs.total_trades = total_trades
+            if total_pnl is not None: bs.total_pnl = total_pnl
+            if wallet_balance is not None: bs.wallet_balance = wallet_balance
             
             session.commit()
         except Exception as e:
@@ -344,19 +345,22 @@ class TradeLogger:
                     'is_open': cb.is_open,
                     'consecutive_errors': cb.consecutive_errors,
                     'last_error_time': str(cb.last_error_time) if cb.last_error_time else None,
+                    'last_error_message': cb.last_error_message,
                     'total_trips': cb.total_trips
                 }
-            return {'is_open': False, 'consecutive_errors': 0, 'last_error_time': None, 'total_trips': 0}
+            return {'is_open': False, 'consecutive_errors': 0, 'last_error_time': None, 'last_error_message': None, 'total_trips': 0}
         finally:
             session.close()
 
-    def increment_circuit_breaker_errors(self):
+    def increment_circuit_breaker_errors(self, message=None):
         session = self.db.get_session()
         try:
             cb = session.query(CircuitBreaker).filter_by(id=1).first()
             if cb:
                 cb.consecutive_errors += 1
                 cb.last_error_time = datetime.utcnow()
+                if message:
+                    cb.last_error_message = str(message)
                 
                 if cb.consecutive_errors >= 10:
                     cb.is_open = True

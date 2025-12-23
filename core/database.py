@@ -156,6 +156,7 @@ class CircuitBreaker(Base):
     is_open = Column(Boolean, default=False)
     consecutive_errors = Column(Integer, default=0)
     last_error_time = Column(DateTime, nullable=True)
+    last_error_message = Column(Text, nullable=True)
     last_reset_time = Column(DateTime, nullable=True)
     total_trips = Column(Integer, default=0)
 

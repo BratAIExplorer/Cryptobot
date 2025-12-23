@@ -53,12 +53,17 @@ class TelegramNotifier:
     
     # ==================== CRITICAL ALERTS ====================
     
-    def alert_circuit_breaker(self, error_count, auto_recovery_minutes=30):
-        """Alert when circuit breaker is triggered."""
-        msg = f"🔴 *CIRCUIT BREAKER TRIGGERED*\n\n" \
-              f"⚠️ Bot has been paused due to {error_count} consecutive errors.\n" \
-              f"⏰ Auto-recovery in {auto_recovery_minutes} minutes.\n\n" \
-              f"Check logs for details: `journalctl -u crypto_bot_runner -f`"
+    def alert_circuit_breaker(self, error_count, error_msg=None, bot_name=None, auto_recovery_minutes=30):
+        """Alert when circuit breaker is triggered with detailed context."""
+        ctx = f" (Bot: {bot_name})" if bot_name else ""
+        msg = f"🔴 *CIRCUIT BREAKER TRIGGERED*{ctx}\n\n" \
+              f"⚠️ Bot has been paused due to {error_count} consecutive errors.\n"
+        
+        if error_msg:
+            msg += f"❌ *Last Error:* `{error_msg}`\n\n"
+            
+        msg += f"⏰ Auto-recovery in {auto_recovery_minutes} minutes.\n\n" \
+               f"Check logs: `pm2 logs crypto_bot` or `journalctl -u crypto_bot_runner -f`"
         self.send_message(msg)
     
     def alert_max_drawdown(self, current_pct, max_pct, current_equity, peak_equity):

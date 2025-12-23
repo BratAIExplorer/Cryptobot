@@ -114,12 +114,20 @@ class TradingEngine:
         if status['is_open']:
             # Send alert only when it FIRST opens
             if not was_open:
-                self.notifier.alert_circuit_breaker(status['consecutive_errors'])
+                # Update all bots to PAUSED in DB so Dashboard reflects reality
+                for bot in self.active_bots:
+                    self.logger.update_bot_status(bot['name'], 'PAUSED (Circuit Breaker)')
+                
+                # Send detailed alert
+                self.notifier.alert_circuit_breaker(
+                    error_count=status['consecutive_errors'],
+                    error_msg=status.get('last_error_message')
+                )
                 print(f"🔴 CIRCUIT BREAKER TRIGGERED: {status['consecutive_errors']} errors.")
             
             # Print status to console (less noisy)
             if datetime.now().second % 60 == 0: # Print once a minute
-                 print("🔴 CIRCUIT BREAKER OPEN - Bot is paused (waiting for cooldown)")
+                 print(f"🔴 CIRCUIT BREAKER OPEN - Bot is paused. Last Error: {status.get('last_error_message')}")
             return False
         
         return True
@@ -666,11 +674,10 @@ class TradingEngine:
 
                 
             except Exception as e:
-                print(f"Error processing {symbol}: {e}")
-                error_count = self.logger.increment_circuit_breaker_errors()
-                if error_count >= 10:
-                    self.notifier.send_message(f"🔴 CIRCUIT BREAKER TRIGGERED - {error_count} consecutive errors. Auto-recovery in 30 min.")
-                    print(f"⚠️  Circuit breaker triggered after {error_count} errors")
+                print(f"Error processing {symbol} in {bot['name']}: {e}")
+                # Increment error count and store the error message
+                self.logger.increment_circuit_breaker_errors(message=f"[{bot['name']}] {symbol}: {str(e)}")
+                # Notification is handled by check_circuit_breaker() to prevent spam
 
     def execute_trade(self, bot, symbol, side, price, rsi, position_id=None, reason=None):
         """Execute a trade with FIFO position management"""
