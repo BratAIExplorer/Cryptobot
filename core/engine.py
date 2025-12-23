@@ -183,7 +183,7 @@ class TradingEngine:
                 total_trades = 0
                 
             total_pnl = self.logger.get_pnl_summary(bot['name'])
-            initial_bal = bot.get('initial_balance', 50000.0)
+            initial_bal = bot.get('initial_balance', 0.0)
             wallet_balance = self.logger.get_wallet_balance(bot['name'], initial_balance=initial_bal)
             
             print(f"[STARTUP] Updating {bot['name']}: Trades={total_trades}, PnL=${total_pnl}, Balance=${wallet_balance}")

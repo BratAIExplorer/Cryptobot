@@ -53,8 +53,8 @@ def migrate():
         cursor = conn_new.cursor()
         pos_id = str(uuid.uuid4())
         cursor.execute("""
-            INSERT INTO positions (id, bot_id, strategy, symbol, entry_date, entry_price, amount, status, exchange, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO positions (id, bot_id, strategy, symbol, entry_date, entry_price, amount, status, unrealized_pnl_usd, exchange, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             pos_id,
             row.get('strategy'),
@@ -64,6 +64,7 @@ def migrate():
             row.get('entry_price', row.get('price', 0)),
             row.get('amount'),
             row.get('status', 'CLOSED'),
+            row.get('realized_pnl', row.get('pnl', row.get('unrealized_pnl_usd', 0.0))),
             row.get('exchange', 'MEXC'),
             datetime.utcnow().isoformat(),
             datetime.utcnow().isoformat()
