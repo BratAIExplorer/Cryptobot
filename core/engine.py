@@ -24,7 +24,9 @@ from .regime_detector import RegimeDetector, RegimeState
 
 
 class TradingEngine:
-    def __init__(self, mode='paper', telegram_config=None, exchange='MEXC', db_path=None):
+    def __init__(self, mode='paper', telegram_config=None, exchange='MEXC', db_path=None, 
+                 risk_manager=None, resilience_manager=None, regime_detector=None, 
+                 veto_manager=None, fundamental_analyzer=None):
         self.mode = mode
         self.exchange_name = exchange
         self.luno_exchange = None # Cache for Pillar A monitor
@@ -39,12 +41,13 @@ class TradingEngine:
         else:
             self.logger = TradeLogger()
         
-        self.risk_manager = setup_safe_trading_bot('moderate') # Default to Moderate Risk
-        self.resilience_manager = ExchangeResilienceManager("MEXC") 
+        # Initialize Safety Managers
+        self.risk_manager = risk_manager or setup_safe_trading_bot('moderate')
+        self.resilience_manager = resilience_manager or ExchangeResilienceManager("MEXC") 
         self.execution_manager = None # Initialized per trade
-        self.regime_detector = RegimeDetector(db_path)
-        self.veto_manager = VetoManager(self.exchange, self.logger)
-        self.fundamental_analyzer = FundamentalAnalyzer(self.exchange, self.logger)
+        self.regime_detector = regime_detector or RegimeDetector(db_path)
+        self.veto_manager = veto_manager or VetoManager(self.exchange, self.logger)
+        self.fundamental_analyzer = fundamental_analyzer or FundamentalAnalyzer(self.exchange, self.logger)
         self.known_symbols_path = os.path.join(root_dir, 'data', 'known_symbols_mexc.json')
 
         
