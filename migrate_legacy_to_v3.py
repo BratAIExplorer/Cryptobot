@@ -8,6 +8,8 @@ ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 LEGACY_DB = os.path.join(ROOT_DIR, 'data', 'trades.db')
 NEW_DB = os.path.join(ROOT_DIR, 'data', 'trades_v3_paper.db')
 
+from core.database import Database
+
 def migrate():
     print(f"--- Migrating Legacy Data ---")
     print(f"Source: {LEGACY_DB}")
@@ -16,6 +18,11 @@ def migrate():
     if not os.path.exists(LEGACY_DB):
         print(f"❌ Legacy DB not found at {LEGACY_DB}")
         return
+
+    # Initialize V3 Database (Create Tables)
+    db_v3 = Database(NEW_DB)
+    db_v3.init_db()
+    print("✅ V3 Database Initialized (Tables Created)")
 
     conn_old = sqlite3.connect(LEGACY_DB)
     conn_new = sqlite3.connect(NEW_DB)
