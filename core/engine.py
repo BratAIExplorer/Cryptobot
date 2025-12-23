@@ -163,13 +163,20 @@ class TradingEngine:
         # Warm up Regime Detector
         print("🌡️ Warming up Market Regime Detector...")
         try:
+            start_ping = time.time()
             btc_df_macro = self.exchange.fetch_ohlcv('BTC/USDT', timeframe='1d', limit=250)
+            latency = Decimal(str(int((time.time() - start_ping) * 1000)))
+            
             if not btc_df_macro.empty:
+                self.resilience_manager.update_heartbeat(latency)
+                self.resilience_manager.update_price_data()
                 state, conf, _ = self.regime_detector.detect_regime(btc_df_macro)
                 print(f"✅ Market Regime Initialized: {state.value} (Confidence: {conf*100:.1f}%)")
             else:
+                self.resilience_manager.record_failure()
                 print("⚠️  Warning: Could not fetch BTC data for regime warm-up.")
         except Exception as e:
+            self.resilience_manager.record_failure()
             print(f"❌ Regime Warm-up Failed: {e}")
 
         # Update bot status on start for ALL bots
@@ -221,14 +228,21 @@ class TradingEngine:
             
         # --- GLOBAL MARKET REGIME VETO (Hard Veto) ---
         # Fetch 1d BTC data for macro trend
+        start_ping = time.time()
         btc_df_macro = self.exchange.fetch_ohlcv('BTC/USDT', timeframe='1d', limit=250)
+        latency = Decimal(str(int((time.time() - start_ping) * 1000)))
+        
         if not btc_df_macro.empty:
+            self.resilience_manager.update_heartbeat(latency)
+            self.resilience_manager.update_price_data()
             regime_state, _, _ = self.regime_detector.detect_regime(btc_df_macro)
             if not self.regime_detector.should_trade(regime_state):
                 # Print only once every hour (or use throttled alert)
                 if datetime.now().minute % 60 == 0:
                     print(f"🛑 GLOBAL VETO: Trading blocked due to {regime_state.value} regime.")
                 return 
+        else:
+            self.resilience_manager.record_failure()
         
         # Check watchdog
         self.check_watchdog()
