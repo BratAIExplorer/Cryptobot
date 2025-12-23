@@ -248,7 +248,7 @@ class TradeLogger:
         finally:
             session.close()
             
-    def get_wallet_balance(self, strategy, initial_balance=50000.0):
+    def get_wallet_balance(self, strategy, initial_balance=0.0):
         # Starting balance - open exposure + realized PnL
         exposure = self.get_total_exposure_by_strategy(strategy)
         realized = self.get_pnl_summary(strategy)
