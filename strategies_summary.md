@@ -1,5 +1,5 @@
-# 🤖 Crypto Trading Bot: Strategy Optimization Summary (Phase 2)
-*As of Dec 9, 2025*
+# 🤖 Crypto Trading Bot: Strategy Optimization Summary (Phase 3.1)
+*As of Dec 23, 2025*
 
 This document outlines the optimized logic, new conditions, and expected behavior for the bot fleet following the Phase 2 overhaul.
 
@@ -10,7 +10,7 @@ This document outlines the optimized logic, new conditions, and expected behavio
 | Bot Strategy | 💰 Allocation | 🪙 Operating Coins | ⚙️ Key Conditions & Rules |
 | :--- | :--- | :--- | :--- |
 | **🛍️ Buy-The-Dip**<br>*(The Value Investor)* | **$800 per Coin**<br>($16,000 max) | **20 Coins:**<br>BTC, ETH, SOL, BNB, XRP, DOGE,<br>ADA, TRX, AVAX, SHIB, DOT, LINK,<br>BCH, NEAR, LTC, UNI, PEPE, APT,<br>ICP, ETC | **Entry:** Confluence Score ≥ 50<br>(RSI + Trend + Vol + News)<br>**Exit:** +5% / +7% / +10% (Tiered)<br>**Stop Loss:** ❌ DISABLED (Infinite Hold)<br>**Alerts:** Days 100, 125, 150, 200 |
-| **⚡ Hyper-Scalper**<br>*(Cash Flow)* | **$800 per Coin**<br>($3,200 max) | **4 Coins:**<br>SOL, ETH, BTC, XRP | **Entry:** RSI < 30 & Volume > 1.3x Avg<br>**Exit:** Target +3.5% or Max 30 mins<br>**Stop Loss:** -1.0% (Tight protection)<br>**Freq:** High (6-10 trades/day) |
+| **⚡ Hyper-Scalper**<br>*(Cash Flow)* | **🛑 DEACTIVATED** | BTC, ETH, SOL, XRP | **Status:** OFF per Senior Trader review (Negative PnL after Fees).<br>Left in code for future optimization. |
 | **📈 SMA Trend**<br>*(Wealth Builder)* | **$800 per Coin**<br>($4,000 max) | **5 Coins:**<br>DOGE, XRP, DOT, ATOM, ADA | **Entry:** SMA 20 > SMA 50 (Daily)<br>**Confirm:** Price > SMA 200<br>**Exit:** Death Cross (SMA 20 < 50)<br>**Timeframe:** Daily Candles |
 | **🤖 Grid Bots**<br>*(Sideways Income)* | **$1,000 BTC**<br>**$1,000 ETH** | **BTC/USDT** ($50/grid)<br>**ETH/USDT** ($30/grid) | **BTC Range:** $88k - $108k (20 Grids)<br>**ETH Range:** $2,800 - $3,500 (30 Grids)<br>**Logic:** Buy Low / Sell High within range |
 | **💎 Hidden Gem**<br>*(Paper Scout)* | **$100 per Coin**<br>(Scanning) | **Top 50 Riskier Alts:**<br>UNI, MANA, SAND, AAVE, etc. | **Logic:** Dip Buying on Volatile Assets<br>**Risk:** Minimal (Paper Trading Mode) |
@@ -37,11 +37,9 @@ This document outlines the optimized logic, new conditions, and expected behavio
 *   **The "Infinite Hold" Rule:** We accept that some dips turn into bear markets. We do not sell at a loss. We wait.
 
 ### 2. ⚡ Hyper-Scalper (Cash Flow)
-**Status:** 🟢 **Optimized (Phase 2)**
-*   **Philosophy:** "In and out quickly. Take small profits, cut losses instantly."
-*   **Old Logic:** RSI < 30 -> result: Bought on low volume noise.
-*   **New Logic:** RSI < 30 **AND** Volume Spiking.
-*   **Safety:** If trade goes sideways for 30 mins, we exit. Capital velocity is key.
+**Status:** 🔴 **DEACTIVATED**
+*   **Reasoning:** High-frequency scalping incurred excessive fees on MEXC, resulting in negative net PnL during backtests.
+*   **Action:** Logic remains in `engine.py` but is commented out in `run_bot.py`.
 
 ### 3. 📈 SMA Trend Bot (Wealth Builder)
 **Status:** 🟢 **Optimized (Phase 2)**

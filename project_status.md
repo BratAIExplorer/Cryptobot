@@ -12,6 +12,13 @@ A "set-and-forget" passive income generator that:
 ---
 
 ## 2. Issues Identified & Fixes Implemented
+### Stability Overhaul (Dec 23 - v3.1 Release)
+- **Restart Loop Resolution:** Fixed a critical `IndentationError` in the engine's startup sequence that triggered a 1-minute crash cycle.
+- **Database Null-Safety:** Implemented robust type casting and fallback values (`or 0.0`) for ROI and exposure calculations, preventing crashes on empty/legacy records.
+- **Notification Throttling:** Reduced Telegram chatter by 90% via 4-hour alert throttling and consolidated startup summaries.
+- **Fault Tolerance:** Wrapped strategy processing in isolated `try-except` blocks, ensuring one bot's failure doesn't halt the entire system.
+- **Symbol Accuracy:** Fixed a UI bug in the Telegram summary that was misreporting symbol counts for large strategy lists.
+
 ### Recent Optimizations (Dec 10 - v2.1 Release)
 - **Correlation Safety Valve:** Prevented "Triple Jeopardy" by blocking correlated assets.
 - **Global Paper Switch:** Simplified deployment toggle.
@@ -92,11 +99,13 @@ The system currently supports the following active strategies:
 ---
 
 ## 5. Performance to Date
-*As of Dec 9, 2025*
+*As of Dec 23, 2025*
 
 | Metric | Value | Notes |
 | :--- | :--- | :--- |
-| **Total Closed Trades** | **105** |  |
+| **Active Strategies** | **6** | 1 Trend, 1 Dip Snipe, 1 BtD (20 coins), 2 Grids, 1 Scout. |
+| **System Uptime** | **🟢 Stable** | Restart loop successfully resolved. |
+| **Total Closed Trades** | **114** | (Hyper-Scalper legacy trades included) |
 | **Net Realized P&L** | **-$278.54** | Primarily due to earlier "dip" losses. |
 | **Win Rate** | **60.0%** | Healthy win rate on scalping activities. |
 | **Uptime** | **100%** | Services running stable via PM2. |

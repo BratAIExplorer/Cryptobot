@@ -310,7 +310,17 @@ with tab1:
 
 with tab2:
     st.subheader("Confluence Engine V2 Monitoring")
-    symbol_to_monitor = st.selectbox("Select Coin for Scoring History", ["BTC", "ETH", "SOL", "XRP", "DOGE"])
+    
+    # Get all available symbols from history
+    session = logger.db.get_session()
+    from core.database import ConfluenceScore
+    available_symbols_raw = session.query(ConfluenceScore.symbol).distinct().all()
+    session.close()
+    
+    available_symbols = [s[0].split('/')[0] for s in available_symbols_raw if s[0]] if available_symbols_raw else ["BTC", "ETH", "SOL"]
+    available_symbols = sorted(list(set(available_symbols)))
+    
+    symbol_to_monitor = st.selectbox("Select Coin for Scoring History", available_symbols, index=available_symbols.index("BTC") if "BTC" in available_symbols else 0)
     
     # Get latest scores
     scores_df = logger.get_latest_confluence_scores(symbol=f"{symbol_to_monitor}/USDT", limit=20)
@@ -393,6 +403,23 @@ with tab2:
         st.dataframe(scores_df.head(10))
     else:
         st.info(f"No score history for {symbol_to_monitor}. Bot calibration in progress.")
+
+    st.divider()
+    st.subheader("🔭 Discovery History (New Listings)")
+    # Show ALL recent scans across all symbols, focus on high scores
+    all_recent_scans = logger.get_latest_confluence_scores(limit=15)
+    if not all_recent_scans.empty:
+        # Display with high-score highlighting
+        st.dataframe(
+            all_recent_scans[['timestamp', 'symbol', 'total_score', 'recommendation', 'regime_state', 'exchange']],
+            width='stretch',
+            column_config={
+                "total_score": st.column_config.ProgressColumn("Confidence", min_value=0, max_value=100, format="%d"),
+                "recommendation": st.column_config.TextColumn("Action")
+            }
+        )
+    else:
+        st.info("No discovery scans yet. The monitor runs every 30 minutes.")
 
 with tab2:
     st.subheader("Trade History")

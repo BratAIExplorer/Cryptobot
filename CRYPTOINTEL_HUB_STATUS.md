@@ -1,8 +1,8 @@
 # 🎯 CryptoIntel Hub - Project Status Report
 
-> **Last Updated:** 2025-12-22  
-> **Status:** Phase 3 Live (Production-Grade Quant System)  
-> **System Health:** 🟢 Stable (Deploy Verified on VPS)
+> **Last Updated:** 2025-12-23  
+> **Status:** Phase 3.1 Live (Stability Overhaul Complete)  
+> **System Health:** 🟢 Rock-Solid (Crash-Proof Fleet Stabilized)
 
 ---
 
@@ -12,9 +12,10 @@
 
 ### Major Evolution (Dec 2025 Refocus):
 - ✅ **Risk Management**: Implemented "Hard Veto" and "Dynamic Tranching."
-- ✅ **Strategy Viability**: Eliminated non-performing "Hyper-Scalper" logic.
-- ✅ **Execution Quality**: Added automated Slippage tracking and Expected Price analysis.
-- ✅ **Institutional Awareness**: Integrated Macro Regime Detection and Confluence V2 Scoring.
+- ✅ **Stability Overhaul**: Resolved critical `IndentationError` and "Null Safety" DB crashes.
+- ✅ **Resilience**: Added "Safety Bubbles" to prevent individual bot errors from crashing the entire fleet.
+- ✅ **Observability**: Implemented 4-hour Throttled Alerts and automated Performance Summaries.
+- ✅ **Strategy Scope**: Verified 20-coin Buy-the-Dip and 18-coin Hidden Gem configurations.
 
 ---
 
@@ -39,8 +40,9 @@
 | Bot Name | Strategy Type | Assets | Key Parameters | Risk Profile |
 | :--- | :--- | :--- | :--- | :--- |
 | **SMA Trend** | Trend Following | DOGE, XRP, SOL, BNB, BTC | TP: 5%, SL: 5%, Max Hold: 48h | Medium |
-| **Dip Sniper** | Tactical Dip | XRP, DOGE, SOL, BNB, ETH, BTC | Dip: 8%, TP: 5%, 100% Win Rate Data | High |
-| **Buy-the-Dip** | Value Investing | 20+ Altcoin Gems | TP: 10%, **Infinite Hold**, No SL | Long-Term |
+| **Dip Sniper** | Tactical Dip | XRP, DOGE, SOL, BNB, ETH, BTC | **Dip Threshold: 8%**, TP: 5% | High |
+| **Buy-the-Dip** | Value Investing | **20 Altcoin Gems** | TP: 10%, **Infinite Hold**, No SL | Long-Term |
+| **Hidden Gem** | Paper Scout | **18 Emerging Alts** | Monitor for 15-50% drops | Scout |
 | **Grid Bot (BTC)**| Neutral/Range | BTC/USDT | 20 Levels, ATR Mult: 2.0, Wide Range | Stable |
 | **Grid Bot (ETH)**| Neutral/Range | ETH/USDT | 30 Levels, ATR Mult: 2.5 | Stable |
 
@@ -81,13 +83,12 @@ The "Brain" of the bot assesses every trade against four critical data layers:
 
 ---
 
-## ✅ Recent Milestones (Dec 22nd Update)
-
+- [x] **Stability Overhaul**: Resolved restart loops and startup crashes (Dec 23rd).
+- [x] **Notification Optimization**: Switched to 4-hour performance summaries; silenced startup spam.
+- [x] **Null Safety Guard**: Implemented database shields (`or 0.0`) for all financial calculations.
+- [x] **Strategy Synchronization**: Confirmed 20-coin DIP and 18-coin Hidden Gem active.
 - [x] **Hard Veto Integration**: Logic live in `core/engine.py`.
 - [x] **Dynamic Tranching**: Scalability live based on Confluence scores.
-- [x] **Pillar A Alerts**: High-conviction Telegram notifications implemented.
-- [x] **Backtest Validation**: Buy-The-Dip backtester confirmed 100% WR for BTC in 2024-2025.
-- [x] **VPS Synchronization**: All fixes deployed and verified via clean heartbeat.
 
 ---
 
