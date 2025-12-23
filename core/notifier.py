@@ -5,6 +5,20 @@ class TelegramNotifier:
         self.token = token
         self.chat_id = chat_id
         self.base_url = f"https://api.telegram.org/bot{self.token}/sendMessage" if token else None
+        self._last_sent = {} # Track throttling: {key: datetime}
+
+    def can_send_throttled_msg(self, key, hours=12):
+        """Check if enough time has passed to send another message for this key."""
+        from datetime import datetime, timedelta
+        now = datetime.now()
+        if key not in self._last_sent:
+            self._last_sent[key] = now
+            return True
+        
+        if now - self._last_sent[key] > timedelta(hours=hours):
+            self._last_sent[key] = now
+            return True
+        return False
 
     def send_message(self, message):
         """Send a message to the configured Telegram chat."""
@@ -112,20 +126,6 @@ class TelegramNotifier:
 
     # ==================== INTELLIGENCE ALERTS (PHASE 2) ====================
 
-    def notify_confluence_signal(self, symbol, score, breakdown):
-        """
-        Alert on high-conviction setup found by Confluence Engine.
-        """
-        # Determine emoji based on score
-        if score >= 80:
-            header = "🚀 *HIGH CONVICTION SETUP*"
-        elif score >= 60:
-            header = "✨ *POTENTIAL OPPORTUNITY*"
-        else:
-            header = "👀 *WATCHLIST UPDATE*"
-            
-        # Format breakdown string
-        tech = breakdown.get('technical', {}).get('score', 0)
     def notify_confluence_signal(self, symbol, score, details, timeframe):
         """Send Rich Confluence Alert"""
         msg = (

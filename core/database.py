@@ -15,11 +15,13 @@ class Position(Base):
     symbol = Column(String(20))   # e.g., "BTC/USDT"
     entry_date = Column(DateTime, default=datetime.utcnow)
     entry_price = Column(Float)
+    entry_price_expected = Column(Float, nullable=True) # For slippage tracking
     position_size_usd = Column(Float)
     amount = Column(Float) # Quantity of coin
     
     # Real-time / updated fields
     current_price = Column(Float, nullable=True)
+    exit_price_expected = Column(Float, nullable=True) # For slippage tracking
     current_value_usd = Column(Float, nullable=True)
     unrealized_pnl_pct = Column(Float, nullable=True)
     unrealized_pnl_usd = Column(Float, nullable=True)
@@ -29,6 +31,7 @@ class Position(Base):
     # Strategy specific
     strategy = Column(String(50)) # Legacy compatibility
     entry_rsi = Column(Float, nullable=True)
+    exchange = Column(String(20), default="MEXC") # e.g., "MEXC", "LUNO"
     
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -121,12 +124,15 @@ class Trade(Base):
     symbol = Column(String(20))
     side = Column(String(10)) # BUY, SELL
     price = Column(Float)
+    expected_price = Column(Float, nullable=True)
+    slippage_pct = Column(Float, nullable=True)
     amount = Column(Float)
     cost = Column(Float)
     fee = Column(Float, default=0.0)
     
     rsi = Column(Float, nullable=True)
     market_condition = Column(String(50), nullable=True)
+    exchange = Column(String(20), default="MEXC")
     
     position_id = Column(String(36), ForeignKey('positions.id'), nullable=True)
     
@@ -173,6 +179,7 @@ class ConfluenceScore(Base):
     onchain_score = Column(Float)
     macro_score = Column(Float)
     fundamental_score = Column(Float)
+    exchange = Column(String(20), default="MEXC")
     
     total_score = Column(Float) # The weighted total
     raw_score = Column(Float)   # Pre-regime/scaling

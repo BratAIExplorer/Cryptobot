@@ -5,7 +5,7 @@ import os
 import uuid
 
 # Import new V3 Database models
-from core.database import Database, Position, Trade, BotStatus, CircuitBreaker, SystemHealth, Decision
+from core.database import Database, Position, Trade, BotStatus, CircuitBreaker, SystemHealth, Decision, ConfluenceScore, PortfolioSnapshot
 
 class TradeLogger:
     def __init__(self, db_path=None, mode='paper'):
@@ -48,33 +48,43 @@ class TradeLogger:
 
     # --- TRADING METHODS ---
 
-    def log_trade(self, strategy, symbol, side, price, amount, fee=0.0, rsi=None, market_condition="", position_id=None, engine_version='2.0', strategy_version='1.0'):
+    def log_trade(self, strategy, symbol, side, price, amount, expected_price=None, fee=0.0, rsi=None, market_condition="", position_id=None, exchange='MEXC', engine_version='2.0', strategy_version='1.0'):
         """Log a trade execution"""
         session = self.db.get_session()
         try:
+            slippage_pct = 0.0
+            if expected_price and expected_price > 0:
+                slippage_pct = ((price - expected_price) / expected_price) * 100
+                if side == 'SELL':
+                    slippage_pct = -slippage_pct # Positive = Good for SELL
+
             trade = Trade(
                 timestamp=datetime.utcnow(),
                 strategy=strategy,
                 symbol=symbol,
                 side=side,
                 price=price,
+                expected_price=expected_price,
+                slippage_pct=slippage_pct,
                 amount=amount,
                 cost=price * amount,
                 fee=fee,
                 rsi=rsi,
                 market_condition=market_condition,
-                position_id=position_id
+                position_id=position_id,
+                exchange=exchange
             )
             session.add(trade)
             session.commit()
-            print(f"[LOG] Trade logged: {side} {symbol} @ {price}")
+            slip_str = f" (Slippage: {slippage_pct:.3f}%)" if expected_price else ""
+            print(f"[LOG] Trade logged: {side} {symbol} @ {price}{slip_str}")
         except Exception as e:
             print(f"[DB] Error logging trade: {e}")
             session.rollback()
         finally:
             session.close()
 
-    def open_position(self, symbol, strategy, buy_price, amount, entry_rsi=None):
+    def open_position(self, symbol, strategy, buy_price, amount, expected_price=None, entry_rsi=None, exchange='MEXC'):
         """Open a new position"""
         session = self.db.get_session()
         new_id = str(uuid.uuid4())
@@ -86,6 +96,7 @@ class TradeLogger:
                 symbol=symbol,
                 entry_date=datetime.utcnow(),
                 entry_price=buy_price,
+                entry_price_expected=expected_price,
                 amount=amount,
                 position_size_usd=buy_price * amount,
                 current_price=buy_price,
@@ -93,7 +104,8 @@ class TradeLogger:
                 unrealized_pnl_pct=0.0,
                 unrealized_pnl_usd=0.0,
                 status='OPEN',
-                entry_rsi=entry_rsi
+                entry_rsi=entry_rsi,
+                exchange=exchange
             )
             session.add(pos)
             session.commit()
@@ -107,7 +119,7 @@ class TradeLogger:
         finally:
             session.close()
 
-    def close_position(self, position_id, sell_price, exit_rsi=None):
+    def close_position(self, position_id, sell_price, expected_price=None, exit_rsi=None):
         """Close a position"""
         session = self.db.get_session()
         try:
@@ -121,6 +133,9 @@ class TradeLogger:
             if pos.status == 'CLOSED':
                 print(f"[SKIP] Position #{position_id} already closed")
                 return None
+            
+            # Update expected price for slippage
+            pos.exit_price_expected = expected_price
 
             # Calc profit
             cost = pos.position_size_usd
@@ -237,7 +252,7 @@ class TradeLogger:
         # Starting balance - open exposure + realized PnL
         exposure = self.get_total_exposure_by_strategy(strategy)
         realized = self.get_pnl_summary(strategy)
-        return max(initial_balance, 50000.0) - exposure + realized
+        return initial_balance - exposure + realized
 
     # --- DECISION MAKING (HUMAN IN LOOP) ---
     def create_decision(self, position_id, decision_type, rationale, price):
@@ -475,26 +490,33 @@ class TradeLogger:
         """Log full confluence score result"""
         session = self.db.get_session()
         try:
+            from core.database import ConfluenceScore
             scores = result.get('scores', {})
             regime = result.get('regime', {})
             rec = result.get('recommendation', {})
             
+            # Extract values from nested dictionaries if necessary
+            def get_score(val):
+                if isinstance(val, dict): return val.get('score', 0)
+                return val if val is not None else 0
+
             score_entry = ConfluenceScore(
                 timestamp=datetime.utcnow(),
                 symbol=result.get('symbol'),
-                technical_score=scores.get('technical', 0),
-                onchain_score=scores.get('onchain', 0),
-                macro_score=scores.get('macro', 0),
-                fundamental_score=scores.get('fundamental', 0),
-                total_score=scores.get('final_total', 0),
-                raw_score=scores.get('raw_total', 0),
-                v1_score=scores.get('v1_total', 0),
+                technical_score=float(get_score(scores.get('technical', 0))),
+                onchain_score=float(get_score(scores.get('onchain', 0))),
+                macro_score=float(get_score(scores.get('macro', 0))),
+                fundamental_score=float(get_score(scores.get('fundamental', 0))),
+                total_score=float(scores.get('final_total', 0)),
+                raw_score=float(scores.get('raw_total', 0)),
+                v1_score=float(scores.get('v1_total', 0)),
                 regime_state=regime.get('state', 'UNKNOWN'),
-                regime_multiplier=regime.get('multiplier', 1.0),
+                regime_multiplier=float(regime.get('multiplier', 1.0)),
                 recommendation=rec.get('rating', 'UNKNOWN'),
                 position_size=rec.get('position_size', 'NONE'),
-                stop_loss_pct=rec.get('stop_loss_pct', 0),
-                details=json.dumps(result)
+                stop_loss_pct=float(rec.get('stop_loss_pct', 0)),
+                details=json.dumps(result),
+                exchange=result.get('exchange', 'MEXC')
             )
             session.add(score_entry)
             session.commit()

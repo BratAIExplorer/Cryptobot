@@ -25,15 +25,14 @@ def check_stop_signal():
 # ==========================================
 # ⚙️ GLOBAL CONFIGURATION
 # ==========================================
-# Set to 'live' for REAL MONEY trading.
-# Set to 'paper' for simulated trading.
+VERSION_ID = "2025.12.23.01" # For verification
 TRADING_MODE = 'paper' 
 # ==========================================
 
 def main():
-    print("=" * 60)
-    print("🤖 Crypto Trading Bot - Standalone Runner")
-    print("=" * 60)
+    print("=" * 60, flush=True)
+    print(f"🤖 Crypto Trading Bot - Standalone Runner (v{VERSION_ID})", flush=True)
+    print("=" * 60, flush=True)
     
     # Telegram config from environment variables
     telegram_config = None
@@ -46,8 +45,14 @@ def main():
     else:
         print("⚠️  Telegram notifications disabled")
     
-    # Initialize engine
-    engine = TradingEngine(mode=TRADING_MODE, telegram_config=telegram_config)
+    # Initialize engine with MEXC as primary exchange for BOTS
+    # (Luno monitoring is handled separately within the engine)
+    engine = TradingEngine(
+        mode=TRADING_MODE, 
+        telegram_config=telegram_config, 
+        exchange='MEXC',
+        db_path='data/trades_v3_paper.db'
+    )
     
     # ==========================================
     # 🚀 ALL-STAR PORTFOLIO CONFIGURATION
@@ -61,7 +66,7 @@ def main():
         'type': 'SMA',
         'symbols': ['DOGE/USDT', 'XRP/USDT', 'SOL/USDT', 'BNB/USDT', 'BTC/USDT'],
         'amount': 800,  # $800 per coin ($4000 total)
-        'initial_balance': 50000,
+        'initial_balance': 4000,
         'take_profit_pct': 0.05,  # 5% Target (User Hybrid Request)
         'stop_loss_pct': 0.05,    # 5% Max Loss
         'max_hold_hours': 48,     # TIME LIMIT: 48h to hit 5% or sell.
@@ -76,6 +81,7 @@ def main():
         'type': 'DIP',
         'symbols': ['XRP/USDT', 'DOGE/USDT', 'SOL/USDT', 'BNB/USDT', 'ETH/USDT', 'BTC/USDT'],
         'amount': 600,  # $600 per coin ($3600 total)
+        'initial_balance': 3600,
         'dip_percentage': 0.08,  # Buy on 8% drop (High conviction)
         'profit_target': 0.05,   # Sell on 5% bounce.
         # NOTE: User requested Tiered Exits (50%@5%, 25%@7.5%, 25%@10%).
@@ -91,7 +97,7 @@ def main():
         'type': 'Buy-the-Dip',
         'symbols': ['BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'BNB/USDT', 'XRP/USDT', 'DOGE/USDT', 'ADA/USDT', 'TRX/USDT', 'AVAX/USDT', 'SHIB/USDT', 'DOT/USDT', 'LINK/USDT', 'BCH/USDT', 'NEAR/USDT', 'LTC/USDT', 'UNI/USDT', 'PEPE/USDT', 'APT/USDT', 'ICP/USDT', 'ETC/USDT'],
         'amount': 800,  # $800 per coin ($2400 total)
-        'initial_balance': 50000,
+        'initial_balance': 16000,
         'take_profit_pct': 0.10,  # Target 10% (Tiered exits handle the rest)
         'stop_loss_pct': 0.30,    # Max drawdown 30% (Reference only, disabled below)
         'stop_loss_enabled': False, # User Request: Infinite Hold + Alerts
@@ -100,20 +106,19 @@ def main():
     })
     
     # 3. HYPER SCALPER (Experimental - Paper Only)
-    # High Frequency. 20% of Capital (Allocated but cautious).
-    # Update: Backtest shows negative net profit after fees. Keeping for R&D only.
-    engine.add_bot({
-        'name': 'Hyper Scalper',
-        'type': 'RSI',
-        'symbols': ['BTC/USDT'], # Only BTC for safety testing
-        'amount': 200,   # Small bets
-        'rsi_lower': 30, # Relaxed from 15
-        'rsi_upper': 70,
-        'profit_target': 0.012,
-        'stop_loss': 0.02,
-        'max_active_trades': 1,
-        'max_exposure_per_coin': 200
-    })
+    # DEACTIVATED per Senior Trader Review: Backtest shows negative net profit after fees.
+    # engine.add_bot({
+    #     'name': 'Hyper Scalper',
+    #     'type': 'RSI',
+    #     'symbols': ['BTC/USDT'], # Only BTC for safety testing
+    #     'amount': 200,   # Small bets
+    #     'rsi_lower': 30, # Relaxed from 15
+    #     'rsi_upper': 70,
+    #     'profit_target': 0.012,
+    #     'stop_loss': 0.02,
+    #     'max_active_trades': 1,
+    #     'max_exposure_per_coin': 200
+    # })
 
     # 4. GRID BOTS (Sideways Market Kings)
     # 20% of Capital.
@@ -134,7 +139,7 @@ def main():
         # For automation, I'll set a wide range around "current" price (approx 98k for BTC, 3200 for ETH).
         'lower_limit': 88000,
         'upper_limit': 108000,
-        'initial_balance': 50000,
+        'initial_balance': 1000,
         'max_exposure_per_coin': 1000
     })
 
@@ -148,7 +153,7 @@ def main():
         'atr_period': 14,
         'lower_limit': 2800,
         'upper_limit': 3500,
-        'initial_balance': 50000,
+        'initial_balance': 1000,
         'max_exposure_per_coin': 1000
     })
 
@@ -158,20 +163,20 @@ def main():
         'name': 'Hidden Gem Monitor',
         'type': 'Buy-the-Dip',
         'symbols': [
-            'ADA/USDT', 'AVAX/USDT', 'DOT/USDT', 'LINK/USDT', 'MATIC/USDT', 
+            'ADA/USDT', 'AVAX/USDT', 'DOT/USDT', 'LINK/USDT', 'POL/USDT', 
             'UNI/USDT', 'ATOM/USDT', 'LTC/USDT', 'NEAR/USDT', 'ALGO/USDT',
             'FIL/USDT', 'HBAR/USDT', 'ICP/USDT', 'VET/USDT', 'SAND/USDT',
-            'MANA/USDT', 'AAVE/USDT', 'EOS/USDT', 'XTZ/USDT', 'THETA/USDT'
+            'MANA/USDT', 'AAVE/USDT', 'XTZ/USDT'
         ],
         'amount': 100,  # Small test amount
-        'initial_balance': 50000,
+        'initial_balance': 1800,
         'take_profit_pct': 0.10,
         'stop_loss_pct': 0.20,
         'max_hold_hours': 72,
         'max_exposure_per_coin': 100
     })
     
-    print(f"✅ Loaded 5 Strategies: SMA Trend, Buy-the-Dip, Hyper-Scalper, Grid Bots, Hidden Gem Monitor")
+    print(f"✅ Loaded 4 Core Strategies: SMA Trend, Buy-the-Dip, Grid Bots, Hidden Gem Monitor")
     print("=" * 60)
     print(f"🚀 Bot Running in {TRADING_MODE.upper()} mode...")
     print("Press Ctrl+C to stop.")

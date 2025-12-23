@@ -8,9 +8,9 @@ class ExchangeInterface:
         self.mode = mode
         self.exchange_id = 'binance'
         
-        # Load API keys from environment
-        api_key = os.environ.get('BINANCE_API_KEY')
-        secret = os.environ.get('BINANCE_SECRET_KEY')
+        # Load API keys from environment (supporting multiple naming conventions)
+        api_key = os.environ.get('BINANCE_API_KEY') or os.environ.get('BINANCE_API_KEY_ID')
+        secret = os.environ.get('BINANCE_SECRET_KEY') or os.environ.get('BINANCE_API_KEY_SECRET')
         
         config = {
             'enableRateLimit': True,

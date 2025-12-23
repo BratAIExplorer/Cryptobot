@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 from typing import Dict, Optional, Tuple
 import sys
 import os
+import json
 
 # Add parent directory to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -53,6 +54,8 @@ class ConfluenceEngine:
         
         self.db_path = db_path
         
+        self.exchange = exchange_client
+        
         # V2 Components
         self.regime_detector = RegimeDetector(db_path) if REGIME_ENABLED else None
         self.execution_validator = ExecutionValidator(exchange_client) if REGIME_ENABLED else None
@@ -84,7 +87,9 @@ class ConfluenceEngine:
                     recommendation TEXT,
                     position_size TEXT,
                     stop_loss_pct REAL,
-                    details TEXT
+                    details TEXT,
+                    exchange TEXT,
+                    v1_score REAL
                 )
             ''')
             
@@ -110,6 +115,81 @@ class ConfluenceEngine:
             conn.close()
         except Exception as e:
             print(f"Database init warning: {e}")
+
+    def fetch_technicals(self, symbol: str, timeframe: str = '1h') -> Dict:
+        """Fetch and calculate technical indicators from exchange"""
+        if not self.execution_validator or not self.execution_validator.exchange:
+            return {}
+        
+        try:
+            exchange = self.execution_validator.exchange
+            ohlcv = exchange.fetch_ohlcv(symbol, timeframe=timeframe, limit=250)
+            df = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+            
+            # RSI
+            delta = df['close'].diff()
+            gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
+            loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+            rs = gain / loss
+            df['rsi'] = 100 - (100 / (1+rs))
+            
+            # SMA
+            df['sma50'] = df['close'].rolling(window=50).mean()
+            df['sma200'] = df['close'].rolling(window=200).mean()
+            
+            # Volume Trend (Current vs 20-period avg)
+            df['vol_ma'] = df['volume'].rolling(window=20).mean()
+            
+            if df.empty or len(df) < 2:
+                return {}
+                
+            latest = df.iloc[-1]
+            prev = df.iloc[-2]
+            
+            # MACD Proxy (Price vs EMA crossover)
+            ema12 = df['close'].ewm(span=12, adjust=False).mean().iloc[-1]
+            ema26 = df['close'].ewm(span=26, adjust=False).mean().iloc[-1]
+            macd_signal = 'BULLISH' if ema12 > ema26 else 'BEARISH'
+            
+            return {
+                'rsi': float(latest['rsi']),
+                'price': float(latest['close']),
+                'ma50': float(latest['sma50']),
+                'ma200': float(latest['sma200']),
+                'macd_signal': macd_signal,
+                'volume_trend': 'INCREASING' if latest['volume'] > latest['vol_ma'] * 1.2 else 'STABLE'
+            }
+        except Exception as e:
+            print(f"Error fetching technicals for {symbol}: {e}")
+            return {}
+
+    def get_automated_confluence_score(self, symbol: str, btc_df: Optional[pd.DataFrame] = None) -> Dict:
+        """Fully automated confluence scoring for a symbol"""
+        # 1. Fetch Technicals
+        tech_inputs = self.fetch_technicals(symbol)
+        
+        # 2. Fetch Macro (Internal proxies + External APIs)
+        macro_sentiment = self.fetch_market_sentiment()
+        
+        # 3. Combine into input dict
+        inputs = {**tech_inputs}
+        inputs['fear_and_greed'] = macro_sentiment.get('fear_and_greed', 50)
+        
+        # Mapping sentiment to internal fields
+        fng = inputs['fear_and_greed']
+        inputs['risk_regime'] = 'RISK-ON' if fng > 60 else ('RISK-OFF' if fng < 40 else 'MIXED')
+        
+        # BTC Price Proxy for Macro
+        if btc_df is not None and not btc_df.empty:
+             inputs['btc_price'] = btc_df.iloc[-1]['close']
+             if 'close' in btc_df.columns:
+                 ma50 = btc_df['close'].rolling(50).mean()
+                 if not ma50.empty and not pd.isna(ma50.iloc[-1]):
+                     inputs['btc_trend'] = 'BULLISH' if btc_df.iloc[-1]['close'] > ma50.iloc[-1] else 'BEARISH'
+                 else:
+                     inputs['btc_trend'] = 'NEUTRAL'
+        
+        return self.get_total_confluence_score(symbol, inputs, btc_df=btc_df)
     
     def calculate_technical_score(self, symbol: str, manual_inputs: Dict = None) -> Dict:
         """
@@ -571,19 +651,26 @@ class ConfluenceEngine:
             regime_state = result.get('regime', {}).get('state', 'NOT_DETECTED')
             regime_multiplier = result.get('regime', {}).get('multiplier', 1.0)
             
+            # Extract values from nested dictionaries if necessary
+            def get_score(val):
+                if isinstance(val, dict): return val.get('score', 0)
+                return val if val is not None else 0
+
+            v1_score = result['scores'].get('v1_total')
+            
             c.execute('''
                 INSERT INTO confluence_scores 
                 (timestamp, symbol, technical_score, onchain_score, macro_score, fundamental_score,
                  total_score, raw_score, regime_state, regime_multiplier, 
-                 recommendation, position_size, stop_loss_pct, details, v1_score)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 recommendation, position_size, stop_loss_pct, details, v1_score, exchange)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 result['timestamp'],
                 result['symbol'],
-                result['scores']['technical']['score'],
-                result['scores']['onchain']['score'],
-                result['scores']['macro']['score'],
-                result['scores']['fundamental']['score'],
+                get_score(result['scores']['technical']),
+                get_score(result['scores']['onchain']),
+                get_score(result['scores']['macro']),
+                get_score(result['scores']['fundamental']),
                 result['scores']['final_total'],
                 result['scores']['raw_total'],
                 regime_state,
@@ -591,8 +678,9 @@ class ConfluenceEngine:
                 result['recommendation']['rating'],
                 result['recommendation']['position_size'],
                 result['recommendation']['stop_loss_pct'],
-                str(result),  # Store full result as JSON string,
-                result['scores'].get('v1_total')
+                json.dumps(result),
+                v1_score,
+                getattr(self.exchange, 'exchange_name', 'UNKNOWN')
             ))
             
             conn.commit()
@@ -693,15 +781,19 @@ class ConfluenceEngine:
             try:
                 import requests
                 url = f"https://cryptopanic.com/api/v1/posts/?auth_token={cp_key}&kind=news&filter=important"
-                res = requests.get(url, timeout=10).json()
-                # Aggregate sentiment from posts
-                upvotes = sum(p.get('votes', {}).get('positive', 0) for p in res.get('results', []))
-                downvotes = sum(p.get('votes', {}).get('negative', 0) for p in res.get('results', []))
-                
-                sentiment_ratio = 50
-                if (upvotes + downvotes) > 0:
-                    sentiment_ratio = int((upvotes / (upvotes + downvotes)) * 100)
-                results['news_sentiment'] = sentiment_ratio
+                res_raw = requests.get(url, timeout=10)
+                if res_raw.status_code == 200 and 'application/json' in res_raw.headers.get('Content-Type', ''):
+                    res = res_raw.json()
+                    # Aggregate sentiment from posts
+                    upvotes = sum(p.get('votes', {}).get('positive', 0) for p in res.get('results', []))
+                    downvotes = sum(p.get('votes', {}).get('negative', 0) for p in res.get('results', []))
+                    
+                    sentiment_ratio = 50
+                    if (upvotes + downvotes) > 0:
+                        sentiment_ratio = int((upvotes / (upvotes + downvotes)) * 100)
+                    results['news_sentiment'] = sentiment_ratio
+                else:
+                    print(f"Warning: CryptoPanic returned unexpected response: {res_raw.status_code}")
             except Exception as e:
                 print(f"Error fetching CryptoPanic: {e}")
 

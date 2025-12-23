@@ -153,6 +153,22 @@ def get_position_recommendation(score):
             }
     return POSITION_RECOMMENDATIONS['AVOID']
 
+# Discovery Watchlist for Scanner
+DISCOVERY_WATCHLIST = [
+    'SOL/USDT', 'ADA/USDT', 'DOT/USDT', 'LINK/USDT', 'POL/USDT', 
+    'ATOM/USDT', 'NEAR/USDT', 'ALGO/USDT', 'FIL/USDT', 'HBAR/USDT',
+    'AVAX/USDT', 'LTC/USDT', 'UNI/USDT', 'ICP/USDT', 'AAVE/USDT'
+]
+
+# Sector Mapping for Fundamental Proxy
+SECTOR_MAPPING = {
+    'Payment': ['XRP', 'XLM', 'LTC', 'BCH'],
+    'Smart Contract': ['ETH', 'SOL', 'ADA', 'DOT', 'AVAX', 'NEAR', 'MATIC', 'ATOM', 'ALGO'],
+    'DeFi': ['UNI', 'LINK', 'AAVE', 'ICP'],
+    'Storage': ['FIL'],
+    'Enterprise': ['VET', 'HBAR']
+}
+
 def classify_model_health(win_rate, mape, sharpe_ratio):
     """Classify model health based on metrics"""
     for category, criteria in MODEL_HEALTH_CRITERIA.items():

@@ -22,16 +22,14 @@ from .veto import VetoManager
 
 
 class TradingEngine:
-    def __init__(self, mode='paper', telegram_config=None, exchange='Binance', db_path=None):
+    def __init__(self, mode='paper', telegram_config=None, exchange='MEXC', db_path=None):
         self.mode = mode
         self.exchange_name = exchange
+        self.luno_exchange = None # Cache for Pillar A monitor
         
-        # Use unified exchange if not Binance
-        if exchange.upper() != 'BINANCE':
-            from .exchange_unified import UnifiedExchange
-            self.exchange = UnifiedExchange(exchange_name=exchange, mode=mode)
-        else:
-            self.exchange = ExchangeInterface(mode)
+        # Use unified exchange for all trades
+        from .exchange_unified import UnifiedExchange
+        self.exchange = UnifiedExchange(exchange_name=exchange, mode=mode)
         
         # Initialize logger with db_path if provided, otherwise use default
         if db_path:
@@ -41,8 +39,7 @@ class TradingEngine:
         
         # Initialize Safety Managers
         self.risk_manager = setup_safe_trading_bot('moderate') # Default to Moderate Risk
-        self.resilience_manager = ExchangeResilienceManager("Binance") # Default exchange
-        self.resilience_manager = ExchangeResilienceManager("Binance") # Default exchange
+        self.resilience_manager = ExchangeResilienceManager("MEXC") 
         self.execution_manager = None # Initialized per trade
         self.veto_manager = VetoManager(self.exchange, self.logger)
 
@@ -108,10 +105,14 @@ class TradingEngine:
         status = self.logger.get_circuit_breaker_status()
         
         if status['is_open']:
-            # Send alert only on first trigger (not every loop)
-            if not was_open or status['consecutive_errors'] >= 10:
+            # Send alert only when it FIRST opens
+            if not was_open:
                 self.notifier.alert_circuit_breaker(status['consecutive_errors'])
-            print("🔴 CIRCUIT BREAKER OPEN - Bot is paused (waiting for cooldown)")
+                print(f"🔴 CIRCUIT BREAKER TRIGGERED: {status['consecutive_errors']} errors.")
+            
+            # Print status to console (less noisy)
+            if datetime.now().second % 60 == 0: # Print once a minute
+                 print("🔴 CIRCUIT BREAKER OPEN - Bot is paused (waiting for cooldown)")
             return False
         
         return True
@@ -161,12 +162,21 @@ class TradingEngine:
         self.notifier.alert_service_restart()
         
         # Update bot status on start for ALL bots
+        all_trades = self.logger.get_trades()
         for bot in self.active_bots:
+            # Get actual trade count for this bot
+            if not all_trades.empty:
+                bot_trades = all_trades[all_trades['strategy'] == bot['name']]
+                total_trades = len(bot_trades)
+            else:
+                total_trades = 0
+                
             total_pnl = self.logger.get_pnl_summary(bot['name'])
-            # Force 50k initial balance
-            wallet_balance = self.logger.get_wallet_balance(bot['name'], initial_balance=50000.0)
-            print(f"[STARTUP] Updating {bot['name']}: PnL=${total_pnl}, Balance=${wallet_balance}")
-            self.logger.update_bot_status(bot['name'], 'RUNNING', 0, total_pnl, wallet_balance)
+            initial_bal = bot.get('initial_balance', 50000.0)
+            wallet_balance = self.logger.get_wallet_balance(bot['name'], initial_balance=initial_bal)
+            
+            print(f"[STARTUP] Updating {bot['name']}: Trades={total_trades}, PnL=${total_pnl}, Balance=${wallet_balance}")
+            self.logger.update_bot_status(bot['name'], 'RUNNING', total_trades, total_pnl, wallet_balance)
         
         while self.is_running:
             self.run_cycle()
@@ -197,6 +207,19 @@ class TradingEngine:
         if not can_trade_cooldown:
             print(f"❄️ COOLDOWN: {reason}")
             return
+            
+        # --- GLOBAL MARKET REGIME VETO (Hard Veto) ---
+        from core.regime_detector import RegimeDetector
+        regime_det = RegimeDetector()
+        # Fetch 1d BTC data for macro trend
+        btc_df_macro = self.exchange.fetch_ohlcv('BTC/USDT', timeframe='1d', limit=250)
+        if not btc_df_macro.empty:
+            regime_state, _, _ = regime_det.detect_regime(btc_df_macro)
+            if not regime_det.should_trade(regime_state):
+                # Print only once every hour (or use throttled alert)
+                if datetime.now().minute % 60 == 0:
+                    print(f"🛑 GLOBAL VETO: Trading blocked due to {regime_state.value} regime.")
+                return 
         
         # Check watchdog
         self.check_watchdog()
@@ -235,6 +258,12 @@ class TradingEngine:
         
         # Check for no-activity (6 hour silence)
         self.check_no_activity()
+        
+        # --- PILLAR A (LUNO) ALERTS ---
+        self._check_luno_confluence_alerts()
+        
+        # --- DISCOVERY SCAN (Every 4 hours or manually triggered) ---
+        self._run_discovery_scan()
 
         for bot in self.active_bots:
             # --- Heartbeat & Status Update ---
@@ -369,7 +398,7 @@ class TradingEngine:
                             rsi = 50.0
 
                         # Close position with exit RSI
-                        profit = self.logger.close_position(position_id, current_price, exit_rsi=rsi)
+                        profit = self.logger.close_position(position_id, current_price, expected_price=current_price, exit_rsi=rsi)
                         if profit is not None:
                             print(f"[AUTO-CLEANUP] Position #{position_id} closed with profit: ${profit:.2f}")
                             
@@ -377,7 +406,7 @@ class TradingEngine:
                             amount = position['amount']
                             fee = current_price * amount * 0.001  # 0.1% fee
                             self.logger.log_trade(strategy, symbol, 'SELL', current_price, amount, 
-                                                fee=fee, rsi=rsi, position_id=position_id, engine_version='2.0')
+                                                expected_price=current_price, fee=fee, rsi=rsi, position_id=position_id, engine_version='2.0')
                 except Exception as e:
                     print(f"[AUTO-CLEANUP] Error closing aged position #{position_id}: {e}")
 
@@ -636,12 +665,12 @@ class TradingEngine:
                 print(f"[SKIP] {symbol} exposure limit reached: ${current_exposure:.2f} / ${max_exposure}")
                 return
             
-            # Calculate trade amount
-            amount = trade_amount_usd / price
+            # Base amount for dynamic scaling
+            base_amount = trade_amount_usd
             
             # --- V2 CONFLUENCE CHECK ---
-            from core.confluence_engine import ConfluenceEngine
-            c_engine = ConfluenceEngine()
+            from confluence_engine import ConfluenceEngine
+            c_engine = ConfluenceEngine(db_path=self.logger.db_path)
             
             # Fetch daily data for regime detection
             btc_df = self.exchange.fetch_ohlcv('BTC/USDT', timeframe='1d', limit=250)
@@ -660,11 +689,28 @@ class TradingEngine:
             )
             
             # Record V2 result to DB for dashboard/calibration
+            if 'exchange' not in v2_result:
+                v2_result['exchange'] = self.exchange_name
             self.logger.log_confluence_score(v2_result)
             
-            if v2_result['scores']['final_total'] < 40: # Conservative threshold
-                print(f"[SKIP] Confluence V2 Reject: Score {v2_result['scores']['final_total']}/100")
+            # --- DYNAMIC TRANCHING ---
+            v2_score = v2_result['scores']['final_total']
+            
+            if v2_score >= 85:
+                # STRONG BUY: 40% of planned tranche
+                trade_amount_usd = base_amount * 0.40
+                print(f"🔥 HIGH CONVICTION: Score {v2_score}. Scaling to 40% (${trade_amount_usd:.2f})")
+            elif v2_score >= 75:
+                # MODERATE BUY: 25% of planned tranche
+                trade_amount_usd = base_amount * 0.25
+                print(f"✅ MODERATE CONVICTION: Score {v2_score}. Scaling to 25% (${trade_amount_usd:.2f})")
+            else:
+                # Score < 75: AVOID/WAIT
+                print(f"[SKIP] Confluence V2 Reject: Score {v2_score}/100 (Threshold 75)")
                 return
+
+            # Recalculate amount with scaled trade_amount_usd
+            amount = trade_amount_usd / price
 
             # --- RISK VALIDATION (V2) ---
             open_positions_df = self.logger.get_open_positions()
@@ -715,20 +761,26 @@ class TradingEngine:
                     Decimal(str(amount)), Decimal(str(amount)), Decimal(str(price))
                 )
                 
+                # Update position and log trade
+                if side == 'BUY':
+                    pos_id = self.logger.open_position(symbol, bot['name'], price, amount, expected_price=price, entry_rsi=rsi, exchange=self.exchange_name)
+                    self.logger.log_trade(bot['name'], symbol, 'BUY', price, amount, expected_price=price, rsi=rsi, position_id=pos_id, exchange=self.exchange_name)
+                
                 if not exec_result.success:
                     print(f"[EXECUTION FAIL] {exec_result.message}")
                     return
 
                 # Open position (FIFO) with entry RSI
-                position_id = self.logger.open_position(symbol, bot['name'], price, amount, entry_rsi=rsi)
+                position_id = self.logger.open_position(symbol, bot['name'], price, amount, expected_price=price, entry_rsi=rsi)
                 
                 # Calculate fee (0.1% Binance standard)
                 fee = price * amount * 0.001
                 
                 # Log trade (with versioning and fee)
                 strategy_version = bot.get('version', '1.0')
-                self.logger.log_trade(bot['name'], symbol, side, price, amount, fee=fee, rsi=rsi, 
+                self.logger.log_trade(bot['name'], symbol, side, price, amount, expected_price=price, fee=fee, rsi=rsi, 
                                     position_id=position_id, engine_version='2.0', strategy_version=strategy_version)
+                
                 
                 # Send Notification
                 trade_reason = reason if reason else f"RSI: {rsi:.2f}"
@@ -787,7 +839,7 @@ class TradingEngine:
                     return
                 
                 # Close position (FIFO) with exit RSI
-                profit = self.logger.close_position(position_id, price, exit_rsi=rsi)
+                profit = self.logger.close_position(position_id, price, expected_price=price, exit_rsi=rsi)
                 
                 # Safety check: Handle case where position wasn't found
                 if profit is None:
@@ -809,7 +861,7 @@ class TradingEngine:
                 
                 # Log trade (with versioning and fee)
                 strategy_version = bot.get('version', '1.0')
-                self.logger.log_trade(bot['name'], symbol, side, price, amount, fee=fee, rsi=rsi, 
+                self.logger.log_trade(bot['name'], symbol, side, price, amount, expected_price=price, fee=fee, rsi=rsi, 
                                     position_id=position_id, engine_version='2.0', strategy_version=strategy_version)
                 
                 # Send Notification
@@ -880,9 +932,14 @@ class TradingEngine:
             _, _, metrics = regime_det.detect_regime(btc_df)
             risk_mult = regime_det.get_risk_multiplier(regime_det.last_state)
             
+            # Ensure we pass floats, extracting 'total' or 'free' if they are dicts (from CCXT)
+            def extract_val(val, key='USDT'):
+                if isinstance(val, dict): return val.get(key, 0.0)
+                return float(val) if val is not None else 0.0
+
             self.logger.log_portfolio_snapshot(
-                equity=float(equity),
-                cash=float(cash),
+                equity=extract_val(equity),
+                cash=extract_val(cash),
                 pos_value=float(pos_value),
                 unrealized_pnl=float(unrealized_pnl),
                 risk_mult=float(risk_mult),
@@ -891,3 +948,113 @@ class TradingEngine:
             
         except Exception as e:
             print(f"[Engine] Portfolio snapshot failed: {e}")
+
+    def _check_luno_confluence_alerts(self):
+        """Monitor Pillar A (Luno) assets for high-conviction buying opportunities"""
+        import sys
+        import os
+        # Use relative paths from engine.py (which is in /core)
+        root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        luno_src = os.path.join(root_dir, 'luno-monitor', 'src')
+        if luno_src not in sys.path: sys.path.append(luno_src)
+        
+        from confluence_engine import ConfluenceEngine
+        from exchange_unified import UnifiedExchange
+        
+        # Reuse or Create Luno specifically for the confluence monitor
+        if not self.luno_exchange:
+            try:
+                self.luno_exchange = UnifiedExchange(exchange_name='LUNO', mode=self.mode)
+                print("🌑 [MONITOR] Using Luno API for Pillar A confluence...")
+            except Exception as e:
+                print(f"⚠️  [MONITOR] Luno API initialization failed: {e}. Falling back to {self.exchange_name}...")
+                self.luno_exchange = self.exchange
+            
+        c_engine = ConfluenceEngine(db_path=self.logger.db_path, exchange_client=self.luno_exchange)
+        major_assets = ['BTC/USDT', 'ETH/USDT', 'XRP/USDT']
+        
+        # Fetch 1d BTC data for macro trend
+        btc_df = self.luno_exchange.fetch_ohlcv('BTC/USDT', timeframe='1d', limit=250)
+        
+        for symbol in major_assets:
+            try:
+                result = c_engine.get_automated_confluence_score(symbol, btc_df=btc_df)
+                result['exchange'] = 'LUNO'
+                score = result['scores']['final_total']
+                
+                # Record result to DB
+                self.logger.log_confluence_score(result)
+                
+                # Alert Logic: Only high conviction (>75)
+                if score >= 75:
+                    rating = result['recommendation']['rating']
+                    print(f"💎 PILLAR A ALERT: {symbol} score {score} ({rating})")
+                    
+                    # Throttle alerts (one per 12 hours per symbol)
+                    alert_key = f"luno_alert_{symbol.split('/')[0]}"
+                    if self.notifier.can_send_throttled_msg(alert_key, hours=12):
+                        self.notifier.notify_confluence_signal(
+                            symbol, 
+                            score, 
+                            f"Rating: {rating}\nRegime: {result['regime']['state']}",
+                            "1h"
+                        )
+                        
+            except Exception as e:
+                print(f"[Luno Monitor] Alert check failed for {symbol}: {e}")
+
+    def _run_discovery_scan(self):
+        """Scan secondary watchlist for new opportunities (Discovery Mode)"""
+        # Run every 4 hours based on clock
+        now = datetime.now()
+        if now.hour % 4 != 0 or now.minute > 5:
+            return
+            
+        import sys
+        import os
+        root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        luno_monitor_path = os.path.join(root_dir, 'luno-monitor')
+        luno_src = os.path.join(luno_monitor_path, 'src')
+        if luno_monitor_path not in sys.path: sys.path.append(luno_monitor_path)
+        if luno_src not in sys.path: sys.path.append(luno_src)
+        
+        from config_coins import DISCOVERY_WATCHLIST
+        from confluence_engine import ConfluenceEngine
+        from exchange_unified import UnifiedExchange
+        
+        # Discovery scan uses MEXC/Primary unless specified
+        # (Usually MEXC has better liquidity/data for altcoins)
+        c_engine = ConfluenceEngine(db_path=self.logger.db_path, exchange_client=self.exchange)
+        
+        print(f"🔍 [SCANNER] Starting discovery scan for {len(DISCOVERY_WATCHLIST)} assets using {self.exchange_name}...")
+        
+        # Fetch 1d BTC data for macro trend
+        btc_df = self.exchange.fetch_ohlcv('BTC/USDT', timeframe='1d', limit=250)
+        
+        found_opportunities = 0
+        for symbol in DISCOVERY_WATCHLIST:
+            try:
+                result = c_engine.get_automated_confluence_score(symbol, btc_df=btc_df)
+                result['exchange'] = self.exchange_name
+                score = result['scores']['final_total']
+                
+                # Record result to DB
+                self.logger.log_confluence_score(result)
+                
+                if score >= 75:
+                    found_opportunities += 1
+                    # Send alert for discovery coins (Throttle 24h)
+                    if self.notifier.can_send_throttled_msg(f"discovery_{symbol}", hours=24):
+                        self.notifier.notify_confluence_signal(
+                            symbol,
+                            score,
+                            f"✨ DISCOVERY OPPORTUNITY ✨\nRating: {result['recommendation']['rating']}\nScore: {score}/100",
+                            "1h"
+                        )
+                
+                # Small sleep to respect rate limits
+                time.sleep(1)
+            except Exception as e:
+                print(f"❌ Scanner failed for {symbol}: {e}")
+        
+        print(f"✅ [SCANNER] Scan complete. Found {found_opportunities} opportunities.")

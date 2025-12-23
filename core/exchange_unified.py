@@ -61,6 +61,18 @@ class UnifiedExchange:
             })
             self.maker_fee = 0.001  # 0.1% maker
             self.taker_fee = 0.001  # 0.1% taker
+            
+        elif self.exchange_name == 'LUNO':
+            api_key = os.getenv('LUNO_API_KEY_ID') or os.getenv('LUNO_API_KEY')
+            secret = os.getenv('LUNO_API_KEY_SECRET') or os.getenv('LUNO_SECRET_KEY')
+            self.exchange = ccxt.luno({
+                'apiKey': api_key,
+                'secret': secret,
+                'enableRateLimit': True,
+                'options': {'defaultType': 'spot'},
+            })
+            self.maker_fee = 0.0000  # Usually 0% for Luno markers
+            self.taker_fee = 0.0001  # 0.1% taker (check local fees)
         
         else:
             raise ValueError(f"Unsupported exchange: {exchange_name}")
@@ -150,17 +162,26 @@ class UnifiedExchange:
     
     def get_balance(self, currency='USDT'):
         """Get account balance"""
+        if self.mode == 'paper':
+            return 50000.0
         try:
-            balance = self.exchange.fetch_balance()
-            return balance['total'].get(currency, 0.0)
+            # Only fetch live balance if we have keys and are not in paper mode
+            if self.exchange.apiKey and self.exchange.secret:
+                balance = self.exchange.fetch_balance()
+                return balance['total'].get(currency, 0.0)
+            return 0.0
         except Exception as e:
             logger.error(f"{self.exchange_name} - Error fetching balance: {e}")
             return 0.0
     
     def fetch_balance(self):
         """Fetch full balance object from exchange"""
+        if self.mode == 'paper':
+            return {'total': {'USDT': 50000.0}, 'free': {'USDT': 50000.0}}
         try:
-            return self.exchange.fetch_balance()
+            if self.exchange.apiKey and self.exchange.secret:
+                return self.exchange.fetch_balance()
+            return {'total': {}, 'free': {}}
         except Exception as e:
             logger.error(f"{self.exchange_name} - Error fetching full balance: {e}")
             return {'total': {}, 'free': {}}
