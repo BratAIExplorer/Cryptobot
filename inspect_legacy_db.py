@@ -23,13 +23,17 @@ def inspect():
         except Exception as e:
             print(f"Error reading positions: {e}")
 
-        # Check trades table
+        # Check unique strategies
         try:
-            trades_df = pd.read_sql_query("SELECT * FROM trades LIMIT 5", conn)
-            print("\nColumns in 'trades' table:")
-            print(trades_df.columns.tolist())
+            strats = pd.read_sql_query("SELECT DISTINCT strategy FROM positions", conn)
+            print("\nUnique Strategies in 'positions':")
+            print(strats['strategy'].tolist())
+            
+            strats_trades = pd.read_sql_query("SELECT DISTINCT strategy FROM trades", conn)
+            print("\nUnique Strategies in 'trades':")
+            print(strats_trades['strategy'].tolist())
         except Exception as e:
-            print(f"Error reading trades: {e}")
+            print(f"Error reading strategies: {e}")
             
     finally:
         conn.close()

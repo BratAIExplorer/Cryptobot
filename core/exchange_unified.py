@@ -24,13 +24,14 @@ class UnifiedExchange:
     Ensures data separation via automatic tagging
     """
     
-    def __init__(self, exchange_name='MEXC', mode='paper'):
+    def __init__(self, exchange_name='MEXC', mode='paper', skip_load=False):
         """
         Initialize exchange connection
         
         Args:
             exchange_name: 'MEXC', 'Binance', etc.
             mode: 'paper' or 'live'
+            skip_load: If True, skips load_markets() (useful for testing)
         """
         self.exchange_name = exchange_name.upper()
         self.mode = mode
@@ -78,12 +79,13 @@ class UnifiedExchange:
             raise ValueError(f"Unsupported exchange: {exchange_name}")
         
         # Load markets
-        try:
-            self.exchange.load_markets()
-            logger.info(f"✅ Connected to {self.exchange_name} in {mode.upper()} mode")
-        except Exception as e:
-            logger.error(f"❌ Failed to connect to {self.exchange_name}: {e}")
-            raise
+        if not skip_load:
+            try:
+                self.exchange.load_markets()
+                logger.info(f"✅ Connected to {self.exchange_name} in {mode.upper()} mode")
+            except Exception as e:
+                logger.error(f"❌ Failed to connect to {self.exchange_name}: {e}")
+                raise
     
     def get_exchange_metadata(self):
         """Return exchange metadata for tagging trades"""
