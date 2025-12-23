@@ -793,9 +793,11 @@ class ConfluenceEngine:
                         sentiment_ratio = int((upvotes / (upvotes + downvotes)) * 100)
                     results['news_sentiment'] = sentiment_ratio
                 else:
-                    print(f"Warning: CryptoPanic returned unexpected response: {res_raw.status_code}")
+                    print(f"Warning: CryptoPanic returned response {res_raw.status_code}. Defaulting to neutral sentiment.")
+                    results['news_sentiment'] = 50 # Balanced
             except Exception as e:
-                print(f"Error fetching CryptoPanic: {e}")
+                print(f"Error fetching CryptoPanic: {e}. Defaulting to neutral.")
+                results['news_sentiment'] = 50
 
         # 2. Alternative.me Fear & Greed (Free)
         try:
