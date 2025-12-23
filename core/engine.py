@@ -37,10 +37,10 @@ class TradingEngine:
         else:
             self.logger = TradeLogger()
         
-        # Initialize Safety Managers
         self.risk_manager = setup_safe_trading_bot('moderate') # Default to Moderate Risk
         self.resilience_manager = ExchangeResilienceManager("MEXC") 
         self.execution_manager = None # Initialized per trade
+        self.regime_detector = RegimeDetector(db_path)
         self.veto_manager = VetoManager(self.exchange, self.logger)
 
         
@@ -159,8 +159,18 @@ class TradingEngine:
         print(f"Engine started in {self.mode} mode")
         
         # Send startup notification
-        self.notifier.alert_service_restart()
-        
+        # Warm up Regime Detector
+        print("🌡️ Warming up Market Regime Detector...")
+        try:
+            btc_df_macro = self.exchange.fetch_ohlcv('BTC/USDT', timeframe='1d', limit=250)
+            if not btc_df_macro.empty:
+                state, conf, _ = self.regime_detector.detect_regime(btc_df_macro)
+                print(f"✅ Market Regime Initialized: {state.value} (Confidence: {conf*100:.1f}%)")
+            else:
+                print("⚠️  Warning: Could not fetch BTC data for regime warm-up.")
+        except Exception as e:
+            print(f"❌ Regime Warm-up Failed: {e}")
+
         # Update bot status on start for ALL bots
         all_trades = self.logger.get_trades()
         for bot in self.active_bots:
@@ -209,13 +219,11 @@ class TradingEngine:
             return
             
         # --- GLOBAL MARKET REGIME VETO (Hard Veto) ---
-        from core.regime_detector import RegimeDetector
-        regime_det = RegimeDetector()
         # Fetch 1d BTC data for macro trend
         btc_df_macro = self.exchange.fetch_ohlcv('BTC/USDT', timeframe='1d', limit=250)
         if not btc_df_macro.empty:
-            regime_state, _, _ = regime_det.detect_regime(btc_df_macro)
-            if not regime_det.should_trade(regime_state):
+            regime_state, _, _ = self.regime_detector.detect_regime(btc_df_macro)
+            if not self.regime_detector.should_trade(regime_state):
                 # Print only once every hour (or use throttled alert)
                 if datetime.now().minute % 60 == 0:
                     print(f"🛑 GLOBAL VETO: Trading blocked due to {regime_state.value} regime.")
