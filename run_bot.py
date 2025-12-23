@@ -176,20 +176,25 @@ def main():
         'max_exposure_per_coin': 100
     })
     
-    print(f"✅ Loaded 4 Core Strategies: SMA Trend, Buy-the-Dip, Grid Bots, Hidden Gem Monitor")
+    # Send Startup Notification with dynamic strategy list
+    if engine.notifier:
+        active_bots_summary = []
+        for b in engine.active_bots:
+            # Shorten symbols list for notification readability
+            syms = [s.split('/')[0] for s in b.get('symbols', [])[:5]]
+            if len(b.get('symbols', [])) > 5: syms.append("...")
+            active_bots_summary.append({
+                'name': b['name'],
+                'symbols': syms
+            })
+        engine.notifier.notify_startup(TRADING_MODE, active_bots_summary)
+
+    # Initialize statuses and warm-up
+    engine.start()
+
     print("=" * 60)
     print(f"🚀 Bot Running in {TRADING_MODE.upper()} mode...")
     print("Press Ctrl+C to stop.")
-    
-    # Send Startup Notification
-    if engine.notifier:
-        # Construct simple list of bots for notification
-        # Accessing engine internals directly for this summary, or simple static list
-        active_bots_summary = [
-            {'name': 'SMA Trend', 'symbols': ['DOGE', 'XRP', 'SOL', 'BNB', 'BTC']},
-            {'name': 'Dip Sniper', 'symbols': ['XRP', 'DOGE', 'SOL', 'BNB', 'ETH', 'BTC']}
-        ]
-        engine.notifier.notify_startup(TRADING_MODE, active_bots_summary)
 
     try:
         while True:
@@ -202,13 +207,13 @@ def main():
                 print(f"❌ CRASH in run_cycle: {e}")
                 import traceback
                 traceback.print_exc()
-                # Sleep to prevent rapid restart loops
-                print("💤 Sleeping 30s before retry/restart...")
-                time.sleep(30)
+                # Sleep longer to prevent rapid restart loops and rate limits
+                print("💤 Sleeping 60s before retry/restart...")
+                time.sleep(60)
                 raise e # Re-raise to let PM2 restart (but slowly)
             
-            # Smart Sleep: 60s normally
-            time.sleep(60) 
+            # Normal sleep: 180s (3 minutes) between cycles for better rate handling
+            time.sleep(180) 
             
     except KeyboardInterrupt:
         print("\n🛑 Stopping bot via KeyboardInterrupt...")

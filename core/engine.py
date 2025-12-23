@@ -209,10 +209,6 @@ class TradingEngine:
             
             print(f"[STARTUP] Updating {bot['name']}: Trades={total_trades}, PnL=${total_pnl}, Balance=${wallet_balance}")
             self.logger.update_bot_status(bot['name'], 'RUNNING', total_trades, total_pnl, wallet_balance)
-        
-        while self.is_running:
-            self.run_cycle()
-            time.sleep(180)  # Loop interval - 180s for better rate limiting
 
     def run_cycle(self):
         """Execute one full pass of the trading logic and safety checks"""
@@ -307,6 +303,8 @@ class TradingEngine:
 
         for bot in self.active_bots:
             # --- Heartbeat & Status Update ---
+            current_status = 'RUNNING'
+            
             # 1. Get stats
             all_trades = self.logger.get_trades()
             if not all_trades.empty:
@@ -323,10 +321,10 @@ class TradingEngine:
             self.check_profit_milestones(total_pnl)
             
             # 2. Update DB
-            self.logger.update_bot_status(bot['name'], 'RUNNING', total_trades, total_pnl, wallet_balance)
+            self.logger.update_bot_status(bot['name'], current_status, total_trades, total_pnl, wallet_balance)
             
-            # 3. Process Strategy
-            self.process_bot(bot)
+            # 3. Process Strategy - Passing btc_df_macro to avoid redundant fetches
+            self.process_bot(bot, btc_df_macro=btc_df_macro)
 
     def stop(self):
         self.is_running = False
@@ -451,7 +449,7 @@ class TradingEngine:
                     print(f"[AUTO-CLEANUP] Error closing aged position #{position_id}: {e}")
 
 
-    def process_bot(self, bot):
+    def process_bot(self, bot, btc_df_macro=None):
         """Execute logic for a single bot configuration (can be multiple symbols)"""
         symbols = bot.get('symbols', [bot.get('symbol')])
         strategy_type = bot['type']
@@ -581,11 +579,11 @@ class TradingEngine:
                     sell_reason = None
                     
                     # --- V3 EXIT LOGIC (Centralized in Risk Manager) ---
-                    # Get current market regime for exit context
-                    from core.regime_detector import RegimeDetector
-                    regime_det = RegimeDetector()
-                    btc_df = self.exchange.fetch_ohlcv('BTC/USDT', timeframe='1d', limit=250)
-                    regime_state, _, _ = regime_det.detect_regime(btc_df)
+                    # Use provided btc_df_macro or fetch if missing
+                    if btc_df_macro is None or btc_df_macro.empty:
+                        btc_df_macro = self.exchange.fetch_ohlcv('BTC/USDT', timeframe='1d', limit=250)
+                    
+                    regime_state, _, _ = self.regime_detector.detect_regime(btc_df_macro)
                     
                     # Prepare data object for Risk Manager
                     position_data = {
@@ -666,7 +664,7 @@ class TradingEngine:
                     # --- VETO CHECK (Phase 2) ---
                     is_allowed, veto_reason = self.veto_manager.check_entry_allowed(symbol, bot['name'])
                     if is_allowed:
-                        self.execute_trade(bot, symbol, 'BUY', current_price, rsi)
+                        self.execute_trade(bot, symbol, 'BUY', current_price, rsi, btc_df_macro=btc_df_macro)
                     else:
                         print(f"[{bot['name']}] ⛔ VETO BLOCKED BUY {symbol}: {veto_reason}")
                         # Optional: Notify if it's a major event?
@@ -679,7 +677,7 @@ class TradingEngine:
                 self.logger.increment_circuit_breaker_errors(message=f"[{bot['name']}] {symbol}: {str(e)}")
                 # Notification is handled by check_circuit_breaker() to prevent spam
 
-    def execute_trade(self, bot, symbol, side, price, rsi, position_id=None, reason=None):
+    def execute_trade(self, bot, symbol, side, price, rsi, position_id=None, reason=None, btc_df_macro=None):
         """Execute a trade with FIFO position management"""
         max_exposure = bot.get('max_exposure_per_coin', 2000)
         trade_amount_usd = bot['amount']
@@ -711,8 +709,9 @@ class TradingEngine:
             from confluence_engine import ConfluenceEngine
             c_engine = ConfluenceEngine(db_path=self.logger.db_path)
             
-            # Fetch daily data for regime detection
-            btc_df = self.exchange.fetch_ohlcv('BTC/USDT', timeframe='1d', limit=250)
+            # Use provided btc_df_macro or fetch if missing
+            if btc_df_macro is None or btc_df_macro.empty:
+                btc_df_macro = self.exchange.fetch_ohlcv('BTC/USDT', timeframe='1d', limit=250)
             
             # Simplified manual inputs (in production, these should be more accurate)
             manual_inputs = {
@@ -724,7 +723,7 @@ class TradingEngine:
             v2_result = c_engine.get_total_confluence_score(
                 symbol.split('/')[0],
                 manual_inputs=manual_inputs,
-                btc_df=btc_df
+                btc_df=btc_df_macro
             )
             
             # Record V2 result to DB for dashboard/calibration
