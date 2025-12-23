@@ -19,6 +19,7 @@ from .notifier import TelegramNotifier
 from utils.indicators import calculate_rsi, calculate_sma
 from strategies.grid_strategy_v2 import DynamicGridStrategy
 from .veto import VetoManager
+from .fundamental_analyzer import FundamentalAnalyzer
 from .regime_detector import RegimeDetector, RegimeState
 
 
@@ -43,6 +44,8 @@ class TradingEngine:
         self.execution_manager = None # Initialized per trade
         self.regime_detector = RegimeDetector(db_path)
         self.veto_manager = VetoManager(self.exchange, self.logger)
+        self.fundamental_analyzer = FundamentalAnalyzer(self.exchange, self.logger)
+        self.known_symbols_path = os.path.join(root_dir, 'data', 'known_symbols_mexc.json')
 
         
         # Initialize Observability
@@ -284,6 +287,9 @@ class TradingEngine:
         
         # --- PILLAR A (LUNO) ALERTS ---
         self._check_luno_confluence_alerts()
+        
+        # --- MARKET MONITOR (New Listings) ---
+        self._run_market_monitor()
         
         # --- DISCOVERY SCAN (Every 4 hours or manually triggered) ---
         self._run_discovery_scan()
@@ -1081,3 +1087,94 @@ class TradingEngine:
                 print(f"❌ Scanner failed for {symbol}: {e}")
         
         print(f"✅ [SCANNER] Scan complete. Found {found_opportunities} opportunities.")
+
+    def _run_market_monitor(self):
+        """Monitor MEXC for new coin listings and scan them"""
+        # Run every 30 minutes
+        now = datetime.now()
+        if now.minute % 30 != 0 or now.second > 10:
+            return
+
+        print(f"🔍 [MONITOR] Checking MEXC for new listings...")
+        
+        try:
+            # 1. Fetch current markets
+            markets = self.exchange.fetch_markets()
+            if not markets:
+                return
+            
+            curr_symbols = set([m['symbol'] for m in markets if m['active'] and '/USDT' in m['symbol']])
+            
+            # 2. Load known symbols
+            import json
+            known_symbols = set()
+            if os.path.exists(self.known_symbols_path):
+                try:
+                    with open(self.known_symbols_path, 'r') as f:
+                        known_symbols = set(json.load(f))
+                except:
+                    pass
+            
+            # 3. Detect new listings
+            new_symbols = curr_symbols - known_symbols
+            
+            if new_symbols:
+                print(f"✨ [MONITOR] Detected {len(new_symbols)} new listings: {list(new_symbols)[:5]}...")
+                
+                # Fetch BTC macro for confluence scan
+                btc_df = self.exchange.fetch_ohlcv('BTC/USDT', timeframe='1d', limit=200)
+                
+                for symbol in new_symbols:
+                    try:
+                        print(f"🚀 [MONITOR] Scanning new listing: {symbol}")
+                        
+                        # Use Confluence Engine for scoring
+                        from confluence_engine import ConfluenceEngine
+                        c_engine = ConfluenceEngine(db_path=self.logger.db_path, exchange_client=self.exchange)
+                        
+                        # Get confluence score (Automated)
+                        result = c_engine.get_automated_confluence_score(symbol, btc_df=btc_df)
+                        
+                        # Add Fundamental Analysis boost for new listings
+                        fund_analysis = self.fundamental_analyzer.analyze_new_listing_fundamentals(symbol)
+                        fund_score = self.fundamental_analyzer.get_fundamental_score(fund_analysis)
+                        
+                        # Adjust results
+                        result['scores']['fundamental']['score'] = fund_score
+                        result['scores']['final_total'] = int(result['scores']['raw_total'] * result['regime']['multiplier'])
+                        
+                        score = result['scores']['final_total']
+                        
+                        # Log and Alert
+                        result['exchange'] = self.exchange_name
+                        result['discovery_type'] = 'NEW_LISTING'
+                        self.logger.log_confluence_score(result)
+                        
+                        if score >= 75:
+                            self.notifier.notify_confluence_signal(
+                                symbol,
+                                score,
+                                f"🔥 **NEW LISTING OPPORTUNITY** 🔥\n"
+                                f"Volume: {fund_analysis['volume_status']}\n"
+                                f"Listing Score: {score}/100",
+                                "15m"
+                            )
+                        
+                        # Small delay to respect rate limits
+                        time.sleep(2)
+                    except Exception as e:
+                        print(f"❌ [MONITOR] Failed to scan {symbol}: {e}")
+                
+                # 4. Save updated known symbols
+                # Only save if we actually detected AND processed them
+                updated_symbols = list(known_symbols | new_symbols)
+                with open(self.known_symbols_path, 'w') as f:
+                    json.dump(updated_symbols, f)
+            else:
+                # No new listings, but initialize if empty
+                if not known_symbols:
+                    with open(self.known_symbols_path, 'w') as f:
+                        json.dump(list(curr_symbols), f)
+                        
+        except Exception as e:
+            print(f"❌ [MONITOR] Market monitor failed: {e}")
