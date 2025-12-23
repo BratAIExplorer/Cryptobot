@@ -245,7 +245,7 @@ class TradingEngine:
         btc_df_macro = self.exchange.fetch_ohlcv('BTC/USDT', timeframe='1d', limit=250)
         latency = Decimal(str(int((time.time() - start_ping) * 1000)))
         
-        if not btc_df_macro.empty:
+        if btc_df_macro is not None and not btc_df_macro.empty:
             self.resilience_manager.update_heartbeat(latency)
             self.resilience_manager.update_price_data()
             regime_state, _, _ = self.regime_detector.detect_regime(btc_df_macro)
@@ -256,6 +256,7 @@ class TradingEngine:
                 return 
         else:
             self.resilience_manager.record_failure()
+            # If we essential data is missing, we might still want to process exits, so don't return here
         
         # Check watchdog
         self.check_watchdog()
@@ -304,30 +305,53 @@ class TradingEngine:
         # --- DISCOVERY SCAN (Every 4 hours or manually triggered) ---
         self._run_discovery_scan()
 
+        # --- PERIODIC PERFORMANCE SUMMARY (Every 4h) ---
+        if self.notifier and self.notifier.can_send_throttled_msg("periodic_performance_summary", hours=4):
+            perf_stats = []
+            for bot in self.active_bots:
+                try:
+                    pnl = self.logger.get_pnl_summary(bot['name'])
+                    bal = self.logger.get_wallet_balance(bot['name'], initial_balance=bot.get('initial_balance', 0.0))
+                    trades_df = self.logger.get_trades()
+                    t_count = len(trades_df[trades_df['strategy'] == bot['name']]) if not trades_df.empty else 0
+                    perf_stats.append({
+                        'name': bot['name'],
+                        'pnl': float(pnl),
+                        'balance': float(bal),
+                        'trades': t_count
+                    })
+                except:
+                    continue
+            if perf_stats:
+                self.notifier.notify_performance_summary(perf_stats)
+
         for bot in self.active_bots:
-            # --- Heartbeat & Status Update ---
-            current_status = 'RUNNING'
-            
-            # 1. Get stats
-            all_trades = self.logger.get_trades()
-            if not all_trades.empty:
-                # Filter trades for this specific bot strategy
-                bot_trades = all_trades[all_trades['strategy'] == bot['name']]
-                total_trades = len(bot_trades)
-            else:
-                total_trades = 0
-            
-            total_pnl = self.logger.get_pnl_summary(bot['name'])
-            wallet_balance = self.logger.get_wallet_balance(bot['name'], initial_balance=bot.get('initial_balance', 50000))
-            
-            # Check for profit milestones
-            self.check_profit_milestones(total_pnl)
-            
-            # 2. Update DB
-            self.logger.update_bot_status(bot['name'], current_status, total_trades, total_pnl, wallet_balance)
-            
-            # 3. Process Strategy - Passing btc_df_macro to avoid redundant fetches
-            self.process_bot(bot, btc_df_macro=btc_df_macro)
+            try:
+                # --- Heartbeat & Status Update ---
+                current_status = 'RUNNING'
+                
+                # 1. Get stats
+                all_trades = self.logger.get_trades()
+                if not all_trades.empty:
+                    # Filter trades for this specific bot strategy
+                    bot_trades = all_trades[all_trades['strategy'] == bot['name']]
+                    total_trades = len(bot_trades)
+                else:
+                    total_trades = 0
+                
+                total_pnl = self.logger.get_pnl_summary(bot['name'])
+                wallet_balance = self.logger.get_wallet_balance(bot['name'], initial_balance=bot.get('initial_balance', 50000))
+                
+                # Check for profit milestones
+                self.check_profit_milestones(total_pnl)
+                
+                # 2. Update DB
+                self.logger.update_bot_status(bot['name'], current_status, total_trades, total_pnl, wallet_balance)
+                
+                # 3. Process Strategy - Passing btc_df_macro to avoid redundant fetches
+                self.process_bot(bot, btc_df_macro=btc_df_macro)
+            except Exception as e:
+                print(f"❌ Error in bot loop for {bot.get('name', 'Unknown')}: {e}")
 
     def stop(self):
         self.is_running = False

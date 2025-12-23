@@ -191,7 +191,10 @@ def main():
         engine.notifier.notify_startup(TRADING_MODE, active_bots_summary)
 
     # Initialize statuses and warm-up
-    engine.start()
+    try:
+        engine.start()
+    except Exception as e:
+        print(f"⚠️ Engine startup warning: {e}")
 
     print("=" * 60)
     print(f"🚀 Bot Running in {TRADING_MODE.upper()} mode...")
@@ -209,9 +212,10 @@ def main():
                 import traceback
                 traceback.print_exc()
                 # Sleep longer to prevent rapid restart loops and rate limits
-                print("💤 Sleeping 60s before retry/restart...")
-                time.sleep(60)
-                raise e # Re-raise to let PM2 restart (but slowly)
+                print("💤 Sleeping 300s (5m) before next attempt to allow system recovery...")
+                time.sleep(300) 
+                # We continue the loop instead of raising to prevent PM2 restart loop
+                continue
             
             # Normal sleep: 180s (3 minutes) between cycles for better rate handling
             time.sleep(180) 

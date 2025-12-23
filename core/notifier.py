@@ -153,7 +153,12 @@ class TelegramNotifier:
         self.send_message(msg)
 
     def notify_startup(self, mode, active_bots):
-        """Send Startup Summary"""
+        """Send Startup Summary (Throttled to once per 4 hours to prevent spam)"""
+        # Only send if not sent in last 4 hours (unless it's a manual force start)
+        if not self.can_send_throttled_msg("bot_startup_alert", hours=4):
+            print("🕒 [NOTIFIER] Startup notification throttled.")
+            return
+
         bots_list = "\n".join([f"- {b['name']} ({b.get('total_count', len(b['symbols']))} symbols)" for b in active_bots])
         msg = (
             f"🚀 *Bot Started* 🚀\n\n"
@@ -162,3 +167,16 @@ class TelegramNotifier:
             f"✅ Systems Check: OK"
         )
         self.send_message(msg)
+
+    def notify_performance_summary(self, stats_list):
+        """Periodic performance report (e.g., every 4h)"""
+        summary = "📊 *Performance Summary (4h)* 📊\n\n"
+        for s in stats_list:
+            pnl_icon = "📈" if s['pnl'] >= 0 else "📉"
+            summary += f"*{s['name']}*\n" \
+                       f"{pnl_icon} PnL: `${s['pnl']:,.2f}`\n" \
+                       f"💼 Bal: `${s['balance']:,.2f}` | 🔄 Trades: {s['trades']}\n\n"
+        
+        summary += f"🕒 Next update in 4 hours.\n" \
+                   f"🔗 Dashboard: http://srv1010193:8501"
+        self.send_message(summary)

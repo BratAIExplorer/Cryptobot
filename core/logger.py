@@ -220,10 +220,16 @@ class TradeLogger:
         """Fetch all trades"""
         try:
             df = pd.read_sql_query("SELECT * FROM trades ORDER BY timestamp DESC", self.db.engine)
+            # Ensure required columns exist even if table is empty
+            required_cols = ['id', 'timestamp', 'strategy', 'symbol', 'side', 'price', 'amount', 'cost']
+            for col in required_cols:
+                if col not in df.columns:
+                    df[col] = None
             return df
         except Exception as e:
             print(f"[DB] Error fetching trades: {e}")
-            return pd.DataFrame()
+            # Return empty DF with expected columns to prevent KeyErrors downstream
+            return pd.DataFrame(columns=['id', 'timestamp', 'strategy', 'symbol', 'side', 'price', 'amount', 'cost'])
 
     def get_pnl_summary(self, strategy=None):
         """Calculate total Realized P&L"""
