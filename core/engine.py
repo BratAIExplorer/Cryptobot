@@ -19,6 +19,7 @@ from .notifier import TelegramNotifier
 from utils.indicators import calculate_rsi, calculate_sma
 from strategies.grid_strategy_v2 import DynamicGridStrategy
 from .veto import VetoManager
+from .regime_detector import RegimeDetector, RegimeState
 
 
 class TradingEngine:
