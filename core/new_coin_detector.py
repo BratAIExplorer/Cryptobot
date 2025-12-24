@@ -61,12 +61,12 @@ class NewCoinDetector:
                 print("[DETECTOR] Warning: fetch_markets() returned an empty list.")
                 return []
 
-            # Filter for USDT pairs that are active for spot trading
+            # Filter for USDT pairs for spot trading
+            # Note: We don't filter by 'active' because MEXC sometimes reports all markets as inactive
             usdt_pairs = [
                 m for m in markets 
                 if m.get('quote') == 'USDT' 
                 and m.get('type') == 'spot'
-                and (m.get('active') is True or m.get('active') is None)
             ]
             
             if not usdt_pairs and markets:

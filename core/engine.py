@@ -978,7 +978,7 @@ class TradingEngine:
                 fee = price * amount * 0.001
                 
                 # Alert on large losses
-                if profit < -50:  # Loss greater than $50
+                if profit is not None and profit < -50:  # Loss greater than $50
                     # cost might be needed from position object if not available in profit
                     cost = position['cost'] # position here is the Series
                     profit_pct = (profit / cost) * 100 if cost > 0 else 0
@@ -997,7 +997,7 @@ class TradingEngine:
                 self.notifier.notify_trade(symbol, side, price, amount, reason=profit_str)
                 
                 # Record result in Risk Manager (for consecutive loss logic)
-                self.risk_manager.record_trade_result(was_profitable=(profit > 0))
+                self.risk_manager.record_trade_result(was_profitable=(profit is not None and profit > 0))
                 
                 # Reset circuit breaker on successful trade
                 self.reset_circuit_breaker()
