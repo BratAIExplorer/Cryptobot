@@ -180,3 +180,76 @@ class TelegramNotifier:
         summary += f"🕒 Next update in 4 hours.\n" \
                    f"🔗 Dashboard: http://srv1010193:8501"
         self.send_message(summary)
+
+    # ==================== PILLAR C: NEW COIN WATCHLIST ====================
+
+    def notify_new_listing_detected(self, symbol, coin_info):
+        """Alert when new coin is detected and classified"""
+        type_emoji = {'A': '🆕', 'B': '🌱', 'C': '⭐'}
+        risk_emoji = {'EXTREME': '🔴', 'HIGH': '🟠', 'MEDIUM': '🟡', 'LOW': '🟢'}
+        
+        coin_type = coin_info.get('type', 'A')
+        classification = coin_info.get('classification', 'UNKNOWN')
+        risk = coin_info.get('risk_level', 'UNKNOWN')
+        age_days = coin_info.get('age_days', 'Unknown')
+        waiting_period = coin_info.get('waiting_period_days', 30)
+        
+        msg = (
+            f"{type_emoji.get(coin_type, '🔭')} *NEW LISTING DETECTED*\n\n"
+            f"Symbol: *{symbol}*\n"
+            f"Type: {coin_type} ({classification})\n"
+            f"Age: {age_days} days old\n"
+            f"Risk: {risk_emoji.get(risk, '⚪')} {risk}\n\n"
+            f"⏳ Waiting Period: {waiting_period} days\n"
+            f"📊 Status: WATCHLIST - No action required\n\n"
+            f"This coin will be monitored automatically."
+        )
+        self.send_message(msg)
+    
+    def notify_watchlist_rejection(self, symbol, reason):
+        """Alert when coin is auto-rejected"""
+        msg = (
+            f"❌ *AUTO-REJECTED*\n\n"
+            f"Symbol: {symbol}\n"
+            f"Reason: {reason}\n\n"
+            f"This coin failed automatic filters and has been removed from the watchlist."
+        )
+        self.send_message(msg)
+    
+    def notify_manual_review_required(self, symbol, coin_type, performance_summary):
+        """Alert when coin reaches manual review stage with deep-dive links"""
+        base_symbol = symbol.split('/')[0]
+        
+        # Construct research links
+        mexc_link = f"https://www.mexc.com/exchange/{base_symbol}_USDT"
+        dextools_link = f"https://www.dextools.io/app/en/search?q={base_symbol}"
+        coingecko_search = f"https://www.coingecko.com/en/search_queries?search={base_symbol}"
+        
+        msg = (
+            f"📋 *MANUAL REVIEW REQUIRED*\n"
+            f"Symbol: *{symbol}* (Type {coin_type})\n\n"
+            f"*30-Day Performance:*\n"
+            f"{performance_summary}\n\n"
+            f"🔍 *Deep Dive Research:*\n"
+            f"• [MEXC Chart]({mexc_link})\n"
+            f"• [DEXTools Audit/LP]({dextools_link})\n"
+            f"• [CoinGecko Info]({coingecko_search})\n\n"
+            f"Action: Review on dashboard or reply with:\n"
+            f"• `/graduate {symbol}` - Ready for activation\n"
+            f"• `/reject {symbol}` - Delete from list"
+        )
+        self.send_message(msg)
+    
+    def notify_coin_graduated(self, symbol, coin_type, position_size):
+        """Alert when coin graduates to Pillar B"""
+        type_desc = {'A': 'Brand New', 'B': 'Emerging', 'C': 'Established'}
+        
+        msg = (
+            f"🎓 *COIN GRADUATED*\n\n"
+            f"Symbol: *{symbol}*\n"
+            f"Type: {type_desc.get(coin_type, coin_type)}\n"
+            f"Position Size: {position_size}%\n\n"
+            f"✅ Added to Pillar B (Buy-the-Dip) watchlist\n"
+            f"📊 Now eligible for automated trading"
+        )
+        self.send_message(msg)

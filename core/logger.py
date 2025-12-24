@@ -595,3 +595,59 @@ class TradeLogger:
             return pd.DataFrame()
         finally:
             session.close()
+
+    def get_new_coin_watchlist(self, status=None):
+        """Fetch coins from the Pillar C watchlist."""
+        session = self.db.get_session()
+        try:
+            from core.database import NewCoinWatchlist
+            query = session.query(NewCoinWatchlist)
+            if status:
+                query = query.filter(NewCoinWatchlist.status == status)
+            query = query.order_by(NewCoinWatchlist.detected_at.desc())
+            return pd.read_sql(query.statement, session.bind)
+        except Exception as e:
+            print(f"[DB] Error fetching watchlist: {e}")
+            return pd.DataFrame()
+        finally:
+            session.close()
+
+    def activate_new_coin(self, symbol, allocation_usd, research_notes=""):
+        """Manually activate a coin for Pillar B trading with user budget."""
+        session = self.db.get_session()
+        try:
+            from core.database import NewCoinWatchlist
+            coin = session.query(NewCoinWatchlist).filter_by(symbol=symbol).first()
+            if coin:
+                coin.is_active = True
+                coin.manual_allocation_usd = allocation_usd
+                coin.research_notes = research_notes
+                coin.status = 'GRADUATED'
+                coin.graduated_at = datetime.utcnow()
+                session.commit()
+                return True
+            return False
+        except Exception as e:
+            print(f"[DB] Error activating coin {symbol}: {e}")
+            session.rollback()
+            return False
+        finally:
+            session.close()
+
+    def delete_watchlist_coin(self, symbol):
+        """Remove a coin from the review list."""
+        session = self.db.get_session()
+        try:
+            from core.database import NewCoinWatchlist
+            coin = session.query(NewCoinWatchlist).filter_by(symbol=symbol).first()
+            if coin:
+                session.delete(coin)
+                session.commit()
+                return True
+            return False
+        except Exception as e:
+            print(f"[DB] Error deleting {symbol}: {e}")
+            session.rollback()
+            return False
+        finally:
+            session.close()

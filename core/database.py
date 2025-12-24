@@ -227,6 +227,59 @@ class PortfolioSnapshot(Base):
     risk_multiplier = Column(Float, default=1.0) # From current regime
     active_positions_count = Column(Integer)
 
+class NewCoinWatchlist(Base):
+    """Track new coin listings for Pillar C: Hybrid Watchlist"""  
+    __tablename__ = 'new_coin_watchlist'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    symbol = Column(String(20), unique=True)  # e.g., "NEWCOIN/USDT"
+    base_symbol = Column(String(10))  # e.g., "NEWCOIN"
+    
+    # Detection metadata
+    detected_at = Column(DateTime, default=datetime.utcnow)
+    listing_date_mexc = Column(DateTime)  # When it listed on MEXC
+    first_listing_date_anywhere = Column(DateTime, nullable=True)  # Genesis date
+    
+    # Classification
+    coin_type = Column(String(1))  # A, B, or C
+    coin_age_days = Column(Integer, nullable=True)
+    classification = Column(String(50))  # BRAND_NEW, EMERGING, ESTABLISHED
+    risk_level = Column(String(20))  # EXTREME, HIGH, MEDIUM, LOW
+    
+    # Status tracking
+    status = Column(String(20), default="MONITORING")  # MONITORING, REJECTED, MANUAL_REVIEW, GRADUATED
+    rejection_reason = Column(Text, nullable=True)
+    
+    # Initial snapshot (at detection)
+    initial_price = Column(Float)
+    initial_volume_24h = Column(Float)
+    initial_market_cap = Column(Float, nullable=True)
+    initial_liquidity = Column(Float, nullable=True)
+    
+    # Tracking snapshots
+    day_7_price = Column(Float, nullable=True)
+    day_7_volume = Column(Float, nullable=True)
+    day_14_price = Column(Float, nullable=True)
+    day_14_volume = Column(Float, nullable=True)
+    day_30_price = Column(Float, nullable=True)
+    day_30_volume = Column(Float, nullable=True)
+    
+    # Performance metrics
+    max_drawdown_pct = Column(Float, default=0.0)
+    max_pump_pct = Column(Float, default=0.0)
+    
+    # Graduation & Manual Activation
+    graduated_at = Column(DateTime, nullable=True)
+    is_active = Column(Boolean, default=False)  # User must toggle this to True
+    manual_allocation_usd = Column(Float, default=0.0)  # User sets this manually
+    research_notes = Column(Text, nullable=True)  # Store your thoughts here
+    
+    # Metadata (JSON)
+    metadata_json = Column(Text, nullable=True)  # exchanges, holder_count, etc.
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
 
 
 # --- Database Manager ---

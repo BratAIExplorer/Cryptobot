@@ -262,7 +262,7 @@ st.markdown("---")
 st.markdown("---")
 
 # Tabs
-tab1, tab2, tab3, tab4 = st.tabs(["📈 Open Positions", "🔍 Confluence V2", "📜 Trade History", "📊 Market Overview"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["📈 Open Positions", "🔍 Confluence V2", "📜 Trade History", "📊 Market Overview", "🔭 Watchlist Review"])
 
 with tab1:
     st.subheader("Open Positions (FIFO)")
@@ -421,7 +421,7 @@ with tab2:
     else:
         st.info("No discovery scans yet. The monitor runs every 30 minutes.")
 
-with tab2:
+with tab3:
     st.subheader("Trade History")
     
     trades = logger.get_trades()
@@ -457,7 +457,7 @@ with tab2:
     else:
         st.info("No trades executed yet. The bot is monitoring the market.")
 
-with tab3:
+with tab4:
     st.subheader("Market Overview")
     
     # Symbol selector
@@ -501,6 +501,78 @@ with tab3:
         with col3:
             st.metric("Volume", f"${df['volume'].iloc[-1]:,.0f}")
 
+with tab5:
+    st.subheader("🔭 Pillar C: New Coin Watchlist Review")
+    
+    # 1. Review Queue (Coins that reached Day 30)
+    st.write("### 📋 Review Queue (Ready for Activation)")
+    review_queue = logger.get_new_coin_watchlist(status='MANUAL_REVIEW')
+    
+    if not review_queue.empty:
+        for idx, coin in review_queue.iterrows():
+            with st.expander(f"⭐ {coin['symbol']} - {coin['classification']} ({coin['coin_age_days']} days old)", expanded=True):
+                col1, col2 = st.columns([2, 1])
+                
+                with col1:
+                    st.write("**30-Day Performance Dossier**")
+                    perf_cols = st.columns(3)
+                    perf_cols[0].metric("Initial Price", f"${coin['initial_price']:.4f}")
+                    perf_cols[1].metric("Current Price", f"${coin['day_30_price']:.4f}")
+                    growth = ((coin['day_30_price'] - coin['initial_price']) / coin['initial_price']) * 100
+                    perf_cols[2].metric("Growth", f"{growth:+.2f}%")
+                    
+                    st.write(f"**Max Drawdown:** `{coin['max_drawdown_pct']:.2f}%` | **Risk Level:** `{coin['risk_level']}`")
+                    
+                    # Research Links
+                    base_sym = coin['symbol'].split('/')[0]
+                    st.write("**Research Links:**")
+                    l1, l2, l3 = st.columns(3)
+                    l1.link_button("📊 MEXC Chart", f"https://www.mexc.com/exchange/{base_sym}_USDT")
+                    l2.link_button("🛡️ DEXTools Audit", f"https://www.dextools.io/app/en/search?q={base_sym}")
+                    l3.link_button("🦎 CoinGecko", f"https://www.coingecko.com/en/search_queries?search={base_sym}")
+                
+                with col2:
+                    st.write("**Activation Control**")
+                    with st.form(key=f"activate_{coin['symbol']}"):
+                        notes = st.text_area("Research Notes", placeholder="e.g. Strong team, Certik audit passed...")
+                        allocation = st.number_input("Wallet Amount (USD)", min_value=10.0, max_value=1000.0, value=100.0, step=10.0)
+                        
+                        btn_col1, btn_col2 = st.columns(2)
+                        if btn_col1.form_submit_button("✅ ACTIVATE"):
+                            if logger.activate_new_coin(coin['symbol'], allocation, notes):
+                                st.success(f"Activated {coin['symbol']} for trading!")
+                                st.rerun()
+                        if btn_col2.form_submit_button("❌ REJECT"):
+                            if logger.delete_watchlist_coin(coin['symbol']):
+                                st.warning(f"Rejected {coin['symbol']}.")
+                                st.rerun()
+    else:
+        st.info("The Review Queue is empty. Coins will appear here after surviving their 30-day monitoring phase.")
+
+    st.divider()
+    
+    # 2. Monitoring List (In the Waiting Room)
+    st.write("### ⏳ Waiting Room (Monitoring Phase)")
+    monitoring_list = logger.get_new_coin_watchlist(status='MONITORING')
+    
+    if not monitoring_list.empty:
+        # Format detected_at for display
+        monitoring_display = monitoring_list.copy()
+        # column selection
+        cols = ['symbol', 'coin_type', 'coin_age_days', 'risk_level', 'initial_price', 'initial_volume_24h', 'detected_at']
+        st.dataframe(
+            monitoring_display[cols],
+            width='stretch',
+            column_config={
+                "initial_price": st.column_config.NumberColumn("List Price", format="$%.4f"),
+                "initial_volume_24h": st.column_config.NumberColumn("List Volume", format="$%.0f"),
+                "detected_at": st.column_config.DatetimeColumn("Detected"),
+                "coin_type": st.column_config.TextColumn("Type")
+            }
+        )
+    else:
+        st.info("No coins currently in the waiting room. The monitor scans MEXC every 30 minutes.")
+
 st.markdown("---")
 
 # Performance Analysis Section
@@ -522,14 +594,14 @@ if not trades.empty:
     if not closed_positions.empty:
         # Group by symbol AND strategy for proper attribution
         symbol_strategy_pnl = closed_positions.groupby(['symbol', 'strategy']).agg({
-            'profit': 'sum',
+            'unrealized_pnl_usd': 'sum',
             'id': 'count'  # Number of trades
         }).reset_index()
         symbol_strategy_pnl.columns = ['symbol', 'strategy', 'total_pnl', 'num_trades']
         symbol_strategy_pnl = symbol_strategy_pnl.sort_values('total_pnl', ascending=False)
         
         # Also calculate overall symbol performance (across all strategies)
-        symbol_pnl_total = closed_positions.groupby('symbol')['profit'].sum().sort_values(ascending=False)
+        symbol_pnl_total = closed_positions.groupby('symbol')['unrealized_pnl_usd'].sum().sort_values(ascending=False)
         
         col1, col2 = st.columns(2)
         

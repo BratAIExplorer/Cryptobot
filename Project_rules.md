@@ -59,11 +59,7 @@ All contributors (including AI Agents) must strictly adhere to these standards t
 **VPS Paths (SSH Access Required):**
 ```
 /Antigravity/antigravity/scratch/
-├── crypto_trading_bot/          # BINANCE (ARCHIVED - DO NOT MODIFY)
-│   ├── data/BINANCE_BACKUP_*.db # Database backups
-│   └── BINANCE_FINAL_BACKUP.db  # Master backup
-│
-└── crypto_bot_mexc/             # MEXC (ACTIVE DEVELOPMENT)
+└── crypto_trading_bot/          # ACTIVE DEVELOPMENT (Current)
     ├── data/
     │   ├── trades_v3_mexc_paper.db  # Paper trading database
     │   └── trades_v3_mexc_live.db   # Live trading database (future)

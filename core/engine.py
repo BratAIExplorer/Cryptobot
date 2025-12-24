@@ -21,6 +21,9 @@ from strategies.grid_strategy_v2 import DynamicGridStrategy
 from .veto import VetoManager
 from .fundamental_analyzer import FundamentalAnalyzer
 from .regime_detector import RegimeDetector, RegimeState
+from .new_coin_detector import NewCoinDetector
+from .coin_classifier import CoinClassifier
+from .watchlist_tracker import WatchlistTracker
 
 
 class TradingEngine:
@@ -48,6 +51,13 @@ class TradingEngine:
         self.regime_detector = regime_detector or RegimeDetector(db_path)
         self.veto_manager = veto_manager or VetoManager(self.exchange, self.logger)
         self.fundamental_analyzer = fundamental_analyzer or FundamentalAnalyzer(self.exchange, self.logger)
+        
+        # Pillar C: Hybrid Watchlist Components
+        self.new_coin_detector = NewCoinDetector(self.exchange, self.logger)
+        self.coin_classifier = CoinClassifier(self.logger)
+        self.watchlist_tracker = WatchlistTracker(self.exchange, self.logger, self.notifier)
+        self.last_watchlist_scan = None
+        self.last_performance_pulse = None # For daily tracker run
         self.known_symbols_path = os.path.join(root_dir, 'data', 'known_symbols_mexc.json')
 
         
@@ -302,6 +312,13 @@ class TradingEngine:
         # --- MARKET MONITOR (New Listings) ---
         self._run_market_monitor()
         
+        # --- WATCHLIST PERFORMANCE PULSE (Every 24h) ---
+        now = datetime.utcnow()
+        if not self.last_performance_pulse or (now - self.last_performance_pulse).total_seconds() >= 86400:
+            print("💓 [WATCHLIST] Running daily performance pulse...")
+            self.watchlist_tracker.update_watchlist_performance()
+            self.last_performance_pulse = now
+
         # --- DISCOVERY SCAN (Every 4 hours or manually triggered) ---
         self._run_discovery_scan()
 
@@ -481,6 +498,22 @@ class TradingEngine:
         symbols = bot.get('symbols', [bot.get('symbol')])
         strategy_type = bot['type']
         
+        # --- PILLAR C INTEGRATION: Add active watchlist coins to Buy-the-Dip ---
+        watchlist_symbols_map = {} # To store manual allocation
+        if bot['name'] == 'Buy-the-Dip Strategy':
+            active_watchlist = self.logger.get_new_coin_watchlist()
+            # Filter for active only (since get_new_coin_watchlist doesn't filter is_active in current implementation)
+            if not active_watchlist.empty and 'is_active' in active_watchlist.columns:
+                active_list = active_watchlist[active_watchlist['is_active'] == True]
+                for _, w_coin in active_list.iterrows():
+                    sym = w_coin['symbol']
+                    if sym not in symbols:
+                        symbols.append(sym)
+                    watchlist_symbols_map[sym] = w_coin['manual_allocation_usd']
+                    # Increase max exposure for this specific coin to match manual allocation
+                    # so execute_trade doesn't reject it
+                    bot['max_exposure_per_coin'] = max(bot.get('max_exposure_per_coin', 2000), w_coin['manual_allocation_usd'] * 2)
+
         for symbol in symbols:
             try:
                 # Fetch data first to allow resilience recovery
@@ -524,7 +557,13 @@ class TradingEngine:
                                 self.execute_trade(bot, symbol, 'SELL', current_price, rsi, position_id=signal['position_id'])
                             elif signal['side'] == 'BUY':
                                 print(f"[{bot['name']}] Grid BUY Signal: {signal['reason']}")
-                                self.execute_trade(bot, symbol, 'BUY', current_price, rsi, reason=signal['reason'])
+                                # Use manual override if this is a watchlist coin
+                                bot_copy = bot.copy()
+                                if symbol in watchlist_symbols_map:
+                                    bot_copy['amount'] = watchlist_symbols_map[symbol]
+                                    print(f"💰 [WATCHLIST] Using manual allocation: ${bot_copy['amount']} for {symbol}")
+                                
+                                self.execute_trade(bot_copy, symbol, 'BUY', current_price, rsi, reason=signal['reason'])
                         
                         # Report Grid Status for Visualization
                         if hasattr(strategy_instance, 'get_grid_metrics'):
@@ -678,7 +717,29 @@ class TradingEngine:
                     if current_price < sma_50 * 0.97:
                         signal = 'BUY'
                 
-                elif strategy_type in ['Buy-the-Dip', 'DIP']:
+                elif strategy_type == 'Buy-the-Dip':
+                    # Check for 8% dip (threshold can be adjusted)
+                    dip_threshold = bot.get('dip_threshold', 0.08)
+                    
+                    # Logic: Current Price vs 24h High or SMA
+                    # For performance, we use 24h High as the benchmark for a dip
+                    high_24h = df['high'].max()
+                    current_dip = (high_24h - current_price) / high_24h
+                    
+                    if current_dip >= dip_threshold:
+                        print(f"[{bot['name']}] {symbol} DIP DETECTED: {current_dip*100:.1f}%")
+                        
+                        # Use manual override if this is a watchlist coin
+                        bot_copy = bot.copy()
+                        if symbol in watchlist_symbols_map:
+                            bot_copy['amount'] = watchlist_symbols_map[symbol]
+                            print(f"💰 [WATCHLIST] Using manual allocation: ${bot_copy['amount']} for {symbol}")
+
+                        self.execute_trade(bot_copy, symbol, 'BUY', current_price, rsi, reason="BUY_THE_DIP", btc_df_macro=btc_df_macro)
+                    else:
+                        # If no dip, no signal
+                        pass
+                elif strategy_type == 'DIP': # Keep DIP strategy for now, if it's distinct
                     # Buy on 8-15% dips from 24h high
                     recent_high = df['high'].rolling(window=24).max().iloc[-1]
                     drop_pct = ((current_price - recent_high) / recent_high)
@@ -1126,56 +1187,91 @@ class TradingEngine:
         
         print(f"✅ [SCANNER] Scan complete. Found {found_opportunities} opportunities.")
 
+
     def _run_market_monitor(self):
-        """Monitor MEXC for new coin listings and scan them"""
+        """
+        Pillar C: Hybrid Watchlist - Phase 1
+        Detect new MEXC listings, classify by age (Type A/B/C), alert only
+        NO TRADING in Phase 1 - pure intelligence gathering
+        """
         # Run every 30 minutes
         now = datetime.now()
-        if now.minute % 30 != 0 or now.second > 10:
+        if self.last_watchlist_scan and (now - self.last_watchlist_scan).seconds < 1800:
             return
-
-        print(f"🔍 [MONITOR] Checking MEXC for new listings...")
+        
+        self.last_watchlist_scan = now
+        
+        print(f"\n{'='*70}")
+        print(f"🔭 [PILLAR C] Hybrid Watchlist - Scanning for new listings...")
+        print(f"{'='*70}")
         
         try:
-            # 1. Fetch current markets
-            markets = self.exchange.fetch_markets()
-            if not markets:
+            # 1. Detect new listings
+            new_symbols = self.new_coin_detector.detect_new_listings()
+            
+            if not new_symbols:
+                print(f"[PILLAR C] No new listings detected this cycle")
                 return
             
-            curr_symbols = set([m['symbol'] for m in markets if m['active'] and '/USDT' in m['symbol']])
+            # 2. Process each new listing
+            from core.database import NewCoinWatchlist
+            session = self.logger.db.get_session()
             
-            # 2. Load known symbols
-            import json
-            known_symbols = set()
-            if os.path.exists(self.known_symbols_path):
+            for symbol in new_symbols:
                 try:
-                    with open(self.known_symbols_path, 'r') as f:
-                        known_symbols = set(json.load(f))
-                except:
-                    pass
+                    # Check if already in database
+                    existing = session.query(NewCoinWatchlist).filter_by(symbol=symbol).first()
+                    if existing:
+                        print(f"[PILLAR C] {symbol} already in watchlist, skipping")
+                        continue
+                    
+                    # Classify coin by age
+                    coin_info = self.coin_classifier.classify_coin(symbol)
+                    
+                    # Get listing metadata
+                    metadata = self.new_coin_detector.get_listing_metadata(symbol)
+                    
+                    # Create database record
+                    base_symbol = symbol.split('/')[0]
+                    watchlist_entry = NewCoinWatchlist(
+                        symbol=symbol,
+                        base_symbol=base_symbol,
+                        detected_at=datetime.utcnow(),
+                        listing_date_mexc=datetime.utcnow(),  # Approximate
+                        first_listing_date_anywhere=datetime.strptime(coin_info.get('first_listed', '2024-01-01'), '%Y-%m-%d') if coin_info.get('first_listed') else None,
+                        coin_type=coin_info.get('type', 'A'),
+                        coin_age_days=coin_info.get('age_days'),
+                        classification=coin_info.get('classification', 'UNKNOWN'),
+                        risk_level=coin_info.get('risk_level', 'EXTREME'),
+                        status='MONITORING',
+                        initial_price=metadata.get('price', 0),
+                        initial_volume_24h=metadata.get('volume_24h', 0),
+                        metadata_json=str(metadata)
+                    )
+                    
+                    session.add(watchlist_entry)
+                    session.commit()
+                    
+                    # Send Telegram alert
+                    if self.notifier:
+                        self.notifier.notify_new_listing_detected(symbol, coin_info)
+                    
+                    print(f"✅ [PILLAR C] Added {symbol} to watchlist (Type {coin_info.get('type')})")
+                    
+                except Exception as e:
+                    print(f"❌ [PILLAR C] Error processing {symbol}: {e}")
+                    session.rollback()
+                    continue
             
-            # 3. Detect new listings
-            new_symbols = curr_symbols - known_symbols
+            session.close()
             
-            if new_symbols:
-                print(f"✨ [MONITOR] Detected {len(new_symbols)} new listings: {list(new_symbols)[:5]}...")
-                
-                # Fetch BTC macro for confluence scan
-                btc_df = self.exchange.fetch_ohlcv('BTC/USDT', timeframe='1d', limit=200)
-                
-                for symbol in new_symbols:
-                    try:
-                        print(f"🚀 [MONITOR] Scanning new listing: {symbol}")
-                        
-                        # Use Confluence Engine for scoring
-                        from confluence_engine import ConfluenceEngine
-                        c_engine = ConfluenceEngine(db_path=self.logger.db_path, exchange_client=self.exchange)
-                        
-                        # Get confluence score (Automated)
-                        result = c_engine.get_automated_confluence_score(symbol, btc_df=btc_df)
-                        
-                        # Add Fundamental Analysis boost for new listings
-                        fund_analysis = self.fundamental_analyzer.analyze_new_listing_fundamentals(symbol)
-                        fund_score = self.fundamental_analyzer.get_fundamental_score(fund_analysis)
+            print(f"{'='*70}")
+            print(f"✅ [PILLAR C] Scan complete. Processed {len(new_symbols)} new listings")
+            print(f"{'='*70}\n")
+            
+        except Exception as e:
+            print(f"❌ [PILLAR C] Market monitor failed: {e}")
+        
                         
                         # Adjust results
                         result['scores']['fundamental']['score'] = fund_score
