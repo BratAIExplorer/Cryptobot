@@ -30,8 +30,8 @@ def migrate():
     
     # ... rest of the script using db_path ...
 
-    # List of new columns to add
-    new_columns = [
+    # List of new columns for watchlist table
+    watchlist_columns = [
         ("is_active", "BOOLEAN DEFAULT 0"),
         ("manual_allocation_usd", "FLOAT DEFAULT 0.0"),
         ("research_notes", "TEXT")
@@ -40,7 +40,7 @@ def migrate():
     print(f"🛠️  Starting migration for {db_path}...")
     success_count = 0
 
-    # Ensure table exists first
+    # 1. Migrate new_coin_watchlist
     try:
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS new_coin_watchlist (
@@ -69,22 +69,55 @@ def migrate():
         return
 
     # List of new columns to add (for existing tables)
-    for col_name, col_type in new_columns:
+    for col_name, col_type in watchlist_columns:
         try:
             cursor.execute(f"ALTER TABLE new_coin_watchlist ADD COLUMN {col_name} {col_type}")
-            print(f"✅ Added column: {col_name}")
+            print(f"✅ [Watchlist] Added column: {col_name}")
             success_count += 1
         except sqlite3.OperationalError as e:
             if "duplicate column name" in str(e).lower():
-                print(f"ℹ️  Column {col_name} already exists. Skipping.")
+                pass # Already exists
             else:
-                print(f"❌ Error adding {col_name}: {e}")
+                print(f"❌ Error adding {col_name} to watchlist: {e}")
+
+    # 2. Migrate circuit_breaker
+    cb_columns = [
+        ("last_error_message", "TEXT"),
+        ("last_reset_time", "DATETIME"),
+        ("total_trips", "INTEGER DEFAULT 0")
+    ]
+    
+    try:
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS circuit_breaker (
+                id INTEGER PRIMARY KEY,
+                is_open BOOLEAN DEFAULT 0,
+                consecutive_errors INTEGER DEFAULT 0,
+                last_error_time DATETIME
+            )
+        """)
+        # Ensure row 1 exists
+        cursor.execute("INSERT OR IGNORE INTO circuit_breaker (id, is_open, consecutive_errors) VALUES (1, 0, 0)")
+        print("✅ Table 'circuit_breaker' verified/created.")
+    except Exception as e:
+        print(f"❌ Error with circuit_breaker table: {e}")
+
+    for col_name, col_type in cb_columns:
+        try:
+            cursor.execute(f"ALTER TABLE circuit_breaker ADD COLUMN {col_name} {col_type}")
+            print(f"✅ [CircuitBreaker] Added column: {col_name}")
+            success_count += 1
+        except sqlite3.OperationalError as e:
+            if "duplicate column name" in str(e).lower():
+                pass # Already exists
+            else:
+                print(f"❌ Error adding {col_name} to circuit_breaker: {e}")
 
     conn.commit()
     conn.close()
     
     if success_count > 0:
-        print(f"🎉 Migration successful! Added {success_count} new columns.")
+        print(f"🎉 Migration successful! Added/Verified columns.")
     else:
         print("✅ Database is already up to date.")
 
