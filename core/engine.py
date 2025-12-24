@@ -52,6 +52,12 @@ class TradingEngine:
         self.veto_manager = veto_manager or VetoManager(self.exchange, self.logger)
         self.fundamental_analyzer = fundamental_analyzer or FundamentalAnalyzer(self.exchange, self.logger)
         
+        # Initialize Notifier first as other components depend on it
+        self.notifier = TelegramNotifier(
+            token=telegram_config.get('token') if telegram_config else None,
+            chat_id=telegram_config.get('chat_id') if telegram_config else None
+        )
+        
         # Pillar C: Hybrid Watchlist Components
         self.new_coin_detector = NewCoinDetector(self.exchange, self.logger)
         self.coin_classifier = CoinClassifier(self.logger)
@@ -60,15 +66,9 @@ class TradingEngine:
         self.last_performance_pulse = None # For daily tracker run
         self.known_symbols_path = os.path.join(root_dir, 'data', 'known_symbols_mexc.json')
 
-        
-        # Initialize Observability
         # Initialize Observability (Pass risk manager)
         self.system_monitor = SystemMonitor(self.logger, self.risk_manager, self.resilience_manager)
         
-        self.notifier = TelegramNotifier(
-            token=telegram_config.get('token') if telegram_config else None,
-            chat_id=telegram_config.get('chat_id') if telegram_config else None
-        )
         self.active_bots = []
         self.is_running = False
         
