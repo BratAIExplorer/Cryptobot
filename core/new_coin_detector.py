@@ -57,14 +57,22 @@ class NewCoinDetector:
         try:
             markets = self.exchange.fetch_markets()
             
+            if not markets:
+                print("[DETECTOR] Warning: fetch_markets() returned an empty list.")
+                return []
+
             # Filter for USDT pairs that are active for spot trading
             usdt_pairs = [
                 m for m in markets 
                 if m.get('quote') == 'USDT' 
-                and m.get('active', False)
                 and m.get('type') == 'spot'
+                and (m.get('active') is True or m.get('active') is None)
             ]
             
+            if not usdt_pairs and markets:
+                print(f"[DETECTOR] Warning: Found {len(markets)} total markets, but 0 passed USDT/Spot filter.")
+                print(f"[DETECTOR] Sample market data: {markets[0] if markets else 'None'}")
+
             print(f"[DETECTOR] Found {len(usdt_pairs)} active USDT pairs on MEXC")
             return usdt_pairs
             

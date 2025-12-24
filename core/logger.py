@@ -139,9 +139,13 @@ class TradeLogger:
 
             # Calc profit
             cost = pos.position_size_usd
-            sell_value = sell_price * pos.amount
+            if cost is None:
+                # Fallback for legacy positions
+                cost = (pos.entry_price or 0.0) * (pos.amount or 1.0)
+            
+            sell_value = sell_price * (pos.amount or 1.0)
             profit = sell_value - cost
-            profit_pct = (profit / cost) * 100 if cost > 0 else 0
+            profit_pct = (profit / cost) * 100 if cost and cost > 0 else 0
 
             # Update DB object
             pos.status = 'CLOSED'
