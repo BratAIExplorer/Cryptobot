@@ -25,7 +25,7 @@ def check_stop_signal():
 # ==========================================
 # ⚙️ GLOBAL CONFIGURATION
 # ==========================================
-VERSION_ID = "2025.12.24.04" # For verification
+VERSION_ID = "2025.12.24.05" # For verification
 TRADING_MODE = 'paper' 
 # ==========================================
 

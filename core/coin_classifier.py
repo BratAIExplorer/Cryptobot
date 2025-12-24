@@ -131,7 +131,7 @@ class CoinClassifier:
             url = f"{self.COINGECKO_API}/coins/{coin_id}"
             params = {'localization': 'false', 'tickers': 'false', 'community_data': 'false', 'developer_data': 'false'}
             
-            time.sleep(1.2)  # Rate limit: ~50 calls/min
+            time.sleep(2.0)  # Rate limit: Free tier is ~30 calls/min
             
             response = requests.get(url, params=params, timeout=10)
             response.raise_for_status()
@@ -148,8 +148,18 @@ class CoinClassifier:
                 print(f"[CLASSIFIER] No genesis date for {symbol}")
                 return None
             
-            # Calculate age
-            genesis_date = datetime.strptime(genesis_date_str, '%Y-%m-%d')
+            # Calculate age (handle multiple date formats)
+            try:
+                # Try standard format first
+                genesis_date = datetime.strptime(genesis_date_str, '%Y-%m-%d')
+            except ValueError:
+                # Try ISO format with timestamp
+                try:
+                    genesis_date = datetime.fromisoformat(genesis_date_str.replace('Z', '+00:00'))
+                except:
+                    print(f"[CLASSIFIER] Unsupported date format for {symbol}: {genesis_date_str}")
+                    return None
+            
             age_days = (datetime.utcnow() - genesis_date).days
             
             # Cache result
@@ -176,7 +186,7 @@ class CoinClassifier:
         Returns:
             Dict with classification results
         """
-        print(f"[CLASSIFIER] Classifying {symbol}...")
+        # print(f"[CLASSIFIER] Classifying {symbol}...")  # Silence during bulk detection
         
         age_days = self.get_coin_age_days(symbol)
         
@@ -224,7 +234,7 @@ class CoinClassifier:
             'first_listed': (datetime.utcnow() - timedelta(days=age_days)).strftime('%Y-%m-%d')
         }
         
-        print(f"[CLASSIFIER] {symbol} → Type {coin_type} ({classification}, {age_days} days old)")
+        # print(f"[CLASSIFIER] {symbol} → Type {coin_type} ({classification}, {age_days} days old)")  # Silence during bulk
         
         return result
 
