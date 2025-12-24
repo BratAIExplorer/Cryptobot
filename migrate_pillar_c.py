@@ -30,45 +30,51 @@ def migrate():
     
     # ... rest of the script using db_path ...
 
-    # List of new columns for watchlist table
+    # List of *all* required columns for watchlist table (excluding basic ones)
     watchlist_columns = [
+        ("base_symbol", "TEXT"),
+        ("listing_date_mexc", "DATETIME"),
+        ("first_listing_date_anywhere", "DATETIME"),
+        ("coin_type", "TEXT"),
+        ("coin_age_days", "INTEGER"),
+        ("classification", "TEXT"),
+        ("risk_level", "TEXT"),
+        ("status", "TEXT DEFAULT 'MONITORING'"),
+        ("rejection_reason", "TEXT"),
+        ("initial_price", "FLOAT"),
+        ("initial_volume_24h", "FLOAT"),
+        ("initial_market_cap", "FLOAT"),
+        ("initial_liquidity", "FLOAT"),
+        ("day_7_price", "FLOAT"),
+        ("day_7_volume", "FLOAT"),
+        ("day_14_price", "FLOAT"),
+        ("day_14_volume", "FLOAT"),
+        ("day_30_price", "FLOAT"),
+        ("day_30_volume", "FLOAT"),
+        ("max_drawdown_pct", "FLOAT DEFAULT 0.0"),
+        ("max_pump_pct", "FLOAT DEFAULT 0.0"),
+        ("graduated_at", "DATETIME"),
         ("is_active", "BOOLEAN DEFAULT 0"),
         ("manual_allocation_usd", "FLOAT DEFAULT 0.0"),
-        ("research_notes", "TEXT")
+        ("research_notes", "TEXT"),
+        ("metadata_json", "TEXT"),
+        ("created_at", "DATETIME DEFAULT CURRENT_TIMESTAMP"),
+        ("updated_at", "DATETIME DEFAULT CURRENT_TIMESTAMP")
     ]
 
     print(f"🛠️  Starting migration for {db_path}...")
     success_count = 0
 
     # 1. Migrate new_coin_watchlist
+    # Ensure table exists with at least the basic primary key
     try:
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS new_coin_watchlist (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                symbol TEXT UNIQUE,
-                coin_type TEXT,
-                coin_age_days INTEGER,
-                classification TEXT,
-                risk_level TEXT,
-                initial_price FLOAT,
-                initial_volume_24h FLOAT,
-                last_price FLOAT,
-                max_drawdown_pct FLOAT DEFAULT 0.0,
-                detected_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                day_30_price FLOAT,
-                status TEXT DEFAULT 'MONITORING',
-                is_active BOOLEAN DEFAULT 0,
-                manual_allocation_usd FLOAT DEFAULT 0.0,
-                research_notes TEXT,
-                graduated_at DATETIME
-            )
-        """)
+        cursor.execute("CREATE TABLE IF NOT EXISTS new_coin_watchlist (id INTEGER PRIMARY KEY AUTOINCREMENT, symbol TEXT UNIQUE)")
         print("✅ Table 'new_coin_watchlist' verified/created.")
     except Exception as e:
         print(f"❌ Error creating table: {e}")
         return
 
-    # List of new columns to add (for existing tables)
+    # Add every column one by one if missing
     for col_name, col_type in watchlist_columns:
         try:
             cursor.execute(f"ALTER TABLE new_coin_watchlist ADD COLUMN {col_name} {col_type}")
@@ -82,22 +88,18 @@ def migrate():
 
     # 2. Migrate circuit_breaker
     cb_columns = [
+        ("is_open", "BOOLEAN DEFAULT 0"),
+        ("consecutive_errors", "INTEGER DEFAULT 0"),
+        ("last_error_time", "DATETIME"),
         ("last_error_message", "TEXT"),
         ("last_reset_time", "DATETIME"),
         ("total_trips", "INTEGER DEFAULT 0")
     ]
     
     try:
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS circuit_breaker (
-                id INTEGER PRIMARY KEY,
-                is_open BOOLEAN DEFAULT 0,
-                consecutive_errors INTEGER DEFAULT 0,
-                last_error_time DATETIME
-            )
-        """)
+        cursor.execute("CREATE TABLE IF NOT EXISTS circuit_breaker (id INTEGER PRIMARY KEY)")
         # Ensure row 1 exists
-        cursor.execute("INSERT OR IGNORE INTO circuit_breaker (id, is_open, consecutive_errors) VALUES (1, 0, 0)")
+        cursor.execute("INSERT OR IGNORE INTO circuit_breaker (id) VALUES (1)")
         print("✅ Table 'circuit_breaker' verified/created.")
     except Exception as e:
         print(f"❌ Error with circuit_breaker table: {e}")
@@ -117,7 +119,7 @@ def migrate():
     conn.close()
     
     if success_count > 0:
-        print(f"🎉 Migration successful! Added/Verified columns.")
+        print(f"🎉 Migration successful! Added/Verified {success_count} columns.")
     else:
         print("✅ Database is already up to date.")
 

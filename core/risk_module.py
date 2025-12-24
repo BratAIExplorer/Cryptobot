@@ -421,7 +421,7 @@ class RiskManager:
         if entry_date:
             hours_open = (datetime.utcnow() - entry_date).total_seconds() / 3600
             if hours_open > 72 and pnl_pct < 0.01:
-                return 'SELL', f"Stagnation: Open {hours_open:.1h}h with <1% profit"
+                return 'SELL', f"Stagnation: Open {hours_open:.1f}h with <1% profit"
 
         # 4. Regime Switch Veto (Sudden Bull -> Crisis)
         # This triggers if the position was opened in BULL but market shifted to CRISIS
