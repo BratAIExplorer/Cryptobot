@@ -5,16 +5,30 @@ Adds missing columns (is_active, manual_allocation_usd, research_notes) to NewCo
 import sqlite3
 import os
 
-# Update this path to match your VPS database location
-DB_PATH = "data/trades_v3_mexc_paper.db"
+# Possible database locations - we check them in order
+POSSIBLE_PATHS = [
+    "data/trades_v3_paper.db",       # Current standard
+    "data/trades_v3_live.db",        # Live mode
+    "data/trades_v3_mexc_paper.db",  # Legacy
+    "data/trades_v3.db"              # V3 default
+]
 
 def migrate():
-    if not os.path.exists(DB_PATH):
-        print(f"❌ Database not found at {DB_PATH}. Run the bot once first to create it.")
+    db_path = None
+    for p in POSSIBLE_PATHS:
+        if os.path.exists(p):
+            db_path = p
+            break
+            
+    if not db_path:
+        print(f"❌ No database file found in any expected location: {POSSIBLE_PATHS}")
+        print("💡 Hint: Run the bot once first to create the initial database file.")
         return
 
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
+    
+    # ... rest of the script using db_path ...
 
     # List of new columns to add
     new_columns = [
@@ -23,7 +37,8 @@ def migrate():
         ("research_notes", "TEXT")
     ]
 
-    print(f"🛠️  Starting migration for {DB_PATH}...")
+    print(f"🛠️  Starting migration for {db_path}...")
+    success_count = 0
 
     # Ensure table exists first
     try:
