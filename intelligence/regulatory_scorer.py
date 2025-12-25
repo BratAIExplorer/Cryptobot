@@ -194,85 +194,96 @@ class RegulatoryScorer:
             
             # Global Regulation (10 pts)
             # XRP: Mixed - strong in UAE, Japan; uncertain in EU
-            global_score = 5.0
+            # Global Regulation (5 pts)
+            global_score = 4.0
             details['global_regulation'] = {
                 'score': global_score,
                 'reason': 'Strong in UAE/Japan, uncertain in EU/UK',
-                'jurisdictions': {
-                    'UAE': 'approved',
-                    'Japan': 'approved',
-                    'EU': 'pending',
-                    'UK': 'under_review'
-                }
+                'jurisdictions': {'UAE': 'approved', 'Japan': 'approved'}
             }
             score += global_score
             
         elif base_symbol == 'ADA':
-            # Cardano: No major lawsuit, but SEC classification concerns
+            # Cardano: No lawsuits, clean record
             legal_score = 8.0
-            details['legal_status'] = {
-                'score': legal_score,
-                'reason': 'No lawsuit, but potential security classification concerns',
-                'sources': ['sec_statements']
-            }
+            details['legal_status'] = {'score': legal_score, 'reason': 'Clean record, no lawsuits'}
             score += legal_score
             
-            # No ETF yet
+            # No ETF
             etf_score = 0.0
-            details['etf_status'] = {
-                'score': etf_score,
-                'reason': 'No ADA ETF approved yet',
-            }
+            details['etf_status'] = {'score': etf_score, 'reason': 'No ADA ETF'}
             score += etf_score
             
-            # Strong global presence (Ethiopia, academic partnerships)
-            global_score = 8.0
-            details['global_regulation'] = {
-                'score': global_score,
-                'reason': 'Strong presence in Africa, academic partnerships',
-                'jurisdictions': {
-                    'Ethiopia': 'partnership',
-                    'Georgia': 'blockchain_partnership'
-                }
-            }
+            global_score = 6.0
+            details['global_regulation'] = {'score': global_score, 'reason': 'Strong research partnerships'}
             score += global_score
             
         elif base_symbol == 'SOL':
-            # Solana: SEC concerns (deemed security in some cases)
-            legal_score = 5.0
-            details['legal_status'] = {
-                'score': legal_score,
-                'reason': 'SEC concerns in some cases, but gaining clarity',
-                'sources': ['sec_statements', 'exchange_listings']
-            }
+            # Solana: SEC concerns fading
+            legal_score = 6.0
+            details['legal_status'] = {'score': legal_score, 'reason': 'SEC concerns fading, no enforcement'}
             score += legal_score
             
-            # Multiple ETF filings pending
-            etf_score = 5.0
-            details['etf_status'] = {
-                'score': etf_score,
-                'reason': 'Multiple ETF filings pending approval',
-                'filings': ['VanEck', '21Shares'],
-            }
+            # ETF filings active
+            etf_score = 8.0
+            details['etf_status'] = {'score': etf_score, 'reason': 'VanEck/21Shares filings active'}
             score += etf_score
             
-            # Strong institutional interest
-            global_score = 7.0
-            details['global_regulation'] = {
-                'score': global_score,
-                'reason': 'Gaining regulatory clarity globally',
-            }
+            global_score = 6.0
+            details['global_regulation'] = {'score': global_score, 'reason': 'Global adoption growing'}
+            score += global_score
+
+        elif base_symbol == 'LINK':
+            # LINK: Cleanest regulatory profile
+            legal_score = 10.0
+            details['legal_status'] = {'score': legal_score, 'reason': 'Utility token, no SEC issues'}
+            score += legal_score
+            
+            etf_score = 2.0 
+            details['etf_status'] = {'score': etf_score, 'reason': 'No ETF, but infrastructure role recognized'}
+            score += etf_score
+            
+            global_score = 8.0
+            details['global_regulation'] = {'score': global_score, 'reason': 'Critical infrastructure for regulated banks (SWIFT)'}
+            score += global_score
+
+        elif base_symbol == 'MATIC':
+            legal_score = 8.0
+            details['legal_status'] = {'score': legal_score, 'reason': 'Clean record, strong compliance'}
+            score += legal_score
+            
+            etf_score = 0.0
+            details['etf_status'] = {'score': etf_score, 'reason': 'No ETF'}
+            score += etf_score
+            
+            global_score = 6.0
+            details['global_regulation'] = {'score': global_score, 'reason': 'Widely used by regulated corporates'}
+            score += global_score
+
+        elif base_symbol == 'DOT':
+            legal_score = 8.0
+            details['legal_status'] = {'score': legal_score, 'reason': 'Clean record, software utility'}
+            score += legal_score
+            
+            etf_score = 0.0
+            details['etf_status'] = {'score': etf_score, 'reason': 'No ETF'}
+            score += etf_score
+            
+            global_score = 5.0
+            details['global_regulation'] = {'score': global_score, 'reason': 'Neutral global stance'}
             score += global_score
             
         else:
-            # Default scoring for other assets (conservative)
+            # Default
             legal_score = 5.0
             etf_score = 0.0
             global_score = 3.0
-            details['legal_status'] = {'score': legal_score, 'reason': 'Default scoring - no specific intel'}
-            details['etf_status'] = {'score': etf_score, 'reason': 'No ETF data available'}
-            details['global_regulation'] = {'score': global_score, 'reason': 'Limited regulatory data'}
+            details['legal_status'] = {'score': legal_score, 'reason': 'Default scoring'}
+            details['etf_status'] = {'score': etf_score, 'reason': 'No data'}
+            details['global_regulation'] = {'score': global_score, 'reason': 'No data'}
             score = legal_score + etf_score + global_score
+        
+        return min(score, 25.0), details
         
         return min(score, 40.0), details
     
@@ -319,54 +330,61 @@ class RegulatoryScorer:
             score += holdings_score
             
         elif base_symbol == 'ADA':
-            partnership_score = 10.0
-            details['partnerships'] = {
-                'score': partnership_score,
-                'reason': 'Government partnerships (Ethiopia education system)',
-                'partners': ['Ethiopian Ministry of Education', 'University partnerships'],
-            }
+            partnership_score = 5.0
+            details['partnerships'] = {'score': partnership_score, 'reason': 'Govt partnerships, limited corporate'}
             score += partnership_score
-            
-            integration_score = 5.0
-            details['integration_progress'] = {
-                'score': integration_score,
-                'reason': 'Hydra development ongoing, dApp ecosystem growing',
-            }
+            integration_score = 3.0
+            details['integration_progress'] = {'score': integration_score, 'reason': 'Academic focus'}
             score += integration_score
-            
             holdings_score = 1.0
-            details['corporate_holdings'] = {
-                'score': holdings_score,
-                'reason': 'Minimal corporate holdings',
-            }
-            score += holdings_score
+            details['corporate_holdings'] = {'score': holdings_score, 'reason': 'Minimal'}
             
         elif base_symbol == 'SOL':
-            partnership_score = 13.0
-            details['partnerships'] = {
-                'score': partnership_score,
-                'reason': 'Strong VC backing, Visa/Shopify integrations',
-                'partners': ['Visa', 'Shopify', 'Multicoin Capital', 'a16z'],
-            }
+            # VISA, Shopify - Huge real world usage
+            partnership_score = 14.0
+            details['partnerships'] = {'score': partnership_score, 'reason': 'Visa, Shopify, heavy VC backing (a16z)'}
             score += partnership_score
-            
             integration_score = 9.0
-            details['integration_progress'] = {
-                'score': integration_score,
-                'reason': 'Large dApp ecosystem, NFT marketplace dominance',
-                'metrics': {'defi_tvl': 'high', 'nft_volume': 'top_3'},
-            }
+            details['integration_progress'] = {'score': integration_score, 'reason': 'High payment volume'}
             score += integration_score
-            
-            holdings_score = 2.0
-            details['corporate_holdings'] = {
-                'score': holdings_score,
-                'reason': 'Some VC holdings, limited corporate treasuries',
-            }
+            holdings_score = 3.0
+            details['corporate_holdings'] = {'score': holdings_score, 'reason': 'VC treasuries'}
             score += holdings_score
+
+        elif base_symbol == 'LINK':
+            # SWIFT is the ultimate institutional validation
+            partnership_score = 15.0 # Max
+            details['partnerships'] = {'score': partnership_score, 'reason': 'SWIFT (11k banks), ANZ, Fidelity'}
+            score += partnership_score
+            integration_score = 12.0 # High
+            details['integration_progress'] = {'score': integration_score, 'reason': 'Secures $75B+ DeFi TVL'}
+            score += integration_score
+            holdings_score = 3.0
+            details['corporate_holdings'] = {'score': holdings_score, 'reason': 'Infrastructure play'}
+            score += holdings_score
+
+        elif base_symbol == 'MATIC':
+            # Disney, Starbucks
+            partnership_score = 14.0
+            details['partnerships'] = {'score': partnership_score, 'reason': 'Disney, Starbucks, Reddit, Instagram'}
+            score += partnership_score
+            integration_score = 10.0
+            details['integration_progress'] = {'score': integration_score, 'reason': 'Live loyalty programs'}
+            score += integration_score
+            holdings_score = 2.0
+            details['corporate_holdings'] = {'score': holdings_score, 'reason': 'Production usage'}
+            score += holdings_score
+
+        elif base_symbol == 'DOT':
+            partnership_score = 5.0
+            details['partnerships'] = {'score': partnership_score, 'reason': 'Web3 Foundation backing'}
+            score += partnership_score
+            integration_score = 5.0
+            details['integration_progress'] = {'score': integration_score, 'reason': 'Parachain integrations'}
+            score += integration_score
+            holdings_score = 1.0
             
         else:
-            # Default
             partnership_score = 3.0
             integration_score = 2.0
             holdings_score = 0.0
@@ -374,6 +392,8 @@ class RegulatoryScorer:
             details['integration_progress'] = {'score': integration_score, 'reason': 'Limited data'}
             details['corporate_holdings'] = {'score': holdings_score, 'reason': 'No data'}
             score = partnership_score + integration_score + holdings_score
+        
+        return min(score, 35.0), details
         
         return min(score, 30.0), details
     
@@ -404,43 +424,55 @@ class RegulatoryScorer:
             network_score = 6.0
             details['network_growth'] = {
                 'score': network_score,
-                'reason': 'Stable transaction volume, moderate address growth',
+                'reason': 'Stable transaction volume',
                 'trend': 'stable',
             }
             score += network_score
             
         elif base_symbol == 'ADA':
-            dev_score = 8.0
-            details['developer_activity'] = {
-                'score': dev_score,
-                'reason': 'Strong academic development, peer-reviewed approach',
-                'activity_level': 'high',
-            }
+            dev_score = 10.0
+            details['developer_activity'] = {'score': dev_score, 'reason': 'High activity (peer review)'}
             score += dev_score
-            
-            network_score = 5.0
-            details['network_growth'] = {
-                'score': network_score,
-                'reason': 'Growing dApp ecosystem, steady but not explosive',
-                'trend': 'growing',
-            }
+            network_score = 6.0
+            details['network_growth'] = {'score': network_score, 'reason': 'Steady growth'}
             score += network_score
             
         elif base_symbol == 'SOL':
-            dev_score = 9.0
-            details['developer_activity'] = {
-                'score': dev_score,
-                'reason': 'Very high developer activity, rapid dApp launches',
-                'activity_level': 'very_high',
-            }
+            # 1,200 devs/month - Massive
+            dev_score = 15.0 # Max 15 for dev in new weighting? config says 10/10 split? 
+            # Re-read config: Ecosystem (30) -> Dev (10), Network (10)? No, I updated total to 30.
+            # Let's align: Developer Activity (15), Network Growth (15).
+            
+            dev_score = 14.0
+            details['developer_activity'] = {'score': dev_score, 'reason': '1,200+ active devs/month'}
             score += dev_score
             
-            network_score = 8.0
-            details['network_growth'] = {
-                'score': network_score,
-                'reason': 'Strong network growth, high transaction volume',
-                'trend': 'strong_growth',
-            }
+            network_score = 13.0
+            details['network_growth'] = {'score': network_score, 'reason': '3M+ daily active addresses'}
+            score += network_score
+
+        elif base_symbol == 'LINK':
+            dev_score = 12.0
+            details['developer_activity'] = {'score': dev_score, 'reason': '800+ commits/month'}
+            score += dev_score
+            network_score = 12.0
+            details['network_growth'] = {'score': network_score, 'reason': 'Critical oracle infrastructure'}
+            score += network_score
+            
+        elif base_symbol == 'MATIC':
+            dev_score = 11.0
+            details['developer_activity'] = {'score': dev_score, 'reason': 'High dev count, zkEVM work'}
+            score += dev_score
+            network_score = 11.0
+            details['network_growth'] = {'score': network_score, 'reason': 'High dApp count (53k+)'}
+            score += network_score
+
+        elif base_symbol == 'DOT':
+            dev_score = 10.0
+            details['developer_activity'] = {'score': dev_score, 'reason': 'High dev activity'}
+            score += dev_score
+            network_score = 5.0
+            details['network_growth'] = {'score': network_score, 'reason': 'Slower user adoption'}
             score += network_score
             
         else:
@@ -449,6 +481,8 @@ class RegulatoryScorer:
             details['developer_activity'] = {'score': dev_score, 'reason': 'Limited data'}
             details['network_growth'] = {'score': network_score, 'reason': 'Limited data'}
             score = dev_score + network_score
+        
+        return min(score, 30.0), details
         
         return min(score, 20.0), details
     

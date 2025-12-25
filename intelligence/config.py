@@ -109,27 +109,27 @@ DATA_SOURCES = {
 # ==========================================
 
 REGULATORY_WEIGHTS = {
-    'regulatory_progress': 40,      # /40 points
-    'institutional_adoption': 30,   # /30 points
-    'ecosystem_development': 20,    # /20 points
-    'market_position': 10,          # /10 points
+    'regulatory_progress': 25,      # /25 points (Decreased from 40 - crisis/binary factor)
+    'institutional_adoption': 35,   # /35 points (Increased from 30 - actual usage/revenue)
+    'ecosystem_development': 30,    # /30 points (Increased from 20 - leading indicator)
+    'market_position': 10,          # /10 points (Unchanged - timing tool)
 }
 
-# Breakdown of Regulatory Progress (40 points)
+# Breakdown of Regulatory Progress (25 points)
 REGULATORY_BREAKDOWN = {
     'legal_status': 15,       # SEC clarity, compliance, lawsuit resolution
     'etf_status': 15,         # ETF approvals, inflow trends
     'global_regulation': 10,  # Regulatory approval in major jurisdictions
 }
 
-# Breakdown of Institutional Adoption (30 points)
+# Breakdown of Institutional Adoption (35 points)
 INSTITUTIONAL_BREAKDOWN = {
     'partnerships': 15,       # Major banks, payment processors
     'integration_progress': 10,  # Actual usage, deployed systems
     'corporate_holdings': 5,  # Companies holding on balance sheet
 }
 
-# Breakdown of Ecosystem Development (20 points)
+# Breakdown of Ecosystem Development (30 points)
 ECOSYSTEM_BREAKDOWN = {
     'developer_activity': 10,  # GitHub commits, upgrades, dApps
     'network_growth': 10,      # Transaction volume, active addresses
