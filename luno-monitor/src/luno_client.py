@@ -304,6 +304,18 @@ class LunoClient:
         except:
             sell_fee = config.ESTIMATED_TAKER_FEE
         
+        # FIX: If avg_buy_price is 0 or invalid, use current market price as fallback
+        # This prevents "Target Price: RM 0.00" alerts when transaction history is unavailable
+        if avg_buy_price <= 0.001:  # Essentially zero or invalid
+            try:
+                ticker = self.get_ticker(pair)
+                avg_buy_price = ticker['last_trade']
+                print(f\"Warning: Using current price as fallback for {coin} target calculation (no buy history found)\")
+            except:
+                # If we can't get current price either, return empty targets
+                print(f\"Error: Cannot calculate targets for {coin} - no buy price or current price available\")
+                return {}
+        
         targets = {}
         for profit_pct in config.PROFIT_TARGETS:
             # Calculate price needed to achieve target profit after fees
