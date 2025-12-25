@@ -1,28 +1,94 @@
 # VPS Configuration
 # ===================
 # This file stores critical VPS deployment information
+# Last Updated: 2025-12-25 (v2025.12.25 - Christmas Edition)
 
 VPS_PATH="/Antigravity/antigravity/scratch/crypto_trading_bot"
-VPS_HOST="72.60.40.29"  # Updated VPS IP
+VPS_HOST="72.60.40.29"
 VPS_USER="root"
+VPS_ALIAS="srv1010193"
 
-# Quick Reference Commands
-# ------------------------
+# Current Deployment Status
+# -------------------------
+VERSION="2025.12.25"
+MODE="PAPER"
+EXCHANGE="MEXC"
+DATABASE="trades_v3_paper.db"
+
+# Bot Portfolio Allocation (Clean Slate - Dec 25, 2025)
+# -----------------------------------------------------
+# Grid Bots:      $6,000 (43%) - SCALED UP (from $2K)
+# SMA Trend:      $4,000 (29%)
+# Buy-the-Dip:    $3,000 (21%) - CLEAN SLATE with refined params
+# Momentum Swing: $1,000 (7%)  - NEW strategy
+# Hidden Gem:     $1,800 (preserved)
+# Total Portfolio: ~$16,000
+
+# Quick Reference Commands (PM2)
+# -------------------------------
 
 # SSH to VPS:
-# ssh root@srv1010193
+ssh root@srv1010193
 
 # Navigate to bot:
-# cd /Antigravity/antigravity/scratch/crypto_trading_bot
-
-# Restart bot:
-# pkill -f run_bot.py && nohup python3 run_bot.py > bot.log 2>&1 &
+cd /Antigravity/antigravity/scratch/crypto_trading_bot
 
 # Check bot status:
-# ps aux | grep run_bot.py
+pm2 list
 
-# View logs:
-# tail -f /Antigravity/antigravity/scratch/crypto_trading_bot/bot.log
+# Restart bot:
+pm2 restart crypto-bot
 
-# Check dashboard:
-# http://srv1010193:8501
+# Restart dashboard:
+pm2 restart dashboard
+
+# View logs (live):
+pm2 logs crypto-bot
+
+# View last 50 lines:
+pm2 logs crypto-bot --lines 50
+
+# Stop bot:
+pm2 stop crypto-bot
+
+# Start bot:
+pm2 start crypto-bot
+
+# Daily Performance Check:
+python3 daily_bot_check.py
+
+# Git Operations
+# --------------
+
+# Pull latest code:
+git pull origin main
+
+# Check current version:
+head -20 run_bot.py | grep VERSION
+
+# Verify clean slate reset:
+python3 daily_bot_check.py
+
+# Dashboard Access
+# ----------------
+# URL: http://srv1010193:8501
+# Password: admin123 (or DASHBOARD_PASSWORD env var)
+
+# Backups Location
+# ----------------
+# Database backups: ./backups/
+# Latest backup: trades_v3_paper_BEFORE_RESET_20251225_004203.db
+
+# Emergency Rollback
+# ------------------
+# 1. Stop bot: pm2 stop crypto-bot
+# 2. Restore backup: cp backups/[latest].db data/trades_v3_paper.db
+# 3. Rollback code: git reset --hard HEAD~1
+# 4. Restart: pm2 restart crypto-bot
+
+# Monitoring & Maintenance
+# -------------------------
+# Run daily: python3 daily_bot_check.py
+# Check weekly: Review Grid Bot performance
+# Update monthly: Evaluate strategy performance, adjust parameters
+

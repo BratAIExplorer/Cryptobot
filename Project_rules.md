@@ -2,15 +2,18 @@
 
 **Project Name:** Lumina
 **Codename:** Antigravity
-**Version:** 3.0 - MEXC Migration Edition
-**Exchange:** MEXC Global (migrating from Binance)
+**Version:** 2025.12.25 (Christmas Edition - Clean Slate)
+**Exchange:** MEXC Global
 **Source of Truth:** This document governs all development, product decisions, and AI-generated code.
 
-**CRITICAL MIGRATION STATUS (Dec 14, 2025):**
-- 🔴 **Binance:** STOPPED & ARCHIVED (backup complete)
-- 🟢 **MEXC:** PRIMARY TARGET (12-month backtest in progress)
-- 📊 **Phase:** Backtest & Optimization (Week 1-4)
-- 🎯 **Goal:** Deploy 2-3 proven strategies to MEXC live by Week 6-8
+**CURRENT DEPLOYMENT STATUS (Dec 25, 2025):**
+- 🟢 **MEXC:** PRIMARY EXCHANGE (Paper Mode)
+- ✅ **Version:** v2025.12.25 deployed to VPS
+- 📊 **Phase:** Clean Slate Testing with Refined Parameters
+- 🎯 **Strategy:** Grid Bots scaled to $6K, Buy-the-Dip reset with new params
+- 💰 **Portfolio:** $16K allocated across 6 strategies
+- 📈 **Grid Bots:** Preserved +$9,667 profit from previous testing
+- 🔄 **Testing:** Buy-the-Dip, Momentum Swing, SMA Trend on clean slate
 
 ---
 
