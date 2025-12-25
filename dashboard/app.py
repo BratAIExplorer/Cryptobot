@@ -17,6 +17,7 @@ from dashboard.beginner_helpers import (
     get_traffic_light, get_signal_assessment, get_signal_breakdown, translate_term,
     simplify_percentage, format_dollar_amount, get_regime_indicator
 )
+from intelligence.master_decision import MasterDecisionEngine
 
 st.set_page_config(page_title="Crypto Bot Dashboard", layout="wide", page_icon="🤖")
 
@@ -295,7 +296,7 @@ st.markdown("---")
 st.markdown("---")
 
 # Tabs
-tab1, tab2, tab3, tab4, tab5 = st.tabs(["📈 Open Positions", "🔍 Confluence V2", "📜 Trade History", "📊 Market Overview", "🔭 Watchlist Review"])
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["📈 Open Positions", "🔍 Confluence V2", "📜 Trade History", "📊 Market Overview", "🔭 Watchlist Review", "🧠 Intelligence"])
 
 with tab1:
     if beginner_mode:
@@ -770,6 +771,73 @@ if not trades.empty:
         st.info("No closed positions yet to analyze performance.")
 else:
     st.info("Waiting for trade data...")
+
+with tab6:
+    st.subheader("🧠 Multi-Asset Intelligence")
+    st.info("Routes assets to either 'Confluence V2' (Technical) or 'Regulatory Scorer' (Fundamental).")
+    
+    # Initialize Engine
+    engine = MasterDecisionEngine()
+
+    col1, col2 = st.columns([1, 1])
+
+    with col1:
+        st.subheader("🏛️ Regulatory Assets")
+        st.caption("Driven by: SEC status, ETF flows, Partnerships")
+        
+        regulatory_assets = ['XRP/USDT', 'ADA/USDT', 'SOL/USDT', 'MATIC/USDT', 'LINK/USDT', 'DOT/USDT']
+        
+        for symbol in regulatory_assets:
+            result = engine.get_signal(symbol)
+            
+            with st.expander(f"{symbol} - {result['recommendation']}", expanded=(symbol == 'XRP/USDT')):
+                # Score Gauge
+                score = result.get('total_score', 0)
+                
+                # Determine color
+                delta_color = "normal" if result['recommendation'] in ['BUY', 'STRONG_BUY'] else "inverse"
+                st.metric("Total Score", f"{score}/100", delta=result['recommendation'], delta_color=delta_color)
+                
+                if 'breakdown' in result:
+                     bd = result['breakdown']
+                     st.write("**Score Components:**")
+                     st.progress(bd['regulatory'] / 40, text=f"Regulatory: {bd['regulatory']}/40")
+                     st.progress(bd['institutional'] / 30, text=f"Institutional: {bd['institutional']}/30")
+                     st.progress(bd['ecosystem'] / 20, text=f"Ecosystem: {bd['ecosystem']}/20")
+                     st.progress(bd['market'] / 10, text=f"Market: {bd['market']}/10")
+
+    with col2:
+        st.subheader("🧪 Technical Assets")
+        st.caption("Driven by: RSI, MA Crossovers, Volume")
+        
+        technical_assets = ['BTC/USDT', 'ETH/USDT', 'DOGE/USDT', 'LTC/USDT', 'BCH/USDT']
+        
+        for symbol in technical_assets:
+            with st.expander(f"{symbol}", expanded=False):
+                st.info("Routed to: **Confluence V2 (Technical)**")
+                st.write("Scoring Criteria:")
+                st.markdown("- **Technical (30pts):** RSI, MACD")
+                st.markdown("- **Trend (30pts):** SMA200, BTC Correlation")
+                st.markdown("- **Volume (20pts):** Spike Detection")
+                st.markdown("- **Sentiment (20pts):** CryptoPanic News")
+                
+                st.warning("To see live technical scores, use the 'Confluence V2' tab.")
+
+    st.markdown("---")
+    st.subheader("🔍 Asset Scorer Comparison Utility")
+
+    selected_asset = st.text_input("Enter Asset Symbol (e.g. XRP/USDT)", "XRP/USDT")
+
+    if st.button("Analyze Asset"):
+        with st.spinner(f"Analyzing {selected_asset}..."):
+            result = engine.get_signal(selected_asset)
+            
+            c1, c2, c3 = st.columns(3)
+            c1.metric("Classification", result['classification'])
+            c2.metric("Used Scorer", result['scorer'])
+            c3.metric("Final Score", f"{result['total_score']}/100")
+            
+            st.json(result)
 
 # Auto-refresh
 st.sidebar.markdown("---")
