@@ -13,6 +13,10 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from core.logger import TradeLogger
 from dashboard.components import plot_candle_chart, strategy_config_ui
 from core.exchange import ExchangeInterface
+from dashboard.beginner_helpers import (
+    get_traffic_light, get_signal_assessment, get_signal_breakdown, translate_term,
+    simplify_percentage, format_dollar_amount, get_regime_indicator
+)
 
 st.set_page_config(page_title="Crypto Bot Dashboard", layout="wide", page_icon="🤖")
 
@@ -59,6 +63,27 @@ def check_password():
 
 # --- ENVIRONMENT SELECTOR ---
 st.sidebar.title("⚙️ Settings")
+
+# BEGINNER MODE TOGGLE (Default: ON)
+if 'beginner_mode' not in st.session_state:
+    st.session_state['beginner_mode'] = True
+
+beginner_mode = st.sidebar.toggle(
+    "🎓 Beginner Mode (Simple Language)",
+    value=st.session_state['beginner_mode'],
+    help="Shows simple explanations and clear recommendations instead of technical jargon"
+)
+st.session_state['beginner_mode'] = beginner_mode
+
+if beginner_mode:
+    st.sidebar.success("✅ Simple Mode Active")
+    st.sidebar.caption("Technical terms are translated to plain English")
+else:
+    st.sidebar.info("📊 Technical Mode Active")
+    st.sidebar.caption("Showing advanced metrics")
+
+st.sidebar.markdown("---")
+
 env_mode = st.sidebar.radio("Environment", ["Paper Trading", "LIVE TRADING"], index=0)
 mode_slug = 'live' if env_mode == "LIVE TRADING" else 'paper'
 
@@ -91,29 +116,37 @@ try:
             'CRISIS': '#8B0000'
         }
         
-        st.sidebar.markdown("### 🧭 Risk Meter")
-        fig_risk = go.Figure(go.Indicator(
-            mode = "gauge+number",
-            value = risk_multiplier * 100,
-            domain = {'x': [0, 1], 'y': [0, 1]},
-            title = {'text': f"Market Regime: {state}", 'font': {'size': 16}},
-            gauge = {
-                'axis': {'range': [0, 125], 'tickwidth': 1},
-                'bar': {'color': regime_colors.get(state, "gray")},
-                'steps': [
-                    {'range': [0, 25], 'color': "rgba(255, 69, 0, 0.3)"},
-                    {'range': [25, 75], 'color': "rgba(255, 165, 0, 0.3)"},
-                    {'range': [75, 125], 'color': "rgba(0, 255, 0, 0.3)"}
-                ],
-                'threshold': {
-                    'line': {'color': "white", 'width': 4},
-                    'thickness': 0.75,
-                    'value': risk_multiplier * 100
+        if beginner_mode:
+            # Simple market mood display
+            emoji, description, explanation = get_regime_indicator(state)
+            st.sidebar.markdown(f"### {emoji} Market Mood")
+            st.sidebar.info(f"**{description}**")
+            st.sidebar.caption(explanation)
+        else:
+            # Technical risk meter
+            st.sidebar.markdown("### 🧭 Risk Meter")
+            fig_risk = go.Figure(go.Indicator(
+                mode = "gauge+number",
+                value = risk_multiplier * 100,
+                domain = {'x': [0, 1], 'y': [0, 1]},
+                title = {'text': f"Market Regime: {state}", 'font': {'size': 16}},
+                gauge = {
+                    'axis': {'range': [0, 125], 'tickwidth': 1},
+                    'bar': {'color': regime_colors.get(state, "gray")},
+                    'steps': [
+                        {'range': [0, 25], 'color': "rgba(255, 69, 0, 0.3)"},
+                        {'range': [25, 75], 'color': "rgba(255, 165, 0, 0.3)"},
+                        {'range': [75, 125], 'color': "rgba(0, 255, 0, 0.3)"}
+                    ],
+                    'threshold': {
+                        'line': {'color': "white", 'width': 4},
+                        'thickness': 0.75,
+                        'value': risk_multiplier * 100
+                    }
                 }
-            }
-        ))
-        fig_risk.update_layout(height=180, margin=dict(l=10, r=10, t=30, b=10))
-        st.sidebar.plotly_chart(fig_risk, use_container_width=True)
+            ))
+            fig_risk.update_layout(height=180, margin=dict(l=10, r=10, t=30, b=10))
+            st.sidebar.plotly_chart(fig_risk, use_container_width=True)
 except Exception as e:
     st.sidebar.info("Regime monitoring inactive...")
 
@@ -265,7 +298,11 @@ st.markdown("---")
 tab1, tab2, tab3, tab4, tab5 = st.tabs(["📈 Open Positions", "🔍 Confluence V2", "📜 Trade History", "📊 Market Overview", "🔭 Watchlist Review"])
 
 with tab1:
-    st.subheader("Open Positions (FIFO)")
+    if beginner_mode:
+        st.subheader("💰 Your Coins (What You Own)")
+        st.info("💡 **What is this?** These are the coins you currently own. The bot will automatically sell them when the price reaches your profit target!")
+    else:
+        st.subheader("Open Positions (FIFO)")
     
     open_positions = logger.get_open_positions()
     
@@ -288,28 +325,91 @@ with tab1:
             except:
                 pass
         
-        # Display
-        st.dataframe(
-            positions_display[['symbol', 'strategy', 'buy_price', 'current_price', 'amount', 'cost', 'unrealized_pnl', 'unrealized_pnl_pct', 'buy_timestamp']],
-            width='stretch',
-            column_config={
-                "buy_price": st.column_config.NumberColumn("Buy Price", format="$%.4f"),
-                "current_price": st.column_config.NumberColumn("Current Price", format="$%.4f"),
-                "cost": st.column_config.NumberColumn("Cost", format="$%.2f"),
-                "unrealized_pnl": st.column_config.NumberColumn("Unrealized P&L", format="$%.2f"),
-                "unrealized_pnl_pct": st.column_config.NumberColumn("P&L %", format="%.2f%%"),
-            }
-        )
+        if beginner_mode:
+            # BEGINNER MODE: Show each position as a simple card
+            for idx, pos in positions_display.iterrows():
+                pnl_pct = pos['unrealized_pnl_pct']
+                pnl_usd = pos['unrealized_pnl']
+                
+                # Get signal assessment (not prescriptive command)
+                sig = get_signal_assessment(confluence_score=50, position_pnl_pct=pnl_pct)
+                
+                with st.expander(f"{sig['emoji']} {pos['symbol']} - {sig['simple_status']}", expanded=(abs(pnl_pct) > 5)):
+                    col1, col2 = st.columns([2, 1])
+                    
+                    with col1:
+                        st.markdown(f"### 📊 Position Details")
+                        st.write(f"**You bought at:** {format_dollar_amount(pos['buy_price'])}")
+                        st.write(f"**Price now:** {format_dollar_amount(pos['current_price'])}")
+                        st.write(f"**Amount you own:** {pos['amount']:.4f} {pos['symbol'].split('/')[0]}")
+                        st.write(f"**Total invested:** {format_dollar_amount(pos['cost'])}")
+                        
+                        st.markdown("---")
+                        st.markdown(f"### 💬 What The System Sees")
+                        st.info(sig['what_system_sees'])
+                        
+                        st.markdown("### 🤔 Considerations")
+                        st.caption(sig['considerations'])
+                    
+                    with col2:
+                        st.markdown(f"### {sig['emoji']} Signal Status")
+                        st.markdown(f"**{sig['signal_strength']}**")
+                        
+                        # Show current P&L
+                        if pnl_usd >= 0:
+                            st.success(f"Current: {format_dollar_amount(pnl_usd, show_sign=True)} ({pnl_pct:+.1f}%)")
+                        else:
+                            st.error(f"Current: {format_dollar_amount(pnl_usd)} ({pnl_pct:.1f}%)")
+                        
+                        # Show buy time
+                        st.markdown("---")
+                        st.caption(f"Bought: {pos['buy_timestamp']}")
+                        st.caption(f"Strategy: {pos['strategy']}")
+        else:
+            # TECHNICAL MODE: Show table
+            st.dataframe(
+                positions_display[['symbol', 'strategy', 'buy_price', 'current_price', 'amount', 'cost', 'unrealized_pnl', 'unrealized_pnl_pct', 'buy_timestamp']],
+                width='stretch',
+                column_config={
+                    "buy_price": st.column_config.NumberColumn("Buy Price", format="$%.4f"),
+                    "current_price": st.column_config.NumberColumn("Current Price", format="$%.4f"),
+                    "cost": st.column_config.NumberColumn("Cost", format="$%.2f"),
+                    "unrealized_pnl": st.column_config.NumberColumn("Unrealized P&L", format="$%.2f"),
+                    "unrealized_pnl_pct": st.column_config.NumberColumn("P&L %", format="%.2f%%"),
+                }
+            )
         
         # Summary
         total_cost = positions_display['cost'].sum()
         total_unrealized = positions_display['unrealized_pnl'].sum()
-        st.metric("Total Unrealized P&L", f"${total_unrealized:.2f}", delta=f"{(total_unrealized/total_cost)*100:.2f}%")
+        
+        if beginner_mode:
+            st.markdown("---")
+            st.markdown("### 📊 Total Summary")
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Total Invested", format_dollar_amount(total_cost))
+            with col2:
+                profit_color = "normal" if total_unrealized >= 0 else "inverse"
+                st.metric("Total Profit/Loss", format_dollar_amount(total_unrealized, show_sign=True), 
+                         delta=f"{(total_unrealized/total_cost)*100:.2f}%", delta_color=profit_color)
+            with col3:
+                current_value = total_cost + total_unrealized
+                st.metric("Current Value", format_dollar_amount(current_value))
+        else:
+            st.metric("Total Unrealized P&L", f"${total_unrealized:.2f}", delta=f"{(total_unrealized/total_cost)*100:.2f}%")
     else:
-        st.info("No open positions. The bot will buy when conditions are met.")
+        if beginner_mode:
+            st.info("🛒 You don't own any coins yet. The bot will buy when it finds good opportunities!")
+        else:
+            st.info("No open positions. The bot will buy when conditions are met.")
 
 with tab2:
-    st.subheader("Confluence Engine V2 Monitoring")
+    if beginner_mode:
+        st.subheader("🎯 Safety Scores (Is It Safe to Buy?)")
+        st.info("💡 **What is this?** The Safety Score tells you how safe it is to buy a coin right now. Higher scores = safer buys!")
+    else:
+        st.subheader("Confluence Engine V2 Monitoring")
     
     # Get all available symbols from history
     session = logger.db.get_session()
@@ -331,35 +431,52 @@ with tab2:
         col1, col2 = st.columns([1, 2])
         
         with col1:
-             # Gauge for current score
+            # Gauge for current score
             score_val = latest_score['total_score']
             v1_score = latest_score.get('v1_score', score_val) # Fallback if missing
             
-            fig_score = go.Figure(go.Indicator(
-                mode = "gauge+number+delta",
-                value = score_val,
-                delta = {'reference': v1_score, 'relative': False, 'increasing': {'color': "green"}},
-                title = {'text': f"Latest V2 Score: {symbol_to_monitor}", 'font': {'size': 20}},
-                domain = {'x': [0, 1], 'y': [0, 1]},
-                gauge = {
-                    'axis': {'range': [0, 100]},
-                    'bar': {'color': "gold" if score_val > 50 else "gray"},
-                    'steps': [
-                        {'range': [0, 40], 'color': "rgba(255, 0, 0, 0.2)"},
-                        {'range': [40, 60], 'color': "rgba(255, 255, 0, 0.2)"},
-                        {'range': [60, 100], 'color': "rgba(0, 255, 0, 0.2)"}
-                    ]
-                }
-            ))
-            fig_score.update_layout(height=250, margin=dict(l=10, r=10, t=50, b=10))
-            st.plotly_chart(fig_score, use_container_width=True)
+            if beginner_mode:
+                # Simple traffic light display
+                emoji, status, message = get_traffic_light(score_val)
+                st.markdown(f"### {emoji} Safety Score: {score_val}/100")
+                st.success(f"**{status}**")
+                st.info(f"💬 {message}")
+                
+                # Signal assessment (not command)
+                sig = get_signal_assessment(score_val)
+                st.markdown("---")
+                st.markdown(f"### {sig['emoji']} Signal Assessment")
+                st.markdown(f"**{sig['signal_strength']}**")
+                st.caption(f"**What System Sees:** {sig['what_system_sees']}")
+                st.caption(f"**Considerations:** {sig['considerations']}")
+            else:
+                # Technical gauge
+                fig_score = go.Figure(go.Indicator(
+                    mode = "gauge+number+delta",
+                    value = score_val,
+                    delta = {'reference': v1_score, 'relative': False, 'increasing': {'color': "green"}},
+                    title = {'text': f"Latest V2 Score: {symbol_to_monitor}", 'font': {'size': 20}},
+                    domain = {'x': [0, 1], 'y': [0, 1]},
+                    gauge = {
+                        'axis': {'range': [0, 100]},
+                        'bar': {'color': "gold" if score_val > 50 else "gray"},
+                        'steps': [
+                            {'range': [0, 40], 'color': "rgba(255, 0, 0, 0.2)"},
+                            {'range': [40, 60], 'color': "rgba(255, 255, 0, 0.2)"},
+                            {'range': [60, 100], 'color': "rgba(0, 255, 0, 0.2)"}
+                        ]
+                    }
+                ))
+                fig_score.update_layout(height=250, margin=dict(l=10, r=10, t=50, b=10))
+                st.plotly_chart(fig_score, use_container_width=True)
             
             # Show penalty info
-            penalty = latest_score.get('redundancy_penalty', 1.0)
-            if penalty < 1.0:
-                st.warning(f"⚠️ Redundancy Penalty: **{penalty:.2f}x** (Signal Overlap detected)")
-            else:
-                st.success("✅ Signal Independence: 100%")
+            if not beginner_mode:
+                penalty = latest_score.get('redundancy_penalty', 1.0)
+                if penalty < 1.0:
+                    st.warning(f"⚠️ Redundancy Penalty: **{penalty:.2f}x** (Signal Overlap detected)")
+                else:
+                    st.success("✅ Signal Independence: 100%")
 
         with col2:
             st.write("**Score Breakdown**")
