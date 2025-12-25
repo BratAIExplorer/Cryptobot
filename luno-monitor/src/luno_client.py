@@ -310,10 +310,10 @@ class LunoClient:
             try:
                 ticker = self.get_ticker(pair)
                 avg_buy_price = ticker['last_trade']
-                print(f\"Warning: Using current price as fallback for {coin} target calculation (no buy history found)\")
+                print(f"Warning: Using current price as fallback for {coin} target calculation (no buy history found)")
             except:
                 # If we can't get current price either, return empty targets
-                print(f\"Error: Cannot calculate targets for {coin} - no buy price or current price available\")
+                print(f"Error: Cannot calculate targets for {coin} - no buy price or current price available")
                 return {}
         
         targets = {}
