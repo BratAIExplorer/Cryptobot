@@ -236,27 +236,38 @@ class TradeLogger:
             return pd.DataFrame(columns=['id', 'timestamp', 'strategy', 'symbol', 'side', 'price', 'amount', 'cost'])
 
     def get_pnl_summary(self, strategy=None):
-        """Calculate total Realized P&L"""
-        # In V3, we sum the 'unrealized_pnl_usd' of CLOSED positions? 
-        # Or better, we define realized PnL as sum of profit from closed positions.
-        # But wait, my V3 model removed explicit 'profit' column in favor of pnl fields.
-        # I'll use the trades table or position pnl column.
-        session = self.db.get_session()
+        """Calculate total Realized P&L from actual trades
+        
+        This is the CORRECT way to calculate P&L:
+        Total P&L = SUM(SELL trades) - SUM(BUY trades)
+        
+        The previous implementation used unrealized_pnl_usd from positions table,
+        which was unreliable and showed incorrect values in the dashboard.
+        """
         try:
-            # Sum pnl of closed positions
-            query = session.query(Position).filter(Position.status == 'CLOSED')
-            if strategy:
-                query = query.filter(Position.strategy == strategy)
+            # Build query to sum trade values by side
+            query = "SELECT side, SUM(cost) as total FROM trades WHERE 1=1"
             
-            # Assuming unrealized_pnl_usd holds the final profit for closed positions
-            closed_positions = query.all()
-            total = sum((p.unrealized_pnl_usd or 0.0) for p in closed_positions)
-            return total
+            if strategy:
+                # Use parameterized query to prevent SQL injection
+                query += f" AND strategy = '{strategy}'"
+            
+            query += " GROUP BY side"
+            
+            df = pd.read_sql_query(query, self.db.engine)
+            
+            if df.empty:
+                return 0.0
+            
+            # Calculate: Total SELL value - Total BUY value
+            total_sells = df[df['side'] == 'SELL']['total'].sum() if 'SELL' in df['side'].values else 0.0
+            total_buys = df[df['side'] == 'BUY']['total'].sum() if 'BUY' in df['side'].values else 0.0
+            
+            pnl = total_sells - total_buys
+            return float(pnl)
         except Exception as e:
-            print(f"[DB] Error calculating PnL: {e}")
+            print(f"[DB] Error calculating PnL from trades: {e}")
             return 0.0
-        finally:
-            session.close()
             
     def get_wallet_balance(self, strategy, initial_balance=0.0):
         # Starting balance - open exposure + realized PnL
