@@ -96,7 +96,7 @@ def check_import_safety():
         
         # Try importing existing bot modules
         from core.engine import TradingEngine
-        from strategies.grid_strategy_v2 import GridStrategy
+        from strategies.grid_strategy_v2 import DynamicGridStrategy
         from utils.confluence_filter import ConfluenceFilter
         print("✅ = Existing bot modules import successfully")
         
