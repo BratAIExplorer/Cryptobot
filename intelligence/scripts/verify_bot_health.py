@@ -19,7 +19,10 @@ import sqlite3
 from datetime import datetime
 
 # Add parent directory to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) 
+# Add project root directory to path (2 levels up from intelligence/scripts)
+# Current file: .../intelligence/scripts/verify_bot_health.py
+# Root needed: .../crypto_trading_bot/
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))) 
 
 BOT_DB_PATH = 'data/trades_v3_paper.db'
 INTELLIGENCE_DB_PATH = 'intelligence.db'

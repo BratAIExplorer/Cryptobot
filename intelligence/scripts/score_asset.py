@@ -14,7 +14,10 @@ import os
 import argparse
 
 # Add parent directory to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Add project root directory to path (2 levels up from intelligence/scripts)
+# Current file: .../intelligence/scripts/score_asset.py
+# Root needed: .../crypto_trading_bot/
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from intelligence.master_decision import MasterDecisionEngine
 from intelligence.asset_classifier import AssetClassifier
