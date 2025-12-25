@@ -52,10 +52,10 @@ with col1:
             if 'breakdown' in result:
                  bd = result['breakdown']
                  st.write("**Score Components:**")
-                 st.progress(bd['regulatory'] / 40, text=f"Regulatory: {bd['regulatory']}/40")
-                 st.progress(bd['institutional'] / 30, text=f"Institutional: {bd['institutional']}/30")
-                 st.progress(bd['ecosystem'] / 20, text=f"Ecosystem: {bd['ecosystem']}/20")
-                 st.progress(bd['market'] / 10, text=f"Market: {bd['market']}/10")
+                 st.progress(min(bd['regulatory'] / 25, 1.0), text=f"Regulatory: {bd['regulatory']}/25")
+                 st.progress(min(bd['institutional'] / 35, 1.0), text=f"Institutional: {bd['institutional']}/35")
+                 st.progress(min(bd['ecosystem'] / 30, 1.0), text=f"Ecosystem: {bd['ecosystem']}/30")
+                 st.progress(min(bd['market'] / 10, 1.0), text=f"Market: {bd['market']}/10")
 
 with col2:
     st.subheader("🧪 Technical Assets (Confluence V2)")

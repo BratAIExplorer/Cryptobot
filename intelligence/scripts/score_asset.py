@@ -46,9 +46,9 @@ def format_score_output(result: dict, verbose: bool = False):
         print("\nScore Breakdown:")
         print("-" * 70)
         breakdown = result['breakdown']
-        print(f"  Regulatory Progress:     {breakdown.get('regulatory', 0):5.1f}/40 pts")
-        print(f"  Institutional Adoption:  {breakdown.get('institutional', 0):5.1f}/30 pts")
-        print(f"  Ecosystem Development:   {breakdown.get('ecosystem', 0):5.1f}/20 pts")
+        print(f"  Regulatory Progress:     {breakdown.get('regulatory', 0):5.1f}/25 pts")
+        print(f"  Institutional Adoption:  {breakdown.get('institutional', 0):5.1f}/35 pts")
+        print(f"  Ecosystem Development:   {breakdown.get('ecosystem', 0):5.1f}/30 pts")
         print(f"  Market Position:         {breakdown.get('market', 0):5.1f}/10 pts")
     
     # Verbose details
@@ -61,7 +61,7 @@ def format_score_output(result: dict, verbose: bool = False):
         
         # Regulatory details
         if 'regulatory' in details:
-            print("\n1. REGULATORY PROGRESS (0-40 pts):")
+            print("\n1. REGULATORY PROGRESS (0-25 pts):")
             print("-" * 70)
             reg = details['regulatory']
             
@@ -81,7 +81,7 @@ def format_score_output(result: dict, verbose: bool = False):
         
         # Institutional details
         if 'institutional' in details:
-            print("\n2. INSTITUTIONAL ADOPTION (0-30 pts):")
+            print("\n2. INSTITUTIONAL ADOPTION (0-35 pts):")
             print("-" * 70)
             inst = details['institutional']
             
@@ -101,7 +101,7 @@ def format_score_output(result: dict, verbose: bool = False):
         
         # Ecosystem details
         if 'ecosystem' in details:
-            print("\n3. ECOSYSTEM DEVELOPMENT (0-20 pts):")
+            print("\n3. ECOSYSTEM DEVELOPMENT (0-30 pts):")
             print("-" * 70)
             eco = details['ecosystem']
             
