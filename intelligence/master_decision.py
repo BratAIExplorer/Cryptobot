@@ -103,8 +103,12 @@ class MasterDecisionEngine:
         # Add classification info
         result['scorer_used'] = 'regulatory'
         result['asset_type'] = classification['type']
+        result['classification'] = classification['type'] # Backward compat alias
         result['classification_reason'] = classification['reason']
+        result['score'] = result['total_score'] # Alias for consistency
         
+        return result
+    
         return result
     
     def _score_technical(self, symbol: str, classification: Dict, market_data: Optional[Dict]) -> Dict:
@@ -114,6 +118,7 @@ class MasterDecisionEngine:
             return {
                 'symbol': symbol,
                 'score': 0,
+                'total_score': 0,
                 'recommendation': 'ERROR',
                 'scorer_used': 'confluence_v2',
                 'confidence': 'none',
@@ -121,14 +126,14 @@ class MasterDecisionEngine:
             }
         
         # For now, return placeholder (will integrate properly in Phase 4)
-        # This requires fetching OHLCV data from exchange, which we'll do later
-        
         return {
             'symbol': symbol,
             'score': 0,
+            'total_score': 0,  # Standardization
             'recommendation': 'NOT_IMPLEMENTED',
             'scorer_used': 'confluence_v2',
             'asset_type': classification['type'],
+            'classification': classification['type'], # Backward compat alias
             'classification_reason': classification['reason'],
             'note': 'Confluence V2 integration pending (requires OHLCV data fetch)'
         }

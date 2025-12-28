@@ -833,9 +833,10 @@ with tab6:
             result = engine.get_signal(selected_asset)
             
             c1, c2, c3 = st.columns(3)
-            c1.metric("Classification", result['classification'])
-            c2.metric("Used Scorer", result['scorer'])
-            c3.metric("Final Score", f"{result['total_score']}/100")
+            # Use safe get() or standardized keys
+            c1.metric("Classification", result.get('classification', result.get('asset_type', 'Unknown')))
+            c2.metric("Used Scorer", result.get('scorer_used', 'Unknown'))
+            c3.metric("Final Score", f"{result.get('total_score', 0)}/100")
             
             st.json(result)
 
