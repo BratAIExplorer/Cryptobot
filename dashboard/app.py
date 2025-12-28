@@ -801,10 +801,11 @@ with tab6:
                 if 'breakdown' in result:
                      bd = result['breakdown']
                      st.write("**Score Components:**")
-                     st.progress(bd['regulatory'] / 40, text=f"Regulatory: {bd['regulatory']}/40")
-                     st.progress(bd['institutional'] / 30, text=f"Institutional: {bd['institutional']}/30")
-                     st.progress(bd['ecosystem'] / 20, text=f"Ecosystem: {bd['ecosystem']}/20")
-                     st.progress(bd['market'] / 10, text=f"Market: {bd['market']}/10")
+                     # Update denominators to match new weights (Reg 25, Inst 35, Eco 30, Mkt 10) + Safety Clamp
+                     st.progress(min(bd.get('regulatory', 0) / 25, 1.0), text=f"Regulatory: {bd.get('regulatory', 0)}/25")
+                     st.progress(min(bd.get('institutional', 0) / 35, 1.0), text=f"Institutional: {bd.get('institutional', 0)}/35")
+                     st.progress(min(bd.get('ecosystem', 0) / 30, 1.0), text=f"Ecosystem: {bd.get('ecosystem', 0)}/30")
+                     st.progress(min(bd.get('market', 0) / 10, 1.0), text=f"Market: {bd.get('market', 0)}/10")
 
     with col2:
         st.subheader("🧪 Technical Assets")
