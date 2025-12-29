@@ -393,48 +393,84 @@ class RiskManager:
 
     def check_exit_conditions(self, position_data, regime_state: str = None) -> Tuple[str, Optional[str]]:
         """
-        V3+ Institutional Exit Engine
-        - Regime-Aware Trailing Stops
-        - Time-Based Stagnation Exits
-        - Regime Switch Protection (BULL -> CRISIS)
+        V4 Exit Engine - Custom Logic Per Strategy
+        - Buy-the-Dip: Infinite hold until +5% profit (alerts at 60/90/120/200 days)
+        - Other Strategies: Regime-aware stops, stagnation exits, regime protection
         """
         current_price = Decimal(str(position_data['current_price']))
         entry_price = Decimal(str(position_data['entry_price']))
         strategy = position_data.get('strategy', 'Unknown')
         entry_date = position_data.get('entry_date')
-        
+
         # Parse entry_date if string
         if isinstance(entry_date, str):
-            entry_date = datetime.fromisoformat(entry_date)
-            
+            try:
+                entry_date = datetime.fromisoformat(entry_date)
+            except:
+                entry_date = datetime.utcnow()
+
         # 1. Calculate PnL
         pnl_pct = (current_price - entry_price) / entry_price
-        
-        # 2. Regime-Aware Stop Loss (Institutional Adjustment)
+
+        # 2. Calculate position age
+        hours_open = 0
+        days_open = 0
+        if entry_date:
+            hours_open = (datetime.utcnow() - entry_date).total_seconds() / 3600
+            days_open = hours_open / 24
+
+        # ========================================
+        # BUY-THE-DIP INFINITE HOLD STRATEGY
+        # ========================================
+        if strategy == "Buy-the-Dip Strategy":
+            # RULE 1: Auto-sell ONLY at +5% profit (net 4.5% after fees)
+            if pnl_pct >= Decimal("0.05"):
+                return 'SELL', f"✅ Take Profit Reached (+{pnl_pct*100:.2f}%)"
+
+            # RULE 2: Checkpoint Alerts (60, 90, 120, 200 days)
+            checkpoint_days = [60, 90, 120, 200, 300, 365]
+            for checkpoint in checkpoint_days:
+                # Alert within 12 hours of checkpoint
+                if abs(days_open - checkpoint) <= 0.5:
+                    return 'ALERT_CHECKPOINT', (
+                        f"📅 Position Review: Day {days_open:.0f}\n"
+                        f"Current P&L: {pnl_pct*100:+.1f}%\n"
+                        f"Entry: ${entry_price:.6f} | Current: ${current_price:.6f}\n"
+                        f"Target: +5.0% (${entry_price * Decimal('1.05'):.6f})\n"
+                        f"💡 Review position but bot will continue holding until +5%"
+                    )
+
+            # RULE 3: NO Stop Loss - Hold indefinitely
+            # User will manually intervene if needed via dashboard
+            return 'HOLD', None
+
+        # ========================================
+        # STANDARD LOGIC FOR OTHER STRATEGIES
+        # ========================================
+
+        # Regime-Aware Stop Loss (Institutional Adjustment)
         sl_threshold = Decimal("-0.05") # Default -5%
         if regime_state == 'CRISIS':
             sl_threshold = Decimal("-0.02") # Tightest stop in crisis
         elif regime_state in ['BULL_CONFIRMED', 'TRANSITION_BULLISH']:
             sl_threshold = Decimal("-0.10") # Give space in bull runs
-            
-        # 3. Time-Based Stagnation (Exit after 72h no progress)
-        if entry_date:
-            hours_open = (datetime.utcnow() - entry_date).total_seconds() / 3600
-            if hours_open > 72 and pnl_pct < 0.01:
-                return 'SELL', f"Stagnation: Open {hours_open:.1f}h with <1% profit"
 
-        # 4. Regime Switch Veto (Sudden Bull -> Crisis)
-        # This triggers if the position was opened in BULL but market shifted to CRISIS
+        # Time-Based Stagnation (Exit after 72h no progress)
+        if hours_open > 72 and pnl_pct < 0.01:
+            return 'SELL', f"Stagnation: Open {hours_open:.1f}h with <1% profit"
+
+        # Regime Switch Veto (Sudden Bull -> Crisis)
         entry_regime = position_data.get('entry_regime')
         if entry_regime in ['BULL_CONFIRMED', 'TRANSITION_BULLISH'] and regime_state == 'CRISIS':
             if pnl_pct > -0.01: # Only if not already deeply in drawdown
                 return 'SELL', f"Regime Veto: Market shifted to CRISIS state"
 
-        # 5. Take Profit (Automated)
+        # Take Profit (Strategy-Specific)
         tp_target = Decimal("0.03") # Default 3%
         if strategy == "Hyper-Scalper Bot": tp_target = Decimal("0.01")
-        if strategy == "Buy-the-Dip Strategy": tp_target = Decimal("0.05")
-        
+        if strategy == "Grid Bot BTC" or strategy == "Grid Bot ETH": tp_target = Decimal("0.015")
+        if strategy == "SMA Trend Bot": tp_target = Decimal("0.10")
+
         if pnl_pct >= tp_target:
              return 'SELL', f"Take Profit Reached (+{pnl_pct*100:.2f}%)"
              

@@ -669,9 +669,36 @@ class TradingEngine:
                     
                     if action == 'SELL':
                         sell_reason = risk_reason
+                        # Add detailed logging for profit exits
+                        if 'Take Profit' in str(risk_reason):
+                            profit_pct = (current_price - buy_price) / buy_price * 100
+                            print(f"💰 [PROFIT EXIT] {bot['name']} | {symbol}")
+                            print(f"   Entry: ${buy_price:.6f} | Exit: ${current_price:.6f}")
+                            print(f"   Profit: +{profit_pct:.2f}%")
+                            print(f"   Reason: {risk_reason}")
+
                     elif action == 'ALERT_STOP_LOSS':
                         print(f"⚠️  MANUAL DECISION NEEDED: {symbol} hit Stop Loss. Bot is HOLDING. {risk_reason}")
-                    
+
+                    elif action == 'ALERT_CHECKPOINT':
+                        # Handle Buy-the-Dip checkpoint alerts
+                        print(f"📅 [CHECKPOINT] {bot['name']} | {symbol}")
+                        print(f"   {risk_reason}")
+
+                        # Send Telegram notification
+                        if self.notifier:
+                            try:
+                                self.notifier.send_message(
+                                    f"📅 **Position Checkpoint Alert**\n\n"
+                                    f"**Strategy:** {bot['name']}\n"
+                                    f"**Symbol:** {symbol}\n\n"
+                                    f"{risk_reason}\n\n"
+                                    f"👉 Review position in dashboard if needed.\n"
+                                    f"💡 Bot will continue holding until +5% profit target."
+                                )
+                            except Exception as e:
+                                print(f"   (Telegram notification failed: {e})")
+
                     # Priority 1: User Hard Manual Override (Stop Loss Enabled flag)
                     stop_loss_enabled = bot.get('stop_loss_enabled', False)
                     if stop_loss_enabled and current_price <= buy_price * (1 - sl_pct):
