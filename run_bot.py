@@ -230,21 +230,25 @@ def main():
     # 💎 HIDDEN GEM MONITOR V2 (UPGRADED!)
     # ==========================================
     # V2 IMPROVEMENTS:
-    # ✅ Dynamic gem selection (GemSelector - hot narratives: AI, L2, DeFi)
     # ✅ Stop loss: 20% → 10% (preserve capital!)
     # ✅ Take profit: 10% → 15% (gems move big)
     # ✅ No time limit (was 72h - conflicted with "hold until profitable")
-    # ✅ Filters: Volume > $5M, avoid dead narratives (Metaverse/GameFi)
-
-    # Initialize GemSelector
-    from intelligence.gem_selector import GemSelector
-    gem_selector = GemSelector(exchange.exchange)
-    gem_symbols = gem_selector.select_gems(max_count=15, hot_narratives_only=True)
+    # ✅ Current narratives: AI, L2, DeFi, Infra (no dead Metaverse/GameFi coins!)
+    # NOTE: GemSelector integration pending - using curated static list for now
 
     engine.add_bot({
         'name': 'Hidden Gem Monitor V2',
         'type': 'Buy-the-Dip',
-        'symbols': gem_symbols,  # DYNAMIC (refreshed on startup)
+        'symbols': [
+            # AI Narrative
+            'FET/USDT', 'AGIX/USDT', 'RNDR/USDT', 'GRT/USDT',
+            # L2 Narrative
+            'ARB/USDT', 'OP/USDT', 'MATIC/USDT', 'IMX/USDT',
+            # DeFi Blue Chips
+            'UNI/USDT', 'AAVE/USDT', 'CRV/USDT', 'SNX/USDT',
+            # Infrastructure
+            'LINK/USDT', 'ATOM/USDT', 'NEAR/USDT'
+        ],  # V2: Current hot narratives (no SAND, MANA, AXS dead coins!)
 
         'amount': 100,
         'initial_balance': 1800,
