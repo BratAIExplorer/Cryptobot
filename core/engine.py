@@ -762,10 +762,54 @@ class TradingEngine:
                         signal = 'BUY'
 
                 elif strategy_type == 'SMA':
-                    sma_20 = calculate_sma(df['close'], period=20).iloc[-1]
-                    sma_50 = calculate_sma(df['close'], period=50).iloc[-1]
-                    if sma_20 > sma_50:
-                        signal = 'BUY'
+                    # SMA TREND V2: Crossover Detection + ADX Filter
+                    sma_fast_period = bot.get('sma_fast', 20)
+                    sma_slow_period = bot.get('sma_slow', 50)
+
+                    # Calculate SMAs
+                    sma_fast = calculate_sma(df['close'], period=sma_fast_period)
+                    sma_slow = calculate_sma(df['close'], period=sma_slow_period)
+
+                    # Get current and previous values for crossover detection
+                    prev_sma_fast = sma_fast.iloc[-2]
+                    prev_sma_slow = sma_slow.iloc[-2]
+                    curr_sma_fast = sma_fast.iloc[-1]
+                    curr_sma_slow = sma_slow.iloc[-1]
+
+                    # Check for Golden Cross (Fast crosses ABOVE Slow)
+                    use_crossover = bot.get('use_crossover', True)
+
+                    if use_crossover:
+                        # TRUE CROSSOVER: Only buy when SMA fast crosses above SMA slow
+                        is_crossover = (prev_sma_fast <= prev_sma_slow and
+                                       curr_sma_fast > curr_sma_slow)
+                    else:
+                        # LEGACY: Just check if SMA fast > SMA slow
+                        is_crossover = (curr_sma_fast > curr_sma_slow)
+
+                    if is_crossover:
+                        # Additional filter: Price must be above both SMAs (strength confirmation)
+                        price_above_smas = (current_price > curr_sma_fast and
+                                          current_price > curr_sma_slow)
+
+                        if price_above_smas:
+                            # ADX Filter: Only trade strong trends
+                            adx_threshold = bot.get('adx_threshold', 0)  # 0 = disabled
+
+                            if adx_threshold > 0:
+                                from utils.indicators import calculate_adx
+                                adx = calculate_adx(df, period=14).iloc[-1]
+
+                                if adx >= adx_threshold:
+                                    signal = 'BUY'
+                                    print(f"[{bot['name']}] {symbol} Golden Cross + ADX {adx:.1f} > {adx_threshold}")
+                                else:
+                                    # ADX too low - weak trend
+                                    print(f"[{bot['name']}] {symbol} Golden Cross but ADX {adx:.1f} < {adx_threshold} (skip)")
+                            else:
+                                # No ADX filter
+                                signal = 'BUY'
+                                print(f"[{bot['name']}] {symbol} Golden Cross detected")
 
                 elif strategy_type == 'Grid':
                     # Simple Grid/Mean Reversion: Buy if price is 3% below SMA 50
