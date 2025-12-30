@@ -745,27 +745,57 @@ class TradingEngine:
                         signal = 'BUY'
                 
                 elif strategy_type == 'Buy-the-Dip':
-                    # Check for 8% dip (threshold can be adjusted)
-                    dip_threshold = bot.get('dip_threshold', 0.08)
-                    
-                    # Logic: Current Price vs 24h High or SMA
-                    # For performance, we use 24h High as the benchmark for a dip
-                    high_24h = df['high'].max()
-                    current_dip = (high_24h - current_price) / high_24h
-                    
-                    if current_dip >= dip_threshold:
-                        print(f"[{bot['name']}] {symbol} DIP DETECTED: {current_dip*100:.1f}%")
-                        
-                        # Use manual override if this is a watchlist coin
-                        bot_copy = bot.copy()
-                        if symbol in watchlist_symbols_map:
-                            bot_copy['amount'] = watchlist_symbols_map[symbol]
-                            print(f"💰 [WATCHLIST] Using manual allocation: ${bot_copy['amount']} for {symbol}")
+                    # HYBRID V2.0: Regime-Aware Entry Filtering
+                    # Check market regime before buying dips
 
-                        self.execute_trade(bot_copy, symbol, 'BUY', current_price, rsi, reason="BUY_THE_DIP", btc_df_macro=btc_df_macro)
+                    # Get current regime state
+                    regime_state_value = regime_state.value if hasattr(regime_state, 'value') else str(regime_state)
+
+                    # Define top-tier coins for safer buying in bearish conditions
+                    TOP_10_SAFE = ['BTC', 'ETH', 'BNB', 'SOL', 'XRP', 'ADA', 'DOGE', 'AVAX', 'DOT', 'MATIC']
+                    coin_base = symbol.split('/')[0] if '/' in symbol else symbol
+                    is_safe_coin = coin_base in TOP_10_SAFE
+
+                    # REGIME FILTER: Apply different rules based on market conditions
+                    skip_buy = False
+                    skip_reason = None
+
+                    if regime_state_value == 'CRISIS':
+                        # CRISIS: Pause ALL buys (capital preservation)
+                        skip_buy = True
+                        skip_reason = f"⛔ CRISIS Regime: Pausing all buys to preserve capital"
+
+                    elif regime_state_value in ['BEAR_CONFIRMED', 'TRANSITION_BEARISH']:
+                        # BEAR: Only buy top 10 safest coins
+                        if not is_safe_coin:
+                            skip_buy = True
+                            skip_reason = f"⚠️  BEAR Regime: Only buying top 10 coins ({coin_base} not in safe list)"
+
+                    # If regime blocks this buy, log and skip
+                    if skip_buy:
+                        print(f"[{bot['name']}] {symbol} {skip_reason}")
+                        pass  # Skip to next symbol
                     else:
-                        # If no dip, no signal
-                        pass
+                        # Regime allows buying - proceed with dip detection
+                        dip_threshold = bot.get('dip_threshold', 0.08)
+
+                        # Logic: Current Price vs 24h High or SMA
+                        high_24h = df['high'].max()
+                        current_dip = (high_24h - current_price) / high_24h
+
+                        if current_dip >= dip_threshold:
+                            print(f"[{bot['name']}] {symbol} DIP DETECTED: {current_dip*100:.1f}% | Regime: {regime_state_value}")
+
+                            # Use manual override if this is a watchlist coin
+                            bot_copy = bot.copy()
+                            if symbol in watchlist_symbols_map:
+                                bot_copy['amount'] = watchlist_symbols_map[symbol]
+                                print(f"💰 [WATCHLIST] Using manual allocation: ${bot_copy['amount']} for {symbol}")
+
+                            self.execute_trade(bot_copy, symbol, 'BUY', current_price, rsi, reason="BUY_THE_DIP", btc_df_macro=btc_df_macro)
+                        else:
+                            # If no dip, no signal
+                            pass
                 elif strategy_type == 'DIP': # Keep DIP strategy for now, if it's distinct
                     # Buy on 8-15% dips from 24h high
                     recent_high = df['high'].rolling(window=24).max().iloc[-1]

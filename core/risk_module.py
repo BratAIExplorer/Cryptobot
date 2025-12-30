@@ -420,14 +420,94 @@ class RiskManager:
             days_open = hours_open / 24
 
         # ========================================
-        # BUY-THE-DIP INFINITE HOLD STRATEGY
+        # BUY-THE-DIP HYBRID V2.0 STRATEGY
+        # Dynamic Time-Weighted TP + Trailing Stops + Quality Floors
         # ========================================
         if strategy == "Buy-the-Dip Strategy":
-            # RULE 1: Auto-sell ONLY at +5% profit (net 4.5% after fees)
-            if pnl_pct >= Decimal("0.05"):
-                return 'SELL', f"✅ Take Profit Reached (+{pnl_pct*100:.2f}%)"
 
-            # RULE 2: Checkpoint Alerts (60, 90, 120, 200 days)
+            # STEP 1: Determine coin quality tier for catastrophic floor
+            symbol = position_data.get('symbol', '')
+            coin_base = symbol.split('/')[0] if '/' in symbol else symbol
+
+            # Top 10 coins (strongest recovery probability)
+            TOP_10 = ['BTC', 'ETH', 'BNB', 'SOL', 'XRP', 'ADA', 'DOGE', 'AVAX', 'DOT', 'MATIC']
+            # Top 20 coins (moderate risk)
+            TOP_20 = ['LINK', 'UNI', 'LTC', 'BCH', 'ATOM', 'ETC', 'FIL', 'APT', 'ICP', 'NEAR']
+
+            if coin_base in TOP_10:
+                catastrophic_floor = Decimal("-0.70")  # -70% for blue chips
+            elif coin_base in TOP_20:
+                catastrophic_floor = Decimal("-0.50")  # -50% for mid-caps
+            else:
+                catastrophic_floor = Decimal("-0.40")  # -40% for others (higher death risk)
+
+            # STEP 2: Check catastrophic floor (prevents holding dead coins to -99%)
+            if pnl_pct <= catastrophic_floor:
+                return 'SELL', (
+                    f"🚨 Catastrophic Floor Hit ({pnl_pct*100:.1f}%) | "
+                    f"Tier: {'Top 10' if coin_base in TOP_10 else 'Top 20' if coin_base in TOP_20 else 'Other'} | "
+                    f"Preventing total wipeout"
+                )
+
+            # STEP 3: Dynamic TP based on hold time (TIME-WEIGHTED PROFITS!)
+            if days_open < 60:
+                # 0-60 days: Quick wins, fast capital rotation
+                tp_target = Decimal("0.05")  # 5% TP
+                use_trailing = False
+                trailing_pct = None
+
+            elif days_open < 120:
+                # 60-120 days: Reward patience with higher target
+                tp_target = Decimal("0.08")  # 8% TP
+                use_trailing = False
+                trailing_pct = None
+
+            elif days_open < 180:
+                # 120-180 days: Long hold deserves bigger profit + protection
+                tp_target = Decimal("0.12")  # 12% TP
+                use_trailing = True
+                trailing_pct = Decimal("0.08")  # 8% trailing stop
+
+            else:
+                # 180+ days: USER'S THEORY - Big bounces deserve big profits!
+                tp_target = Decimal("0.15")  # 15% TP
+                use_trailing = True
+                trailing_pct = Decimal("0.10")  # 10% trailing stop
+
+            # STEP 4: Check if TP target reached
+            if pnl_pct >= tp_target:
+                return 'SELL', (
+                    f"✅ Take Profit Reached (+{pnl_pct*100:.2f}%) | "
+                    f"Hold: {days_open:.0f} days | "
+                    f"Target: {tp_target*100:.0f}%"
+                )
+
+            # STEP 5: Trailing stop logic (for 120+ day holds)
+            if use_trailing and pnl_pct > 0:
+                # Get position's peak price (stored in metadata)
+                peak_price = position_data.get('peak_price', current_price)
+
+                # Update peak if current price is higher
+                if current_price > peak_price:
+                    peak_price = current_price
+                    # Note: Engine should update position metadata with new peak
+
+                # Calculate trailing stop price
+                trailing_stop_price = peak_price * (Decimal("1") - trailing_pct)
+
+                # Check if trailing stop hit
+                if current_price <= trailing_stop_price:
+                    profit_captured = (current_price - entry_price) / entry_price
+                    return 'SELL', (
+                        f"📉 Trailing Stop Hit (+{profit_captured*100:.2f}%) | "
+                        f"Hold: {days_open:.0f} days | "
+                        f"Peak: ${peak_price:.6f} | Trail: {trailing_pct*100:.0f}%"
+                    )
+
+                # Return metadata to update peak price
+                return 'HOLD', None, {'update_peak': True, 'peak_price': float(peak_price)}
+
+            # STEP 6: Checkpoint Alerts (informational only)
             checkpoint_days = [60, 90, 120, 200, 300, 365]
             for checkpoint in checkpoint_days:
                 # Alert within 12 hours of checkpoint
@@ -436,12 +516,13 @@ class RiskManager:
                         f"📅 Position Review: Day {days_open:.0f}\n"
                         f"Current P&L: {pnl_pct*100:+.1f}%\n"
                         f"Entry: ${entry_price:.6f} | Current: ${current_price:.6f}\n"
-                        f"Target: +5.0% (${entry_price * Decimal('1.05'):.6f})\n"
-                        f"💡 Review position but bot will continue holding until +5%"
+                        f"Current Target: +{tp_target*100:.0f}% "
+                        f"({'+ ' + str(int(trailing_pct*100)) + '% trailing' if use_trailing else ''})\n"
+                        f"Catastrophic Floor: {catastrophic_floor*100:.0f}%\n"
+                        f"💡 Bot using Hybrid v2.0 dynamic strategy"
                     )
 
-            # RULE 3: NO Stop Loss - Hold indefinitely
-            # User will manually intervene if needed via dashboard
+            # STEP 7: Default - HOLD and wait
             return 'HOLD', None
 
         # ========================================
