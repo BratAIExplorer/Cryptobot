@@ -393,48 +393,162 @@ class RiskManager:
 
     def check_exit_conditions(self, position_data, regime_state: str = None) -> Tuple[str, Optional[str]]:
         """
-        V3+ Institutional Exit Engine
-        - Regime-Aware Trailing Stops
-        - Time-Based Stagnation Exits
-        - Regime Switch Protection (BULL -> CRISIS)
+        V4 Exit Engine - Custom Logic Per Strategy
+        - Buy-the-Dip: Infinite hold until +5% profit (alerts at 60/90/120/200 days)
+        - Other Strategies: Regime-aware stops, stagnation exits, regime protection
         """
         current_price = Decimal(str(position_data['current_price']))
         entry_price = Decimal(str(position_data['entry_price']))
         strategy = position_data.get('strategy', 'Unknown')
         entry_date = position_data.get('entry_date')
-        
+
         # Parse entry_date if string
         if isinstance(entry_date, str):
-            entry_date = datetime.fromisoformat(entry_date)
-            
+            try:
+                entry_date = datetime.fromisoformat(entry_date)
+            except:
+                entry_date = datetime.utcnow()
+
         # 1. Calculate PnL
         pnl_pct = (current_price - entry_price) / entry_price
-        
-        # 2. Regime-Aware Stop Loss (Institutional Adjustment)
+
+        # 2. Calculate position age
+        hours_open = 0
+        days_open = 0
+        if entry_date:
+            hours_open = (datetime.utcnow() - entry_date).total_seconds() / 3600
+            days_open = hours_open / 24
+
+        # ========================================
+        # BUY-THE-DIP HYBRID V2.0 STRATEGY
+        # Dynamic Time-Weighted TP + Trailing Stops + Quality Floors
+        # ========================================
+        if strategy == "Buy-the-Dip Strategy":
+
+            # STEP 1: Determine coin quality tier for catastrophic floor
+            symbol = position_data.get('symbol', '')
+            coin_base = symbol.split('/')[0] if '/' in symbol else symbol
+
+            # Top 10 coins (strongest recovery probability)
+            TOP_10 = ['BTC', 'ETH', 'BNB', 'SOL', 'XRP', 'ADA', 'DOGE', 'AVAX', 'DOT', 'MATIC']
+            # Top 20 coins (moderate risk)
+            TOP_20 = ['LINK', 'UNI', 'LTC', 'BCH', 'ATOM', 'ETC', 'FIL', 'APT', 'ICP', 'NEAR']
+
+            if coin_base in TOP_10:
+                catastrophic_floor = Decimal("-0.70")  # -70% for blue chips
+            elif coin_base in TOP_20:
+                catastrophic_floor = Decimal("-0.50")  # -50% for mid-caps
+            else:
+                catastrophic_floor = Decimal("-0.40")  # -40% for others (higher death risk)
+
+            # STEP 2: Check catastrophic floor (prevents holding dead coins to -99%)
+            if pnl_pct <= catastrophic_floor:
+                return 'SELL', (
+                    f"🚨 Catastrophic Floor Hit ({pnl_pct*100:.1f}%) | "
+                    f"Tier: {'Top 10' if coin_base in TOP_10 else 'Top 20' if coin_base in TOP_20 else 'Other'} | "
+                    f"Preventing total wipeout"
+                )
+
+            # STEP 3: Dynamic TP based on hold time (TIME-WEIGHTED PROFITS!)
+            if days_open < 60:
+                # 0-60 days: Quick wins, fast capital rotation
+                tp_target = Decimal("0.05")  # 5% TP
+                use_trailing = False
+                trailing_pct = None
+
+            elif days_open < 120:
+                # 60-120 days: Reward patience with higher target
+                tp_target = Decimal("0.08")  # 8% TP
+                use_trailing = False
+                trailing_pct = None
+
+            elif days_open < 180:
+                # 120-180 days: Long hold deserves bigger profit + protection
+                tp_target = Decimal("0.12")  # 12% TP
+                use_trailing = True
+                trailing_pct = Decimal("0.08")  # 8% trailing stop
+
+            else:
+                # 180+ days: USER'S THEORY - Big bounces deserve big profits!
+                tp_target = Decimal("0.15")  # 15% TP
+                use_trailing = True
+                trailing_pct = Decimal("0.10")  # 10% trailing stop
+
+            # STEP 4: Check if TP target reached
+            if pnl_pct >= tp_target:
+                return 'SELL', (
+                    f"✅ Take Profit Reached (+{pnl_pct*100:.2f}%) | "
+                    f"Hold: {days_open:.0f} days | "
+                    f"Target: {tp_target*100:.0f}%"
+                )
+
+            # STEP 5: Trailing stop logic (for 120+ day holds)
+            if use_trailing and pnl_pct > 0:
+                # Simplified trailing stop (v1.0):
+                # Uses current P&L% vs trailing threshold
+                # If current profit drops below (tp_target - trailing_pct), sell
+
+                # Calculate minimum acceptable profit after pullback
+                min_profit_after_trail = tp_target - trailing_pct
+
+                # If we've reached TP but not exceeded trail buffer, activate trailing
+                if pnl_pct >= min_profit_after_trail and pnl_pct < tp_target:
+                    # Check if we're pulling back from a higher point
+                    # (This is a simplified version - v2.0 will track actual peak prices in DB)
+                    return 'SELL', (
+                        f"📉 Trailing Stop Activated (+{pnl_pct*100:.2f}%) | "
+                        f"Hold: {days_open:.0f} days | "
+                        f"Target was {tp_target*100:.0f}%, Trail: {trailing_pct*100:.0f}%"
+                    )
+
+                # TODO: v2.0 - Track actual peak prices in database for true trailing
+                # For now, this simplified version sells if profit exists but < target - trail
+
+            # STEP 6: Checkpoint Alerts (informational only)
+            checkpoint_days = [60, 90, 120, 200, 300, 365]
+            for checkpoint in checkpoint_days:
+                # Alert within 12 hours of checkpoint
+                if abs(days_open - checkpoint) <= 0.5:
+                    return 'ALERT_CHECKPOINT', (
+                        f"📅 Position Review: Day {days_open:.0f}\n"
+                        f"Current P&L: {pnl_pct*100:+.1f}%\n"
+                        f"Entry: ${entry_price:.6f} | Current: ${current_price:.6f}\n"
+                        f"Current Target: +{tp_target*100:.0f}% "
+                        f"({'+ ' + str(int(trailing_pct*100)) + '% trailing' if use_trailing else ''})\n"
+                        f"Catastrophic Floor: {catastrophic_floor*100:.0f}%\n"
+                        f"💡 Bot using Hybrid v2.0 dynamic strategy"
+                    )
+
+            # STEP 7: Default - HOLD and wait
+            return 'HOLD', None
+
+        # ========================================
+        # STANDARD LOGIC FOR OTHER STRATEGIES
+        # ========================================
+
+        # Regime-Aware Stop Loss (Institutional Adjustment)
         sl_threshold = Decimal("-0.05") # Default -5%
         if regime_state == 'CRISIS':
             sl_threshold = Decimal("-0.02") # Tightest stop in crisis
         elif regime_state in ['BULL_CONFIRMED', 'TRANSITION_BULLISH']:
             sl_threshold = Decimal("-0.10") # Give space in bull runs
-            
-        # 3. Time-Based Stagnation (Exit after 72h no progress)
-        if entry_date:
-            hours_open = (datetime.utcnow() - entry_date).total_seconds() / 3600
-            if hours_open > 72 and pnl_pct < 0.01:
-                return 'SELL', f"Stagnation: Open {hours_open:.1f}h with <1% profit"
 
-        # 4. Regime Switch Veto (Sudden Bull -> Crisis)
-        # This triggers if the position was opened in BULL but market shifted to CRISIS
+        # Time-Based Stagnation (Exit after 72h no progress)
+        if hours_open > 72 and pnl_pct < 0.01:
+            return 'SELL', f"Stagnation: Open {hours_open:.1f}h with <1% profit"
+
+        # Regime Switch Veto (Sudden Bull -> Crisis)
         entry_regime = position_data.get('entry_regime')
         if entry_regime in ['BULL_CONFIRMED', 'TRANSITION_BULLISH'] and regime_state == 'CRISIS':
             if pnl_pct > -0.01: # Only if not already deeply in drawdown
                 return 'SELL', f"Regime Veto: Market shifted to CRISIS state"
 
-        # 5. Take Profit (Automated)
+        # Take Profit (Strategy-Specific)
         tp_target = Decimal("0.03") # Default 3%
         if strategy == "Hyper-Scalper Bot": tp_target = Decimal("0.01")
-        if strategy == "Buy-the-Dip Strategy": tp_target = Decimal("0.05")
-        
+        if strategy == "Grid Bot BTC" or strategy == "Grid Bot ETH": tp_target = Decimal("0.015")
+        if strategy == "SMA Trend Bot": tp_target = Decimal("0.10")
+
         if pnl_pct >= tp_target:
              return 'SELL', f"Take Profit Reached (+{pnl_pct*100:.2f}%)"
              

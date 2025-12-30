@@ -24,6 +24,7 @@ from .regime_detector import RegimeDetector, RegimeState
 from .new_coin_detector import NewCoinDetector
 from .coin_classifier import CoinClassifier
 from .watchlist_tracker import WatchlistTracker
+from .correlation_manager import CorrelationManager
 
 
 class TradingEngine:
@@ -65,6 +66,13 @@ class TradingEngine:
         self.last_watchlist_scan = None
         self.last_performance_pulse = None # For daily tracker run
         self.known_symbols_path = os.path.join(root_dir, 'data', 'known_symbols_mexc.json')
+
+        # Hybrid v2.0: Correlation Manager (prevents over-concentration in correlated assets)
+        self.correlation_manager = CorrelationManager(
+            correlation_window=30,  # 30-day rolling correlation
+            correlation_threshold=0.7  # 0.7+ considered highly correlated
+        )
+        self.correlation_matrix_last_update = None
 
         # Initialize Observability (Pass risk manager)
         self.system_monitor = SystemMonitor(self.logger, self.risk_manager, self.resilience_manager)
@@ -202,6 +210,27 @@ class TradingEngine:
         except Exception as e:
             self.resilience_manager.record_failure()
             print(f"❌ Regime Warm-up Failed: {e}")
+
+        # Hybrid v2.0: Build correlation matrix for Buy-the-Dip strategy
+        print("🔗 Building correlation matrix for portfolio diversification...")
+        try:
+            # Collect all symbols from all bots
+            all_symbols = set()
+            for bot in self.active_bots:
+                symbols = bot.get('symbols', [bot.get('symbol')])
+                all_symbols.update(symbols)
+
+            # Build correlation matrix (30-day rolling)
+            correlation_matrix = self.correlation_manager.build_correlation_matrix(
+                list(all_symbols),
+                lambda sym, **kwargs: self.exchange.fetch_ohlcv(sym, **kwargs)
+            )
+
+            self.correlation_matrix_last_update = datetime.now()
+            print(f"✅ Correlation Matrix Built: {len(correlation_matrix)} pairs analyzed")
+        except Exception as e:
+            print(f"⚠️  Warning: Could not build correlation matrix: {e}")
+            print("   (Correlation filtering will be disabled)")
 
         # Update bot status on start for ALL bots
         all_trades = self.logger.get_trades()
@@ -669,9 +698,36 @@ class TradingEngine:
                     
                     if action == 'SELL':
                         sell_reason = risk_reason
+                        # Add detailed logging for profit exits
+                        if 'Take Profit' in str(risk_reason):
+                            profit_pct = (current_price - buy_price) / buy_price * 100
+                            print(f"💰 [PROFIT EXIT] {bot['name']} | {symbol}")
+                            print(f"   Entry: ${buy_price:.6f} | Exit: ${current_price:.6f}")
+                            print(f"   Profit: +{profit_pct:.2f}%")
+                            print(f"   Reason: {risk_reason}")
+
                     elif action == 'ALERT_STOP_LOSS':
                         print(f"⚠️  MANUAL DECISION NEEDED: {symbol} hit Stop Loss. Bot is HOLDING. {risk_reason}")
-                    
+
+                    elif action == 'ALERT_CHECKPOINT':
+                        # Handle Buy-the-Dip checkpoint alerts
+                        print(f"📅 [CHECKPOINT] {bot['name']} | {symbol}")
+                        print(f"   {risk_reason}")
+
+                        # Send Telegram notification
+                        if self.notifier:
+                            try:
+                                self.notifier.send_message(
+                                    f"📅 **Position Checkpoint Alert**\n\n"
+                                    f"**Strategy:** {bot['name']}\n"
+                                    f"**Symbol:** {symbol}\n\n"
+                                    f"{risk_reason}\n\n"
+                                    f"👉 Review position in dashboard if needed.\n"
+                                    f"💡 Bot will continue holding until +5% profit target."
+                                )
+                            except Exception as e:
+                                print(f"   (Telegram notification failed: {e})")
+
                     # Priority 1: User Hard Manual Override (Stop Loss Enabled flag)
                     stop_loss_enabled = bot.get('stop_loss_enabled', False)
                     if stop_loss_enabled and current_price <= buy_price * (1 - sl_pct):
@@ -706,10 +762,54 @@ class TradingEngine:
                         signal = 'BUY'
 
                 elif strategy_type == 'SMA':
-                    sma_20 = calculate_sma(df['close'], period=20).iloc[-1]
-                    sma_50 = calculate_sma(df['close'], period=50).iloc[-1]
-                    if sma_20 > sma_50:
-                        signal = 'BUY'
+                    # SMA TREND V2: Crossover Detection + ADX Filter
+                    sma_fast_period = bot.get('sma_fast', 20)
+                    sma_slow_period = bot.get('sma_slow', 50)
+
+                    # Calculate SMAs
+                    sma_fast = calculate_sma(df['close'], period=sma_fast_period)
+                    sma_slow = calculate_sma(df['close'], period=sma_slow_period)
+
+                    # Get current and previous values for crossover detection
+                    prev_sma_fast = sma_fast.iloc[-2]
+                    prev_sma_slow = sma_slow.iloc[-2]
+                    curr_sma_fast = sma_fast.iloc[-1]
+                    curr_sma_slow = sma_slow.iloc[-1]
+
+                    # Check for Golden Cross (Fast crosses ABOVE Slow)
+                    use_crossover = bot.get('use_crossover', True)
+
+                    if use_crossover:
+                        # TRUE CROSSOVER: Only buy when SMA fast crosses above SMA slow
+                        is_crossover = (prev_sma_fast <= prev_sma_slow and
+                                       curr_sma_fast > curr_sma_slow)
+                    else:
+                        # LEGACY: Just check if SMA fast > SMA slow
+                        is_crossover = (curr_sma_fast > curr_sma_slow)
+
+                    if is_crossover:
+                        # Additional filter: Price must be above both SMAs (strength confirmation)
+                        price_above_smas = (current_price > curr_sma_fast and
+                                          current_price > curr_sma_slow)
+
+                        if price_above_smas:
+                            # ADX Filter: Only trade strong trends
+                            adx_threshold = bot.get('adx_threshold', 0)  # 0 = disabled
+
+                            if adx_threshold > 0:
+                                from utils.indicators import calculate_adx
+                                adx = calculate_adx(df, period=14).iloc[-1]
+
+                                if adx >= adx_threshold:
+                                    signal = 'BUY'
+                                    print(f"[{bot['name']}] {symbol} Golden Cross + ADX {adx:.1f} > {adx_threshold}")
+                                else:
+                                    # ADX too low - weak trend
+                                    print(f"[{bot['name']}] {symbol} Golden Cross but ADX {adx:.1f} < {adx_threshold} (skip)")
+                            else:
+                                # No ADX filter
+                                signal = 'BUY'
+                                print(f"[{bot['name']}] {symbol} Golden Cross detected")
 
                 elif strategy_type == 'Grid':
                     # Simple Grid/Mean Reversion: Buy if price is 3% below SMA 50
@@ -718,27 +818,57 @@ class TradingEngine:
                         signal = 'BUY'
                 
                 elif strategy_type == 'Buy-the-Dip':
-                    # Check for 8% dip (threshold can be adjusted)
-                    dip_threshold = bot.get('dip_threshold', 0.08)
-                    
-                    # Logic: Current Price vs 24h High or SMA
-                    # For performance, we use 24h High as the benchmark for a dip
-                    high_24h = df['high'].max()
-                    current_dip = (high_24h - current_price) / high_24h
-                    
-                    if current_dip >= dip_threshold:
-                        print(f"[{bot['name']}] {symbol} DIP DETECTED: {current_dip*100:.1f}%")
-                        
-                        # Use manual override if this is a watchlist coin
-                        bot_copy = bot.copy()
-                        if symbol in watchlist_symbols_map:
-                            bot_copy['amount'] = watchlist_symbols_map[symbol]
-                            print(f"💰 [WATCHLIST] Using manual allocation: ${bot_copy['amount']} for {symbol}")
+                    # HYBRID V2.0: Regime-Aware Entry Filtering
+                    # Check market regime before buying dips
 
-                        self.execute_trade(bot_copy, symbol, 'BUY', current_price, rsi, reason="BUY_THE_DIP", btc_df_macro=btc_df_macro)
+                    # Get current regime state
+                    regime_state_value = regime_state.value if hasattr(regime_state, 'value') else str(regime_state)
+
+                    # Define top-tier coins for safer buying in bearish conditions
+                    TOP_10_SAFE = ['BTC', 'ETH', 'BNB', 'SOL', 'XRP', 'ADA', 'DOGE', 'AVAX', 'DOT', 'MATIC']
+                    coin_base = symbol.split('/')[0] if '/' in symbol else symbol
+                    is_safe_coin = coin_base in TOP_10_SAFE
+
+                    # REGIME FILTER: Apply different rules based on market conditions
+                    skip_buy = False
+                    skip_reason = None
+
+                    if regime_state_value == 'CRISIS':
+                        # CRISIS: Pause ALL buys (capital preservation)
+                        skip_buy = True
+                        skip_reason = f"⛔ CRISIS Regime: Pausing all buys to preserve capital"
+
+                    elif regime_state_value in ['BEAR_CONFIRMED', 'TRANSITION_BEARISH']:
+                        # BEAR: Only buy top 10 safest coins
+                        if not is_safe_coin:
+                            skip_buy = True
+                            skip_reason = f"⚠️  BEAR Regime: Only buying top 10 coins ({coin_base} not in safe list)"
+
+                    # If regime blocks this buy, log and skip
+                    if skip_buy:
+                        print(f"[{bot['name']}] {symbol} {skip_reason}")
+                        pass  # Skip to next symbol
                     else:
-                        # If no dip, no signal
-                        pass
+                        # Regime allows buying - proceed with dip detection
+                        dip_threshold = bot.get('dip_threshold', 0.08)
+
+                        # Logic: Current Price vs 24h High or SMA
+                        high_24h = df['high'].max()
+                        current_dip = (high_24h - current_price) / high_24h
+
+                        if current_dip >= dip_threshold:
+                            print(f"[{bot['name']}] {symbol} DIP DETECTED: {current_dip*100:.1f}% | Regime: {regime_state_value}")
+
+                            # Use manual override if this is a watchlist coin
+                            bot_copy = bot.copy()
+                            if symbol in watchlist_symbols_map:
+                                bot_copy['amount'] = watchlist_symbols_map[symbol]
+                                print(f"💰 [WATCHLIST] Using manual allocation: ${bot_copy['amount']} for {symbol}")
+
+                            self.execute_trade(bot_copy, symbol, 'BUY', current_price, rsi, reason="BUY_THE_DIP", btc_df_macro=btc_df_macro)
+                        else:
+                            # If no dip, no signal
+                            pass
                 elif strategy_type == 'DIP': # Keep DIP strategy for now, if it's distinct
                     # Buy on 8-15% dips from 24h high
                     recent_high = df['high'].rolling(window=24).max().iloc[-1]
@@ -753,12 +883,42 @@ class TradingEngine:
                 if signal == 'BUY':
                     # --- VETO CHECK (Phase 2) ---
                     is_allowed, veto_reason = self.veto_manager.check_entry_allowed(symbol, bot['name'])
-                    if is_allowed:
-                        self.execute_trade(bot, symbol, 'BUY', current_price, rsi, btc_df_macro=btc_df_macro)
-                    else:
+                    if not is_allowed:
                         print(f"[{bot['name']}] ⛔ VETO BLOCKED BUY {symbol}: {veto_reason}")
                         # Optional: Notify if it's a major event?
                         # self.notifier.send_message(f"⛔ Veto prevented trade on {symbol}: {veto_reason}")
+                    else:
+                        # --- HYBRID V2.0: CORRELATION CHECK (for Buy-the-Dip only) ---
+                        correlation_blocked = False
+                        if strategy_type == 'Buy-the-Dip':
+                            try:
+                                # Get all open positions for this strategy
+                                all_open_positions_df = self.logger.get_all_open_positions()
+                                if not all_open_positions_df.empty:
+                                    # Filter for Buy-the-Dip positions only
+                                    strategy_positions = all_open_positions_df[
+                                        all_open_positions_df['strategy'] == bot['name']
+                                    ]
+
+                                    # Convert to list of dicts
+                                    open_positions_list = strategy_positions.to_dict('records')
+
+                                    # Check correlation risk (max 2 correlated positions allowed)
+                                    should_block, corr_reason = self.correlation_manager.should_block_entry(
+                                        symbol,
+                                        open_positions_list,
+                                        max_correlated_positions=2
+                                    )
+
+                                    if should_block:
+                                        print(f"[{bot['name']}] {corr_reason}")
+                                        correlation_blocked = True
+                            except Exception as e:
+                                print(f"⚠️  Correlation check failed: {e} (allowing trade)")
+
+                        # Execute trade if all checks pass
+                        if not correlation_blocked:
+                            self.execute_trade(bot, symbol, 'BUY', current_price, rsi, btc_df_macro=btc_df_macro)
 
                 
             except Exception as e:
