@@ -484,28 +484,25 @@ class RiskManager:
 
             # STEP 5: Trailing stop logic (for 120+ day holds)
             if use_trailing and pnl_pct > 0:
-                # Get position's peak price (stored in metadata)
-                peak_price = position_data.get('peak_price', current_price)
+                # Simplified trailing stop (v1.0):
+                # Uses current P&L% vs trailing threshold
+                # If current profit drops below (tp_target - trailing_pct), sell
 
-                # Update peak if current price is higher
-                if current_price > peak_price:
-                    peak_price = current_price
-                    # Note: Engine should update position metadata with new peak
+                # Calculate minimum acceptable profit after pullback
+                min_profit_after_trail = tp_target - trailing_pct
 
-                # Calculate trailing stop price
-                trailing_stop_price = peak_price * (Decimal("1") - trailing_pct)
-
-                # Check if trailing stop hit
-                if current_price <= trailing_stop_price:
-                    profit_captured = (current_price - entry_price) / entry_price
+                # If we've reached TP but not exceeded trail buffer, activate trailing
+                if pnl_pct >= min_profit_after_trail and pnl_pct < tp_target:
+                    # Check if we're pulling back from a higher point
+                    # (This is a simplified version - v2.0 will track actual peak prices in DB)
                     return 'SELL', (
-                        f"📉 Trailing Stop Hit (+{profit_captured*100:.2f}%) | "
+                        f"📉 Trailing Stop Activated (+{pnl_pct*100:.2f}%) | "
                         f"Hold: {days_open:.0f} days | "
-                        f"Peak: ${peak_price:.6f} | Trail: {trailing_pct*100:.0f}%"
+                        f"Target was {tp_target*100:.0f}%, Trail: {trailing_pct*100:.0f}%"
                     )
 
-                # Return metadata to update peak price
-                return 'HOLD', None, {'update_peak': True, 'peak_price': float(peak_price)}
+                # TODO: v2.0 - Track actual peak prices in database for true trailing
+                # For now, this simplified version sells if profit exists but < target - trail
 
             # STEP 6: Checkpoint Alerts (informational only)
             checkpoint_days = [60, 90, 120, 200, 300, 365]

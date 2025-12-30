@@ -24,6 +24,7 @@ from .regime_detector import RegimeDetector, RegimeState
 from .new_coin_detector import NewCoinDetector
 from .coin_classifier import CoinClassifier
 from .watchlist_tracker import WatchlistTracker
+from .correlation_manager import CorrelationManager
 
 
 class TradingEngine:
@@ -65,6 +66,13 @@ class TradingEngine:
         self.last_watchlist_scan = None
         self.last_performance_pulse = None # For daily tracker run
         self.known_symbols_path = os.path.join(root_dir, 'data', 'known_symbols_mexc.json')
+
+        # Hybrid v2.0: Correlation Manager (prevents over-concentration in correlated assets)
+        self.correlation_manager = CorrelationManager(
+            correlation_window=30,  # 30-day rolling correlation
+            correlation_threshold=0.7  # 0.7+ considered highly correlated
+        )
+        self.correlation_matrix_last_update = None
 
         # Initialize Observability (Pass risk manager)
         self.system_monitor = SystemMonitor(self.logger, self.risk_manager, self.resilience_manager)
@@ -202,6 +210,27 @@ class TradingEngine:
         except Exception as e:
             self.resilience_manager.record_failure()
             print(f"❌ Regime Warm-up Failed: {e}")
+
+        # Hybrid v2.0: Build correlation matrix for Buy-the-Dip strategy
+        print("🔗 Building correlation matrix for portfolio diversification...")
+        try:
+            # Collect all symbols from all bots
+            all_symbols = set()
+            for bot in self.active_bots:
+                symbols = bot.get('symbols', [bot.get('symbol')])
+                all_symbols.update(symbols)
+
+            # Build correlation matrix (30-day rolling)
+            correlation_matrix = self.correlation_manager.build_correlation_matrix(
+                list(all_symbols),
+                lambda sym, **kwargs: self.exchange.fetch_ohlcv(sym, **kwargs)
+            )
+
+            self.correlation_matrix_last_update = datetime.now()
+            print(f"✅ Correlation Matrix Built: {len(correlation_matrix)} pairs analyzed")
+        except Exception as e:
+            print(f"⚠️  Warning: Could not build correlation matrix: {e}")
+            print("   (Correlation filtering will be disabled)")
 
         # Update bot status on start for ALL bots
         all_trades = self.logger.get_trades()
@@ -810,12 +839,42 @@ class TradingEngine:
                 if signal == 'BUY':
                     # --- VETO CHECK (Phase 2) ---
                     is_allowed, veto_reason = self.veto_manager.check_entry_allowed(symbol, bot['name'])
-                    if is_allowed:
-                        self.execute_trade(bot, symbol, 'BUY', current_price, rsi, btc_df_macro=btc_df_macro)
-                    else:
+                    if not is_allowed:
                         print(f"[{bot['name']}] ⛔ VETO BLOCKED BUY {symbol}: {veto_reason}")
                         # Optional: Notify if it's a major event?
                         # self.notifier.send_message(f"⛔ Veto prevented trade on {symbol}: {veto_reason}")
+                    else:
+                        # --- HYBRID V2.0: CORRELATION CHECK (for Buy-the-Dip only) ---
+                        correlation_blocked = False
+                        if strategy_type == 'Buy-the-Dip':
+                            try:
+                                # Get all open positions for this strategy
+                                all_open_positions_df = self.logger.get_all_open_positions()
+                                if not all_open_positions_df.empty:
+                                    # Filter for Buy-the-Dip positions only
+                                    strategy_positions = all_open_positions_df[
+                                        all_open_positions_df['strategy'] == bot['name']
+                                    ]
+
+                                    # Convert to list of dicts
+                                    open_positions_list = strategy_positions.to_dict('records')
+
+                                    # Check correlation risk (max 2 correlated positions allowed)
+                                    should_block, corr_reason = self.correlation_manager.should_block_entry(
+                                        symbol,
+                                        open_positions_list,
+                                        max_correlated_positions=2
+                                    )
+
+                                    if should_block:
+                                        print(f"[{bot['name']}] {corr_reason}")
+                                        correlation_blocked = True
+                            except Exception as e:
+                                print(f"⚠️  Correlation check failed: {e} (allowing trade)")
+
+                        # Execute trade if all checks pass
+                        if not correlation_blocked:
+                            self.execute_trade(bot, symbol, 'BUY', current_price, rsi, btc_df_macro=btc_df_macro)
 
                 
             except Exception as e:

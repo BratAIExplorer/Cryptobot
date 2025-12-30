@@ -128,10 +128,10 @@ def main():
     })
     
     # ==========================================
-    # 🔄 PRIORITY 3: BUY-THE-DIP (CLEAN SLATE TEST)
-    # Refined with smart cooldown, trend filters, circuit breakers
+    # 🚀 PRIORITY 3: BUY-THE-DIP (HYBRID V2.0)
+    # Dynamic Time-Weighted TP + Trailing Stops + Quality Floors
     # ==========================================
-    
+
     engine.add_bot({
         'name': 'Buy-the-Dip Strategy',
         'type': 'Buy-the-Dip',
@@ -140,37 +140,47 @@ def main():
             'XRP/USDT', 'DOGE/USDT', 'ADA/USDT', 'TRX/USDT',
             'AVAX/USDT', 'DOT/USDT', 'LINK/USDT', 'UNI/USDT'
         ],
-        
-        # Position Sizing (Start small, scale gradually)
-        'amount': 25,  # START AT $25, scale to $200 if profitable
-        'initial_balance': 3000,  # Reduced from $16K
+
+        # Position Sizing
+        'amount': 25,                 # Start at $25 per position
+        'initial_balance': 3000,
         'max_exposure_per_coin': 200,
-        
-        # Entry/Exit
-        'dip_percentage': 0.05,       # 5% dip threshold
-        'take_profit_pct': 0.06,      # 6% target (net 5.6% after fees)
-        'stop_loss_pct': 0.04,        # -4% hard stop
-        'stop_loss_enabled': True,     # ENABLED (was disabled before!)
-        
-        # Trend Filters (MULTI-TIMEFRAME)
-        'sma_fast': 7,                # 7-day SMA (crypto-speed)
-        'sma_slow': 21,               # 21-day SMA (traditional)
-        'require_above_both': True,    # Must be above BOTH SMAs
-        
-        # Smart Conditional Cooldown
-        'cooldown_after_profit': 6,   # 6 hours if trade was profitable
-        'cooldown_after_loss': 48,    # 48 hours if stopped out
-        'cooldown_same_day': 12,      # 12h minimum between buys
-        'max_positions_per_coin': 2,  # Can scale in once
-        
+
+        # Entry Conditions
+        'dip_percentage': 0.05,       # 5% dip to trigger buy
+        'min_confluence': 65,         # Confluence score threshold
+
+        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        # EXIT STRATEGY: HYBRID V2.0 (risk_module.py)
+        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        # Dynamic TP: 0-60d:5%, 60-120d:8%, 120-180d:12%, 180+d:15%
+        # Trailing: 8-10% for 120+ day holds
+        # Floors: BTC/ETH:-70%, Top20:-50%, Others:-40%
+        # Regime: Pauses in CRISIS, safe coins only in BEAR
+
+        # Legacy params (overridden by Hybrid v2.0)
+        'take_profit_pct': 0.05,      # Base (dynamic in practice)
+        'stop_loss_pct': None,        # No fixed SL
+        'stop_loss_enabled': False,   # Hybrid v2.0 handles exits
+        'max_hold_hours': None,       # Hold until profitable
+
+        # Trend Filters
+        'sma_fast': 7,
+        'sma_slow': 21,
+        'require_above_both': True,
+
+        # Smart Cooldown
+        'cooldown_after_profit': 6,   # 6h after profit
+        'cooldown_after_loss': 0,     # N/A (no auto-loss sells)
+        'cooldown_same_day': 12,      # 12h between buys
+        'max_positions_per_coin': 2,
+
         # Safety Limits
         'max_daily_trades': 3,
-        'max_hold_hours': 1440,       # 60 days (will backtest to optimize)
-        'min_confluence': 65,
-        
+
         # Circuit Breaker
-        'circuit_breaker_daily': -100,
-        'circuit_breaker_weekly': -300
+        'circuit_breaker_daily': -500,
+        'circuit_breaker_weekly': -1000
     })
     
     # ==========================================
