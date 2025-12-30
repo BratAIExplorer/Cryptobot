@@ -245,6 +245,96 @@ class RegimeDetector:
         }
         return multipliers.get(regime, 0.0)
     
+    def detect_coin_crash(self, symbol: str, coin_df: pd.DataFrame, lookback_hours: int = 24) -> Tuple[bool, str, Dict]:
+        """
+        Detect if a specific coin is crashing independently of overall market.
+
+        Args:
+            symbol: Coin symbol (e.g., 'ETH/USDT')
+            coin_df: DataFrame with OHLCV data for the coin (hourly recommended)
+            lookback_hours: Hours to analyze for crash detection
+
+        Returns:
+            Tuple of (is_crashing, crash_reason, crash_metrics)
+
+        Crash Detection Criteria:
+        1. Flash Crash: >10% drop in single hour
+        2. Sustained Crash: >20% drop in 24 hours
+        3. Capitulation: >15% drop + 5x volume spike
+        4. Death Spiral: Lower lows for 6+ consecutive candles with increasing volume
+        """
+        if len(coin_df) < lookback_hours:
+            return False, "", {"error": "Insufficient data"}
+
+        crash_metrics = {}
+        current_price = float(coin_df['close'].iloc[-1])
+
+        # 1. FLASH CRASH DETECTION (>10% in 1 hour)
+        if len(coin_df) >= 2:
+            prev_price = float(coin_df['close'].iloc[-2])
+            hourly_change = ((current_price - prev_price) / prev_price) * 100
+            crash_metrics['hourly_change_pct'] = hourly_change
+
+            if hourly_change < -10:
+                return True, f"Flash Crash: {hourly_change:.1f}% drop in 1 hour", crash_metrics
+
+        # 2. SUSTAINED CRASH DETECTION (>20% in 24 hours)
+        lookback = min(lookback_hours, len(coin_df))
+        peak_24h = float(coin_df['high'].iloc[-lookback:].max())
+        drawdown_24h = ((current_price - peak_24h) / peak_24h) * 100
+        crash_metrics['drawdown_24h_pct'] = drawdown_24h
+
+        if drawdown_24h < -20:
+            return True, f"Sustained Crash: {drawdown_24h:.1f}% from 24h peak", crash_metrics
+
+        # 3. CAPITULATION DETECTION (Price drop + Volume spike)
+        if len(coin_df) >= 24:
+            # Recent volume (last 4 hours)
+            recent_volume = coin_df['volume'].iloc[-4:].mean()
+            # Average volume (previous 20 hours)
+            avg_volume = coin_df['volume'].iloc[-24:-4].mean()
+
+            volume_spike = recent_volume / avg_volume if avg_volume > 0 else 1
+            crash_metrics['volume_spike'] = volume_spike
+
+            # Capitulation: >15% drop + 5x volume
+            if drawdown_24h < -15 and volume_spike > 5:
+                return True, f"Capitulation: {drawdown_24h:.1f}% drop + {volume_spike:.1f}x volume spike", crash_metrics
+
+        # 4. DEATH SPIRAL DETECTION (Consecutive lower lows)
+        if len(coin_df) >= 6:
+            lows = coin_df['low'].iloc[-6:].values
+            volumes = coin_df['volume'].iloc[-6:].values
+
+            # Check if each low is lower than the previous
+            consecutive_lower_lows = all(lows[i] < lows[i-1] for i in range(1, len(lows)))
+
+            # Check if volume is increasing (panic selling)
+            avg_vol_early = volumes[:3].mean()
+            avg_vol_late = volumes[3:].mean()
+            volume_increasing = avg_vol_late > avg_vol_early * 1.5
+
+            crash_metrics['consecutive_lower_lows'] = consecutive_lower_lows
+            crash_metrics['volume_increasing'] = volume_increasing
+
+            if consecutive_lower_lows and volume_increasing:
+                return True, "Death Spiral: 6+ lower lows with increasing volume", crash_metrics
+
+        # 5. RELATIVE CRASH vs BTC (Coin drops but BTC stable)
+        # This catches altcoin-specific crashes
+        if 'btc_change_24h' in crash_metrics:  # If BTC data available
+            btc_change = crash_metrics.get('btc_change_24h', 0)
+            coin_change = drawdown_24h
+
+            # If coin dropped >15% but BTC dropped <5%, it's a coin-specific issue
+            if coin_change < -15 and btc_change > -5:
+                crash_metrics['relative_crash'] = True
+                return True, f"Altcoin-specific crash: {symbol} down {coin_change:.1f}% vs BTC {btc_change:.1f}%", crash_metrics
+
+        # No crash detected
+        crash_metrics['crash_detected'] = False
+        return False, "", crash_metrics
+
     def should_trade(self, regime: RegimeState) -> bool:
         """
         Simple gate: Should we trade at all in this regime?

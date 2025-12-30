@@ -572,7 +572,30 @@ class TradingEngine:
 
                 current_price = df['close'].iloc[-1]
                 rsi = calculate_rsi(df['close']).iloc[-1]
-                
+
+                # --- PER-COIN CRASH DETECTION ---
+                is_crashing, crash_reason, crash_metrics = self.regime_detector.detect_coin_crash(
+                    symbol, df, lookback_hours=24
+                )
+
+                if is_crashing:
+                    # Log crash detection
+                    print(f"⚠️  [{bot['name']}] CRASH DETECTED: {symbol} - {crash_reason}")
+
+                    # Notify via Telegram (throttled to prevent spam)
+                    alert_key = f"crash_{symbol}"
+                    if self.notifier.can_send_throttled_msg(alert_key, hours=4):
+                        self.notifier.send_message(
+                            f"🚨 *COIN CRASH DETECTED*\n\n"
+                            f"Symbol: *{symbol}*\n"
+                            f"Reason: {crash_reason}\n"
+                            f"Metrics: {crash_metrics.get('drawdown_24h_pct', 'N/A'):.1f}% drawdown\n\n"
+                            f"⛔ Trading blocked for this coin for 4 hours"
+                        )
+
+                    # Skip this coin entirely - don't buy or sell during crash
+                    continue
+
                 # --- SPECIAL HANDLING FOR GRID BOT ---
                 if strategy_type == 'Grid':
                     strategy_instance = self.strategies.get(bot['name'])
@@ -885,40 +908,48 @@ class TradingEngine:
                     is_allowed, veto_reason = self.veto_manager.check_entry_allowed(symbol, bot['name'])
                     if not is_allowed:
                         print(f"[{bot['name']}] ⛔ VETO BLOCKED BUY {symbol}: {veto_reason}")
-                        # Optional: Notify if it's a major event?
-                        # self.notifier.send_message(f"⛔ Veto prevented trade on {symbol}: {veto_reason}")
+                        # Notify veto events via Telegram
+                        if self.notifier:
+                            self.notifier.notify_veto_trigger(symbol, veto_reason, "Market/News Veto")
                     else:
-                        # --- HYBRID V2.0: CORRELATION CHECK (for Buy-the-Dip only) ---
-                        correlation_blocked = False
-                        if strategy_type == 'Buy-the-Dip':
-                            try:
-                                # Get all open positions for this strategy
-                                all_open_positions_df = self.logger.get_all_open_positions()
-                                if not all_open_positions_df.empty:
-                                    # Filter for Buy-the-Dip positions only
-                                    strategy_positions = all_open_positions_df[
-                                        all_open_positions_df['strategy'] == bot['name']
-                                    ]
+                        # --- PER-COIN NEWS CHECK ---
+                        coin_news_veto, news_reason = self.veto_manager.check_coin_news(symbol)
+                        if coin_news_veto:
+                            print(f"[{bot['name']}] 📰 NEWS VETO: {symbol} - {news_reason}")
+                            if self.notifier:
+                                self.notifier.notify_veto_trigger(symbol, news_reason, "Negative News")
+                        else:
+                            # --- HYBRID V2.0: CORRELATION CHECK (for Buy-the-Dip only) ---
+                            correlation_blocked = False
+                            if strategy_type == 'Buy-the-Dip':
+                                try:
+                                    # Get all open positions for this strategy
+                                    all_open_positions_df = self.logger.get_all_open_positions()
+                                    if not all_open_positions_df.empty:
+                                        # Filter for Buy-the-Dip positions only
+                                        strategy_positions = all_open_positions_df[
+                                            all_open_positions_df['strategy'] == bot['name']
+                                        ]
 
-                                    # Convert to list of dicts
-                                    open_positions_list = strategy_positions.to_dict('records')
+                                        # Convert to list of dicts
+                                        open_positions_list = strategy_positions.to_dict('records')
 
-                                    # Check correlation risk (max 2 correlated positions allowed)
-                                    should_block, corr_reason = self.correlation_manager.should_block_entry(
-                                        symbol,
-                                        open_positions_list,
-                                        max_correlated_positions=2
-                                    )
+                                        # Check correlation risk (max 2 correlated positions allowed)
+                                        should_block, corr_reason = self.correlation_manager.should_block_entry(
+                                            symbol,
+                                            open_positions_list,
+                                            max_correlated_positions=2
+                                        )
 
-                                    if should_block:
-                                        print(f"[{bot['name']}] {corr_reason}")
-                                        correlation_blocked = True
-                            except Exception as e:
-                                print(f"⚠️  Correlation check failed: {e} (allowing trade)")
+                                        if should_block:
+                                            print(f"[{bot['name']}] {corr_reason}")
+                                            correlation_blocked = True
+                                except Exception as e:
+                                    print(f"⚠️  Correlation check failed: {e} (allowing trade)")
 
-                        # Execute trade if all checks pass
-                        if not correlation_blocked:
-                            self.execute_trade(bot, symbol, 'BUY', current_price, rsi, btc_df_macro=btc_df_macro)
+                            # Execute trade if all checks pass
+                            if not correlation_blocked:
+                                self.execute_trade(bot, symbol, 'BUY', current_price, rsi, btc_df_macro=btc_df_macro)
 
                 
             except Exception as e:
@@ -1152,9 +1183,35 @@ class TradingEngine:
                 self.logger.log_trade(bot['name'], symbol, side, price, amount, expected_price=price, fee=fee, rsi=rsi, 
                                     position_id=position_id, engine_version='2.0', strategy_version=strategy_version)
                 
-                # Send Notification
-                profit_str = f"Profit: ${profit:.2f}"
-                self.notifier.notify_trade(symbol, side, price, amount, reason=profit_str)
+                # Send Specific Notification based on exit reason
+                buy_price = position['buy_price']
+                profit_pct = (profit / position['cost']) * 100 if position['cost'] > 0 else 0
+
+                # Determine notification type based on reason
+                if reason and 'SL' in reason.upper():
+                    # Stop Loss Hit
+                    self.notifier.alert_stop_loss_hit(
+                        symbol, bot['name'], buy_price, price,
+                        abs(profit), abs(profit_pct)
+                    )
+                elif reason and 'Take Profit' in reason:
+                    # Take Profit Hit
+                    self.notifier.alert_take_profit_hit(
+                        symbol, bot['name'], buy_price, price,
+                        profit, profit_pct
+                    )
+                elif reason and 'Trailing' in reason:
+                    # Trailing Stop Hit (extract peak if available)
+                    peak_pct = position.get('peak_profit_pct', profit_pct)
+                    self.notifier.alert_trailing_stop_hit(
+                        symbol, bot['name'], buy_price, price,
+                        profit, profit_pct, peak_pct
+                    )
+                else:
+                    # Generic trade notification
+                    profit_str = f"Profit: ${profit:.2f} ({profit_pct:+.2f}%)"
+                    reason_str = f"{reason} - {profit_str}" if reason else profit_str
+                    self.notifier.notify_trade(symbol, side, price, amount, reason=reason_str)
                 
                 # Record result in Risk Manager (for consecutive loss logic)
                 self.risk_manager.record_trade_result(was_profitable=(profit is not None and profit > 0))

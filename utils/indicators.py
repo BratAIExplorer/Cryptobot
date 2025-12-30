@@ -135,3 +135,227 @@ def calculate_macd(series, fast=12, slow=26, signal=9):
     histogram = macd_line - signal_line
 
     return macd_line, signal_line, histogram
+
+
+# ==================== DIRECTIONAL VOLUME ANALYSIS ====================
+
+def calculate_obv(df):
+    """
+    Calculate On-Balance Volume (OBV)
+
+    OBV tracks cumulative buying/selling pressure:
+    - Rising OBV: Accumulation (buyers in control)
+    - Falling OBV: Distribution (sellers in control)
+    - OBV divergence from price: Potential reversal signal
+
+    Args:
+        df: DataFrame with 'close' and 'volume' columns
+
+    Returns:
+        Series with OBV values
+    """
+    obv = pd.Series(index=df.index, dtype='float64')
+    obv.iloc[0] = df['volume'].iloc[0]
+
+    for i in range(1, len(df)):
+        if df['close'].iloc[i] > df['close'].iloc[i-1]:
+            # Price up: Add volume
+            obv.iloc[i] = obv.iloc[i-1] + df['volume'].iloc[i]
+        elif df['close'].iloc[i] < df['close'].iloc[i-1]:
+            # Price down: Subtract volume
+            obv.iloc[i] = obv.iloc[i-1] - df['volume'].iloc[i]
+        else:
+            # Price unchanged: Keep OBV same
+            obv.iloc[i] = obv.iloc[i-1]
+
+    return obv
+
+
+def calculate_volume_ratio(df, period=20):
+    """
+    Calculate Buy vs Sell Volume Ratio
+
+    Estimates buying/selling pressure based on candle direction:
+    - Green candles (close > open): Buy volume
+    - Red candles (close < open): Sell volume
+
+    Args:
+        df: DataFrame with 'open', 'close', 'volume' columns
+        period: Rolling period for ratio calculation
+
+    Returns:
+        Dict with:
+            'buy_volume': Series of buy volume
+            'sell_volume': Series of sell volume
+            'buy_sell_ratio': Series of ratio (>1 = buying pressure, <1 = selling pressure)
+            'net_volume': Series of net volume (buy - sell)
+    """
+    # Classify volume as buy or sell based on candle color
+    buy_volume = df['volume'].where(df['close'] >= df['open'], 0)
+    sell_volume = df['volume'].where(df['close'] < df['open'], 0)
+
+    # Rolling sums
+    buy_vol_sum = buy_volume.rolling(window=period).sum()
+    sell_vol_sum = sell_volume.rolling(window=period).sum()
+
+    # Buy/Sell ratio (avoid division by zero)
+    ratio = buy_vol_sum / sell_vol_sum.replace(0, 1)
+
+    # Net volume (positive = buying, negative = selling)
+    net_volume = (buy_vol_sum - sell_vol_sum).rolling(window=5).mean()  # Smoothed
+
+    return {
+        'buy_volume': buy_volume,
+        'sell_volume': sell_volume,
+        'buy_sell_ratio': ratio,
+        'net_volume': net_volume
+    }
+
+
+def calculate_accumulation_distribution(df):
+    """
+    Calculate Accumulation/Distribution Line (A/D Line)
+
+    More sophisticated than OBV - considers where price closed within the range:
+    - Close near high: Strong buying (multiplier closer to +1)
+    - Close near low: Strong selling (multiplier closer to -1)
+
+    Args:
+        df: DataFrame with 'high', 'low', 'close', 'volume' columns
+
+    Returns:
+        Series with A/D Line values
+    """
+    # Money Flow Multiplier
+    # ((Close - Low) - (High - Close)) / (High - Low)
+    clv = ((df['close'] - df['low']) - (df['high'] - df['close'])) / (df['high'] - df['low'])
+
+    # Handle division by zero (when high == low)
+    clv = clv.replace([np.inf, -np.inf], 0).fillna(0)
+
+    # Money Flow Volume
+    mfv = clv * df['volume']
+
+    # Cumulative A/D Line
+    ad_line = mfv.cumsum()
+
+    return ad_line
+
+
+def calculate_vpt(df):
+    """
+    Calculate Volume Price Trend (VPT)
+
+    Similar to OBV but weighted by percentage price change:
+    - More sensitive to price movements than OBV
+    - Trend confirmation indicator
+
+    Args:
+        df: DataFrame with 'close' and 'volume' columns
+
+    Returns:
+        Series with VPT values
+    """
+    # Calculate percentage price change
+    price_change_pct = df['close'].pct_change()
+
+    # VPT = Previous VPT + (Volume * % Price Change)
+    vpt = (df['volume'] * price_change_pct).cumsum()
+
+    return vpt
+
+
+def analyze_volume_pressure(df, lookback=20):
+    """
+    Comprehensive volume pressure analysis
+
+    Combines multiple volume indicators to determine buying/selling pressure
+
+    Args:
+        df: DataFrame with OHLCV data
+        lookback: Period for analysis
+
+    Returns:
+        Dict with:
+            'pressure': str ('STRONG_BUY' | 'BUY' | 'NEUTRAL' | 'SELL' | 'STRONG_SELL')
+            'obv_trend': str ('RISING' | 'FALLING' | 'FLAT')
+            'buy_sell_ratio': float
+            'ad_trend': str ('RISING' | 'FALLING' | 'FLAT')
+            'confidence': float (0-100)
+    """
+    # Calculate all volume indicators
+    obv = calculate_obv(df)
+    vol_ratio = calculate_volume_ratio(df, period=lookback)
+    ad_line = calculate_accumulation_distribution(df)
+
+    # Analyze trends (last N periods)
+    obv_recent = obv.iloc[-lookback:]
+    ad_recent = ad_line.iloc[-lookback:]
+
+    # OBV trend
+    obv_slope = (obv_recent.iloc[-1] - obv_recent.iloc[0]) / obv_recent.iloc[0] if obv_recent.iloc[0] != 0 else 0
+    if obv_slope > 0.05:
+        obv_trend = 'RISING'
+        obv_signal = 1
+    elif obv_slope < -0.05:
+        obv_trend = 'FALLING'
+        obv_signal = -1
+    else:
+        obv_trend = 'FLAT'
+        obv_signal = 0
+
+    # A/D trend
+    ad_slope = (ad_recent.iloc[-1] - ad_recent.iloc[0]) / abs(ad_recent.iloc[0]) if ad_recent.iloc[0] != 0 else 0
+    if ad_slope > 0.05:
+        ad_trend = 'RISING'
+        ad_signal = 1
+    elif ad_slope < -0.05:
+        ad_trend = 'FALLING'
+        ad_signal = -1
+    else:
+        ad_trend = 'FLAT'
+        ad_signal = 0
+
+    # Buy/Sell ratio
+    current_ratio = vol_ratio['buy_sell_ratio'].iloc[-1]
+    if current_ratio > 1.5:
+        ratio_signal = 1  # Strong buying
+    elif current_ratio > 1.1:
+        ratio_signal = 0.5  # Moderate buying
+    elif current_ratio < 0.67:
+        ratio_signal = -1  # Strong selling
+    elif current_ratio < 0.9:
+        ratio_signal = -0.5  # Moderate selling
+    else:
+        ratio_signal = 0  # Neutral
+
+    # Combine signals
+    total_signal = obv_signal + ad_signal + ratio_signal
+    num_indicators = 3
+
+    # Determine pressure
+    if total_signal >= 2:
+        pressure = 'STRONG_BUY'
+        confidence = min(abs(total_signal) / num_indicators * 100, 100)
+    elif total_signal >= 0.5:
+        pressure = 'BUY'
+        confidence = min(abs(total_signal) / num_indicators * 100, 100)
+    elif total_signal <= -2:
+        pressure = 'STRONG_SELL'
+        confidence = min(abs(total_signal) / num_indicators * 100, 100)
+    elif total_signal <= -0.5:
+        pressure = 'SELL'
+        confidence = min(abs(total_signal) / num_indicators * 100, 100)
+    else:
+        pressure = 'NEUTRAL'
+        confidence = 50
+
+    return {
+        'pressure': pressure,
+        'obv_trend': obv_trend,
+        'buy_sell_ratio': current_ratio,
+        'ad_trend': ad_trend,
+        'confidence': confidence,
+        'obv_slope': obv_slope,
+        'ad_slope': ad_slope
+    }
