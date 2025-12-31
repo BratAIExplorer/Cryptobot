@@ -266,10 +266,11 @@ def main():
     })
     
     # ==========================================
-    # 🔕 DEACTIVATED: DIP SNIPER (0 TRADES - BROKEN)
-    # Will investigate separately
+    # 🗑️ DIP SNIPER - DELETED (2025-12-30)
+    # Reason: 0 trades, redundant with Buy-the-Dip, broken logic
+    # Status: Permanently removed per fix-or-kill analysis
     # ==========================================
-    
+
     # Send startup notification
     if engine.notifier:
         active_bots_summary = []
