@@ -243,7 +243,7 @@ class TelegramNotifier:
     def notify_coin_graduated(self, symbol, coin_type, position_size):
         """Alert when coin graduates to Pillar B"""
         type_desc = {'A': 'Brand New', 'B': 'Emerging', 'C': 'Established'}
-        
+
         msg = (
             f"🎓 *COIN GRADUATED*\n\n"
             f"Symbol: *{symbol}*\n"
@@ -251,5 +251,58 @@ class TelegramNotifier:
             f"Position Size: {position_size}%\n\n"
             f"✅ Added to Pillar B (Buy-the-Dip) watchlist\n"
             f"📊 Now eligible for automated trading"
+        )
+        self.send_message(msg)
+
+    # ==================== ENHANCED TRADE ALERTS ====================
+
+    def alert_stop_loss_hit(self, symbol, strategy, entry_price, exit_price, loss_amount, loss_pct):
+        """Alert when stop loss is triggered"""
+        msg = (
+            f"🛑 *STOP LOSS HIT*\n\n"
+            f"Symbol: *{symbol}*\n"
+            f"Strategy: _{strategy}_\n\n"
+            f"Entry: `${entry_price:.4f}`\n"
+            f"Exit: `${exit_price:.4f}`\n"
+            f"Loss: `${loss_amount:.2f}` ({loss_pct:.2f}%)\n\n"
+            f"✅ Position closed - Capital preserved"
+        )
+        self.send_message(msg)
+
+    def alert_take_profit_hit(self, symbol, strategy, entry_price, exit_price, profit_amount, profit_pct):
+        """Alert when take profit target is reached"""
+        msg = (
+            f"🎯 *TAKE PROFIT HIT*\n\n"
+            f"Symbol: *{symbol}*\n"
+            f"Strategy: _{strategy}_\n\n"
+            f"Entry: `${entry_price:.4f}`\n"
+            f"Exit: `${exit_price:.4f}`\n"
+            f"Profit: `${profit_amount:.2f}` (+{profit_pct:.2f}%)\n\n"
+            f"🎉 Winner! Target reached"
+        )
+        self.send_message(msg)
+
+    def alert_trailing_stop_hit(self, symbol, strategy, entry_price, exit_price, profit_amount, profit_pct, peak_profit_pct):
+        """Alert when trailing stop is triggered"""
+        msg = (
+            f"📉 *TRAILING STOP HIT*\n\n"
+            f"Symbol: *{symbol}*\n"
+            f"Strategy: _{strategy}_\n\n"
+            f"Entry: `${entry_price:.4f}`\n"
+            f"Peak Profit: `+{peak_profit_pct:.2f}%`\n"
+            f"Exit: `${exit_price:.4f}`\n"
+            f"Final Profit: `${profit_amount:.2f}` (+{profit_pct:.2f}%)\n\n"
+            f"✅ Profits secured via trailing stop"
+        )
+        self.send_message(msg)
+
+    def alert_error(self, error_type, error_message, component="Bot"):
+        """Alert on critical errors"""
+        msg = (
+            f"❌ *ERROR ALERT*\n\n"
+            f"Component: {component}\n"
+            f"Type: `{error_type}`\n"
+            f"Message: `{error_message}`\n\n"
+            f"Check logs immediately: `pm2 logs crypto_bot`"
         )
         self.send_message(msg)

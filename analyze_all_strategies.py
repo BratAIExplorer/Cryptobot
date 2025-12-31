@@ -19,8 +19,8 @@ class StrategyAnalyzer:
             'SMA Trend Bot',
             'Buy-the-Dip Strategy',
             'Momentum Swing Bot',
-            'Hidden Gem Monitor',
-            'Dip Sniper'  # Deactivated but check historical
+            'Hidden Gem Monitor'
+            # 'Dip Sniper' - DELETED (2025-12-30): 0 trades, broken logic
         ]
 
     def get_strategy_metrics(self, strategy_name):

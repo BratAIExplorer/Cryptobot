@@ -3,6 +3,8 @@ import pandas as pd
 from datetime import datetime, timedelta
 from .database import VetoEvent, Database
 from utils.indicators import calculate_atr, calculate_sma
+from intelligence.cryptopanic import CryptoPanicAPI
+import os
 
 class VetoManager:
     """
@@ -15,10 +17,18 @@ class VetoManager:
         self.active_vetoes = [] # List of active VetoEvent objects (in-memory cache)
         self.last_check = datetime.min
         self.cache_duration = 300 # 5 minutes cache for macro checks (BTC status)
-        
+
         # Thresholds
         self.BTC_CRASH_DROP_PCT = 0.05 # 5% drop in 24h triggers crash alert
         self.BTC_DUMP_PCT = 0.03 # 3% drop in 4h triggers dump alert
+
+        # Initialize CryptoPanic API (optional)
+        cryptopanic_key = os.environ.get('CRYPTOPANIC_API_KEY')
+        self.news_api = CryptoPanicAPI(api_key=cryptopanic_key) if cryptopanic_key else None
+        if self.news_api:
+            print("✅ CryptoPanic news integration enabled")
+        else:
+            print("⚠️  CryptoPanic disabled (set CRYPTOPANIC_API_KEY to enable)")
         
     def check_entry_allowed(self, symbol, strategy_name):
         """
@@ -61,9 +71,17 @@ class VetoManager:
             if self.logger:
                 pass # self.logger.log_veto(veto) OR similar
 
-        # B. Bad News Check (Placeholder for News API)
-        # is_bad_news, news_reason = self._check_news_sentiment()
-        # if is_bad_news: ...
+        # B. Bad News Check (CryptoPanic API)
+        if self.news_api:
+            is_bad_news, news_reason = self._check_news_sentiment()
+            if is_bad_news:
+                veto = VetoEvent(
+                    rule_type="BAD_NEWS",
+                    severity_level=2,
+                    reason=news_reason,
+                    triggered_at=datetime.utcnow()
+                )
+                self.active_vetoes.append(veto)
 
     def _check_btc_crash(self):
         """
@@ -140,8 +158,68 @@ class VetoManager:
                 return False, f"Falling Knife: Large 15m drop {drop_pct*100:.1f}% (>3x ATR)"
                 
             return True, "Safe"
-            
+
         except Exception as e:
             # Fail Open (Allow trade if check fails, but log warning)
             print(f"[VETO] Warn: Falling knife check failed for {symbol}: {e}")
             return True, "Check Failed (Fail Open)"
+
+    def _check_news_sentiment(self):
+        """
+        Check CryptoPanic for critical negative news
+
+        Returns:
+            Tuple of (is_bad_news: bool, reason: str)
+
+        Veto Criteria:
+        - Market sentiment is BEARISH (from top 20 news items)
+        - Multiple high-impact (>70) bearish news in last 24h
+        - Critical security events (hacks, exploits)
+        """
+        try:
+            # Get overall market sentiment
+            sentiment = self.news_api.get_market_sentiment(hours_back=24)
+
+            # Veto if overall market sentiment is BEARISH
+            if sentiment['overall_sentiment'] == 'BEARISH':
+                bearish_pct = sentiment['bearish_count'] / sentiment['total_news'] * 100 if sentiment['total_news'] > 0 else 0
+                return True, f"Market News Bearish: {sentiment['bearish_count']}/{sentiment['total_news']} news negative ({bearish_pct:.0f}%)"
+
+            # Check for critical negative events (hacks, exploits)
+            top_news = sentiment['top_news']
+            for news in top_news:
+                if news['impact_score'] > 70 and news['sentiment_score'] < 0:
+                    # Critical negative news
+                    return True, f"Critical Negative News: {news['title'][:60]}..."
+
+            return False, None
+
+        except Exception as e:
+            print(f"[VETO] Error checking news sentiment: {e}")
+            # Fail safe: Allow trading on error
+            return False, None
+
+    def check_coin_news(self, symbol):
+        """
+        Check if specific coin has negative news (use before entering position)
+
+        Args:
+            symbol: Coin symbol (e.g., 'BTC/USDT')
+
+        Returns:
+            Tuple of (should_veto: bool, reason: str)
+        """
+        if not self.news_api:
+            return False, None
+
+        try:
+            news_check = self.news_api.check_coin_news(symbol)
+
+            if news_check['should_veto_trade']:
+                return True, f"Recent negative news: {news_check['latest_news']['title'][:50]}..."
+
+            return False, None
+
+        except Exception as e:
+            print(f"[VETO] Error checking coin news for {symbol}: {e}")
+            return False, None
