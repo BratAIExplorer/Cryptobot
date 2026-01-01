@@ -573,6 +573,14 @@ class TradingEngine:
                 current_price = df['close'].iloc[-1]
                 rsi = calculate_rsi(df['close']).iloc[-1]
 
+                # --- REGIME DETECTION (needed for Buy-the-Dip strategy) ---
+                # Fetch BTC macro data if not provided
+                if btc_df_macro is None or btc_df_macro.empty:
+                    btc_df_macro = self.exchange.fetch_ohlcv('BTC/USDT', timeframe='1d', limit=250)
+
+                # Detect current market regime
+                regime_state, _, _ = self.regime_detector.detect_regime(btc_df_macro)
+
                 # --- PER-COIN CRASH DETECTION ---
                 is_crashing, crash_reason, crash_metrics = self.regime_detector.detect_coin_crash(
                     symbol, df, lookback_hours=24
@@ -695,14 +703,10 @@ class TradingEngine:
                     profit_pct = (current_price - buy_price) / buy_price
                     
                     sell_reason = None
-                    
+
                     # --- V3 EXIT LOGIC (Centralized in Risk Manager) ---
-                    # Use provided btc_df_macro or fetch if missing
-                    if btc_df_macro is None or btc_df_macro.empty:
-                        btc_df_macro = self.exchange.fetch_ohlcv('BTC/USDT', timeframe='1d', limit=250)
-                    
-                    regime_state, _, _ = self.regime_detector.detect_regime(btc_df_macro)
-                    
+                    # (regime_state already calculated earlier at line 582)
+
                     # Prepare data object for Risk Manager
                     position_data = {
                         'entry_price': buy_price,
