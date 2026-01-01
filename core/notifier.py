@@ -83,16 +83,88 @@ class TelegramNotifier:
               f"Loss: `${peak_equity - current_equity:,.2f}`"
         self.send_message(msg)
     
-    def alert_no_activity(self, hours):
-        """Alert when bot hasn't traded for specified hours."""
-        msg = f"⏰ *NO TRADING ACTIVITY*\n\n" \
-              f"Bot hasn't made any trades in the last {hours} hours.\n\n" \
-              f"Possible reasons:\n" \
-              f"• No market opportunities\n" \
-              f"• Exposure limits reached\n" \
-              f"• Circuit breaker active\n\n" \
-              f"Check status: http://srv1010193:8501"
+    def alert_no_activity(self, hours, diagnosis=None):
+        """Alert when bot hasn't traded for specified hours with root cause analysis."""
+        diagnosis_text = diagnosis if diagnosis else self._diagnose_inactivity()
+
+        msg = f"⚠️ *NO TRADING ACTIVITY ALERT*\n\n" \
+              f"⏰ **Duration:** {hours} hours\n\n" \
+              f"🔍 **ROOT CAUSE DIAGNOSIS:**\n{diagnosis_text}\n\n" \
+              f"📊 Check dashboard: http://srv1010193:8501"
         self.send_message(msg)
+
+    def _diagnose_inactivity(self):
+        """Analyze why bot is inactive - check for crashes, errors, circuit breakers."""
+        import os
+        from datetime import datetime
+
+        # 1. Check for crash loop in recent logs
+        try:
+            log_file = f"logs/bot_{datetime.now().strftime('%Y%m%d')}.log"
+            if os.path.exists(log_file):
+                with open(log_file, 'r') as f:
+                    # Read last 300 lines for analysis
+                    lines = f.readlines()
+                    recent_logs = lines[-300:] if len(lines) > 300 else lines
+
+                # Count error patterns
+                error_lines = [l for l in recent_logs if 'Error processing' in l or 'cannot access local variable' in l]
+
+                if len(error_lines) > 20:
+                    # Extract error type
+                    sample = error_lines[0].strip()
+                    if 'regime_state' in sample:
+                        return (
+                            f"🔴 **CRASH LOOP - regime_state Bug**\n"
+                            f"   • {len(error_lines)} crashes detected\n"
+                            f"   • Error: `regime_state variable not defined`\n"
+                            f"   • **ACTION:** Deploy latest fix from GitHub\n"
+                            f"   • `git pull && systemctl restart cryptobot`"
+                        )
+                    else:
+                        error_snippet = sample[:80] + "..." if len(sample) > 80 else sample
+                        return (
+                            f"🔴 **CRASH LOOP DETECTED**\n"
+                            f"   • {len(error_lines)} errors in logs\n"
+                            f"   • Sample: `{error_snippet}`\n"
+                            f"   • **ACTION:** Check logs and fix bug"
+                        )
+
+                # Check if bot is evaluating coins
+                eval_lines = [l for l in recent_logs if 'Evaluating' in l or 'DIP DETECTED' in l or 'Golden Cross' in l]
+                if len(eval_lines) == 0:
+                    return (
+                        f"⚠️ **BOT NOT EVALUATING COINS**\n"
+                        f"   • No 'Evaluating' messages in logs\n"
+                        f"   • Possible: All strategies paused or filtered\n"
+                        f"   • **ACTION:** Check confluence thresholds"
+                    )
+
+        except Exception as e:
+            pass
+
+        # 2. Check circuit breaker status
+        try:
+            from core.logger import TradeLogger
+            logger = TradeLogger()
+            cb = logger.get_circuit_breaker_status()
+            if cb and cb.get('is_paused'):
+                return (
+                    f"⛔ **CIRCUIT BREAKER ACTIVE**\n"
+                    f"   • Triggered: {cb.get('reason', 'Unknown')}\n"
+                    f"   • **ACTION:** Clear with SQL command:\n"
+                    f"   • `DELETE FROM circuit_breaker;`"
+                )
+        except:
+            pass
+
+        # 3. If no obvious issue detected
+        return (
+            f"📊 **NO CRITICAL ISSUES DETECTED**\n"
+            f"   • No crashes or circuit breakers\n"
+            f"   • Possible: Low market opportunities\n"
+            f"   • **ACTION:** Check confluence scores in logs"
+        )
     
     def alert_service_restart(self):
         """Notify when bot service restarts."""
