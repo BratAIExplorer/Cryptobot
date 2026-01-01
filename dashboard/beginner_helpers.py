@@ -386,24 +386,24 @@ def format_dollar_amount(amount: float, show_sign: bool = False) -> str:
 def explain_strategy(strategy_name: str) -> Dict[str, str]:
     """
     Explain what a trading strategy does in simple terms.
-    
+
     Args:
         strategy_name: Name of the strategy
-    
+
     Returns:
         Dictionary with simple explanation
     """
     strategies = {
         "Buy-the-Dip": {
-            "simple_name": "Value Investor",
+            "simple_name": "🛒 Value Hunter",
             "what_it_does": "Buys quality coins when they're on sale (price dropped)",
             "when_it_buys": "When a good coin drops 5-15% in price",
             "when_it_sells": "When price goes back up (+5%, +7%, or +10%)",
-            "risk_level": "🟡 Medium - Holds for recovery",
+            "risk_level": "🟡 Medium - Patient approach",
             "analogy": "Like buying your favorite snack when it's on sale at the grocery store!"
         },
         "SMA Trend": {
-            "simple_name": "Trend Rider",
+            "simple_name": "🌊 Trend Surfer",
             "what_it_does": "Follows the market direction (up or down)",
             "when_it_buys": "When the trend clearly turns upward",
             "when_it_sells": "When the trend reverses downward",
@@ -411,31 +411,86 @@ def explain_strategy(strategy_name: str) -> Dict[str, str]:
             "analogy": "Like surfing - you ride the wave until it ends!"
         },
         "Grid Bot": {
-            "simple_name": "Range Trader",
+            "simple_name": "📊 Range Trader",
             "what_it_does": "Buys low, sells high within a specific price range",
             "when_it_buys": "When price drops to lower end of range",
             "when_it_sells": "When price rises to upper end of range",
             "risk_level": "🟢 Low - Very controlled",
             "analogy": "Like a vending machine - buy at wholesale, sell at retail!"
         },
+        "Grid Bot BTC": {
+            "simple_name": "📊 Bitcoin Range Trader",
+            "what_it_does": "Specifically trades Bitcoin within a price range",
+            "when_it_buys": "When Bitcoin drops to lower end of range",
+            "when_it_sells": "When Bitcoin rises to upper end of range",
+            "risk_level": "🟢 Low - Very controlled, Bitcoin focused",
+            "analogy": "Like buying Bitcoin on sale and selling when the price is high!"
+        },
         "Hyper-Scalper": {
-            "simple_name": "Speed Trader",
+            "simple_name": "⚡ Speed Trader",
             "what_it_does": "Makes many small, quick trades",
             "when_it_buys": "When price dips for a few seconds",
             "when_it_sells": "When price bounces back up (even 1-2%)",
             "risk_level": "🟠 Medium-High - Fast-paced",
             "analogy": "Like a day trader on Wall Street - in and out all day!"
+        },
+        "Buy Scraper": {
+            "simple_name": "🔍 Opportunity Scanner",
+            "what_it_does": "Scans the market for quick buying opportunities",
+            "when_it_buys": "When it finds a good price dip",
+            "when_it_sells": "When profit target is reached",
+            "risk_level": "🟡 Medium - Active scanner",
+            "analogy": "Like a bargain hunter at a clearance sale!"
+        },
+        "Hidden Gem Hunter": {
+            "simple_name": "💎 Gem Finder",
+            "what_it_does": "Looks for undervalued coins that could grow a lot",
+            "when_it_buys": "When it finds a promising coin at low price",
+            "when_it_sells": "When the coin reaches its potential (+15-30%)",
+            "risk_level": "🟠 Medium-High - Higher risk, higher reward",
+            "analogy": "Like finding a rare collectible at a garage sale before anyone else!"
+        },
+        "Momentum Scalper": {
+            "simple_name": "🚀 Momentum Rider",
+            "what_it_does": "Catches coins that are moving up fast",
+            "when_it_buys": "When price starts moving up quickly",
+            "when_it_sells": "When momentum slows down",
+            "risk_level": "🟠 Medium-High - Rides the momentum",
+            "analogy": "Like jumping on a moving train and getting off before it slows!"
+        },
+        "Mean Reversion Scalper": {
+            "simple_name": "⚖️ Balance Seeker",
+            "what_it_does": "Bets that prices return to average after big moves",
+            "when_it_buys": "When price drops far below normal",
+            "when_it_sells": "When price returns to normal level",
+            "risk_level": "🟡 Medium - Expects balance",
+            "analogy": "Like a rubber band - when stretched too far, it snaps back!"
+        },
+        "DCA Bot": {
+            "simple_name": "💰 Regular Saver",
+            "what_it_does": "Buys a fixed amount regularly, regardless of price",
+            "when_it_buys": "On a schedule (daily, weekly, etc.)",
+            "when_it_sells": "When overall profit target is reached",
+            "risk_level": "🟢 Low - Steady and safe",
+            "analogy": "Like putting money in a piggy bank every week!"
         }
     }
-    
-    return strategies.get(strategy_name, {
-        "simple_name": strategy_name,
-        "what_it_does": "A specialized trading approach",
-        "when_it_buys": "Based on specific market conditions",
-        "when_it_sells": "When profit targets are met",
-        "risk_level": "🟡 Varies",
-        "analogy": "Ask for more details about this strategy!"
-    })
+
+    # Try to match with case-insensitive and partial matching
+    strategy_lower = strategy_name.lower()
+    for key, value in strategies.items():
+        if key.lower() in strategy_lower or strategy_lower in key.lower():
+            return value
+
+    # Default fallback
+    return {
+        "simple_name": f"🤖 {strategy_name}",
+        "what_it_does": "A specialized trading approach that follows specific rules",
+        "when_it_buys": "Based on specific market conditions and indicators",
+        "when_it_sells": "When profit targets are met or conditions change",
+        "risk_level": "🟡 Varies - Check bot details",
+        "analogy": "Ask your admin for more details about this strategy!"
+    }
 
 
 def get_signal_breakdown(score_data: Dict[str, float]) -> Dict[str, Dict[str, str]]:

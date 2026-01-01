@@ -19,9 +19,65 @@ from dashboard.beginner_helpers import (
 )
 from intelligence.master_decision import MasterDecisionEngine
 
-st.set_page_config(page_title="Crypto Bot Dashboard", layout="wide", page_icon="🤖")
+st.set_page_config(page_title="My Crypto Bot", layout="wide", page_icon="🤖", initial_sidebar_state="expanded")
 
-st.title("🤖 Crypto Algo Trading Bot Dashboard")
+# Custom CSS for better styling
+st.markdown("""
+<style>
+    .main-header {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #1f77b4;
+        text-align: center;
+        padding: 1rem 0;
+        margin-bottom: 2rem;
+        background: linear-gradient(90deg, rgba(31,119,180,0.1) 0%, rgba(255,127,14,0.1) 100%);
+        border-radius: 10px;
+    }
+    .metric-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 1.5rem;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        color: white;
+    }
+    .bot-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 10px;
+        border-left: 5px solid #667eea;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 1rem;
+    }
+    .status-badge {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-weight: bold;
+        display: inline-block;
+    }
+    .status-running {
+        background: #10b981;
+        color: white;
+    }
+    .status-stopped {
+        background: #ef4444;
+        color: white;
+    }
+    .help-box {
+        background: #f0f9ff;
+        padding: 1rem;
+        border-radius: 8px;
+        border-left: 4px solid #3b82f6;
+        margin: 1rem 0;
+    }
+    div[data-testid="stMetricValue"] {
+        font-size: 2rem;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# Header with gradient background
+st.markdown('<h1 class="main-header">🤖 My Crypto Trading Bot</h1>', unsafe_allow_html=True)
 
 # --- AUTHENTICATION ---
 import hashlib
@@ -63,33 +119,44 @@ def check_password():
 #     st.stop()
 
 # --- ENVIRONMENT SELECTOR ---
-st.sidebar.title("⚙️ Settings")
+st.sidebar.title("⚙️ Dashboard Settings")
 
 # BEGINNER MODE TOGGLE (Default: ON)
 if 'beginner_mode' not in st.session_state:
     st.session_state['beginner_mode'] = True
 
+# More prominent beginner mode toggle
+st.sidebar.markdown("### 🎓 Display Mode")
 beginner_mode = st.sidebar.toggle(
-    "🎓 Beginner Mode (Simple Language)",
+    "Simple Language Mode",
     value=st.session_state['beginner_mode'],
-    help="Shows simple explanations and clear recommendations instead of technical jargon"
+    help="Turn this ON for plain English explanations (recommended for beginners). Turn OFF for technical trading terms."
 )
 st.session_state['beginner_mode'] = beginner_mode
 
 if beginner_mode:
-    st.sidebar.success("✅ Simple Mode Active")
-    st.sidebar.caption("Technical terms are translated to plain English")
+    st.sidebar.success("✅ **Simple Mode ON**")
+    st.sidebar.caption("🗣️ Everything explained in plain English")
 else:
-    st.sidebar.info("📊 Technical Mode Active")
-    st.sidebar.caption("Showing advanced metrics")
+    st.sidebar.info("📊 **Technical Mode ON**")
+    st.sidebar.caption("📈 Showing advanced trading metrics")
 
 st.sidebar.markdown("---")
 
-env_mode = st.sidebar.radio("Environment", ["Paper Trading", "LIVE TRADING"], index=0)
-mode_slug = 'live' if env_mode == "LIVE TRADING" else 'paper'
+# Trading Environment
+st.sidebar.markdown("### 💼 Trading Environment")
+env_mode = st.sidebar.radio(
+    "Select Mode:",
+    ["Paper Trading (Practice)", "LIVE TRADING (Real Money)"],
+    index=0,
+    help="Paper Trading = Practice mode with fake money. LIVE = Real money trading!"
+)
+mode_slug = 'live' if env_mode == "LIVE TRADING (Real Money)" else 'paper'
 
-if env_mode == "LIVE TRADING":
-    st.sidebar.warning("⚠️ YOU ARE VIEWING LIVE DATA")
+if env_mode == "LIVE TRADING (Real Money)":
+    st.sidebar.warning("⚠️ **LIVE MODE**\nYou are viewing real money!")
+else:
+    st.sidebar.info("🎮 **PRACTICE MODE**\nNo real money at risk")
 
 # Initialize Logger with selected mode (Resilient version)
 try:
@@ -100,14 +167,17 @@ except TypeError:
     
 exchange = ExchangeInterface(mode=mode_slug)
 
+st.sidebar.markdown("---")
+
 # --- RISK METER (Regime Detection) ---
+st.sidebar.markdown("### 🌡️ Market Conditions")
 try:
     regime_df = logger.get_recent_market_regimes(limit=1)
     if not regime_df.empty:
         latest = regime_df.iloc[0]
         state = latest['regime']
         risk_multiplier = latest['risk_multiplier']
-        
+
         regime_colors = {
             'BULL_CONFIRMED': '#00FF00',
             'TRANSITION_BULLISH': '#90EE90',
@@ -116,21 +186,27 @@ try:
             'BEAR_CONFIRMED': '#FF4500',
             'CRISIS': '#8B0000'
         }
-        
+
         if beginner_mode:
-            # Simple market mood display
+            # Simple market mood display with better formatting
             emoji, description, explanation = get_regime_indicator(state)
-            st.sidebar.markdown(f"### {emoji} Market Mood")
-            st.sidebar.info(f"**{description}**")
-            st.sidebar.caption(explanation)
+            st.sidebar.markdown(f"#### {emoji} **{description}**")
+            st.sidebar.info(f"{explanation}")
+
+            # Add a simple visual indicator
+            if state in ['BULL_CONFIRMED', 'TRANSITION_BULLISH']:
+                st.sidebar.success("✅ Good time for trading")
+            elif state == 'UNDEFINED':
+                st.sidebar.warning("⚠️ Be careful - market unclear")
+            else:
+                st.sidebar.error("🛑 Bot will be very cautious")
         else:
             # Technical risk meter
-            st.sidebar.markdown("### 🧭 Risk Meter")
             fig_risk = go.Figure(go.Indicator(
                 mode = "gauge+number",
                 value = risk_multiplier * 100,
                 domain = {'x': [0, 1], 'y': [0, 1]},
-                title = {'text': f"Market Regime: {state}", 'font': {'size': 16}},
+                title = {'text': f"Market Regime: {state}", 'font': {'size': 14}},
                 gauge = {
                     'axis': {'range': [0, 125], 'tickwidth': 1},
                     'bar': {'color': regime_colors.get(state, "gray")},
@@ -149,7 +225,10 @@ try:
             fig_risk.update_layout(height=180, margin=dict(l=10, r=10, t=30, b=10))
             st.sidebar.plotly_chart(fig_risk, use_container_width=True)
 except Exception as e:
-    st.sidebar.info("Regime monitoring inactive...")
+    if beginner_mode:
+        st.sidebar.info("⏳ Checking market conditions...")
+    else:
+        st.sidebar.info("Regime monitoring inactive...")
 
 # --- OBSERVABILITY SECTION ---
 st.sidebar.subheader("🏥 System Health")
@@ -258,36 +337,166 @@ if st.sidebar.button("📄 Generate Tax & Audit Reports"):
 st.sidebar.markdown("---")
 st.sidebar.info("The bot is running as a separate service. Use this dashboard to monitor performance.")
 
-# Main Dashboard
-st.subheader("📊 Active Bots")
+# ===========================================
+# SUMMARY DASHBOARD AT THE TOP
+# ===========================================
+st.markdown("### 📊 Quick Overview")
 
-# Get all bot statuses from database
+# Get summary metrics
 all_bot_status = logger.get_bot_status()
+open_positions = logger.get_open_positions()
+trades = logger.get_trades()
+
+# Calculate totals
+total_bots = len(all_bot_status) if all_bot_status is not None and not all_bot_status.empty else 0
+running_bots = len(all_bot_status[all_bot_status['status'] == 'RUNNING']) if all_bot_status is not None and not all_bot_status.empty else 0
+total_wallet = all_bot_status['wallet_balance'].sum() if all_bot_status is not None and not all_bot_status.empty else 0
+total_pnl = all_bot_status['total_pnl'].sum() if all_bot_status is not None and not all_bot_status.empty else 0
+total_positions = len(open_positions) if not open_positions.empty else 0
+total_trades_count = len(trades) if not trades.empty else 0
+
+# Display summary metrics in colorful cards
+col1, col2, col3, col4, col5 = st.columns(5)
+
+with col1:
+    st.metric(
+        label="🤖 Active Bots" if beginner_mode else "Active Bots",
+        value=f"{running_bots}/{total_bots}",
+        delta="Running" if running_bots > 0 else "All stopped",
+        help="How many trading bots are currently working for you"
+    )
+
+with col2:
+    pnl_color = "normal" if total_pnl >= 0 else "inverse"
+    st.metric(
+        label="💰 Total Profit" if beginner_mode else "Total P&L",
+        value=f"${total_pnl:.2f}",
+        delta=f"{(total_pnl/total_wallet)*100:.1f}%" if total_wallet > 0 else "0%",
+        delta_color=pnl_color,
+        help="Total money made or lost across all bots"
+    )
+
+with col3:
+    st.metric(
+        label="💵 Total Money" if beginner_mode else "Wallet Balance",
+        value=f"${total_wallet:.2f}",
+        help="Total amount of money available for trading"
+    )
+
+with col4:
+    st.metric(
+        label="🪙 Coins Owned" if beginner_mode else "Open Positions",
+        value=total_positions,
+        help="Number of different coins you currently own"
+    )
+
+with col5:
+    st.metric(
+        label="🔄 Total Trades" if beginner_mode else "Total Trades",
+        value=total_trades_count,
+        help="Total number of buy and sell actions completed"
+    )
+
+# Add helpful info box for beginners
+if beginner_mode:
+    st.markdown("""
+    <div class="help-box">
+        <strong>💡 What am I looking at?</strong><br>
+        This shows a quick summary of all your trading bots. Each bot is like a little worker that buys and sells coins for you automatically!
+    </div>
+    """, unsafe_allow_html=True)
+
+st.markdown("---")
+
+# ===========================================
+# ENHANCED BOT STATUS CARDS
+# ===========================================
+if beginner_mode:
+    st.markdown("### 🤖 Your Trading Bots (Your Automatic Helpers)")
+else:
+    st.markdown("### 📊 Bot Status Dashboard")
 
 if all_bot_status is not None and not all_bot_status.empty:
-    # Display each bot as a card
+    # Display each bot as an enhanced card
     for idx, bot in all_bot_status.iterrows():
-        with st.expander(f"🤖 {bot['strategy']}", expanded=True):
+        # Get strategy explanation for beginners
+        from dashboard.beginner_helpers import explain_strategy
+        strategy_info = explain_strategy(bot['strategy'])
+
+        # Status indicator
+        if bot['status'] == 'RUNNING':
+            status_emoji = "🟢"
+            status_text = "WORKING" if beginner_mode else "RUNNING"
+            status_class = "status-running"
+        elif bot['status'] == 'READY':
+            status_emoji = "🟡"
+            status_text = "READY TO START" if beginner_mode else "READY"
+            status_class = "status-running"
+        else:
+            status_emoji = "🔴"
+            status_text = "STOPPED" if beginner_mode else "STOPPED"
+            status_class = "status-stopped"
+
+        # Create expandable card for each bot
+        with st.expander(f"{status_emoji} **{strategy_info['simple_name'] if beginner_mode else bot['strategy']}** - {status_text}", expanded=(idx < 2)):
+            if beginner_mode:
+                # Show simple explanation first
+                st.markdown(f"""
+                <div class="help-box">
+                    <strong>🎯 What this bot does:</strong> {strategy_info['what_it_does']}<br>
+                    <strong>💡 {strategy_info['analogy']}</strong>
+                </div>
+                """, unsafe_allow_html=True)
+
+            # Metrics in columns
             col1, col2, col3, col4 = st.columns(4)
-            
+
             with col1:
-                status_color = "🟢" if bot['status'] == 'RUNNING' else "🔴"
-                st.metric("Status", f"{status_color} {bot['status']}")
-            
+                st.markdown(f"<div style='text-align: center;'><span class='status-badge {status_class}'>{status_emoji} {status_text}</span></div>", unsafe_allow_html=True)
+                st.caption("Bot Status" if not beginner_mode else "Working?")
+
             with col2:
-                st.metric("Total P&L", f"${bot['total_pnl']:.2f}",
-                         delta=f"{(bot['total_pnl']/bot['wallet_balance'])*100:.2f}%" if bot['wallet_balance'] > 0 else "0%")
-            
+                pnl = bot['total_pnl']
+                pnl_emoji = "📈" if pnl >= 0 else "📉"
+                st.metric(
+                    "Money Made" if beginner_mode else "Total P&L",
+                    f"${pnl:.2f}",
+                    delta=f"{(pnl/bot['wallet_balance'])*100:.1f}%" if bot['wallet_balance'] > 0 else "0%",
+                    delta_color="normal" if pnl >= 0 else "inverse"
+                )
+
             with col3:
-                st.metric("Wallet Balance", f"${bot['wallet_balance']:.2f}")
-            
+                st.metric(
+                    "Money Available" if beginner_mode else "Wallet Balance",
+                    f"${bot['wallet_balance']:.2f}",
+                    help="Money this bot can use to buy coins"
+                )
+
             with col4:
-                st.metric("Total Trades", bot['total_trades'])
-            
-            # Additional info
-            st.caption(f"Started: {bot['started_at']} | Last Update: {bot['last_heartbeat']}")
+                st.metric(
+                    "Trades Done" if beginner_mode else "Total Trades",
+                    bot['total_trades'],
+                    help="How many times this bot bought or sold"
+                )
+
+            # Additional details in a subtle way
+            if not beginner_mode:
+                st.caption(f"⏰ Started: {bot['started_at']} | Last Update: {bot['last_heartbeat']}")
+            else:
+                # Show when bought/sold info
+                col_a, col_b = st.columns(2)
+                with col_a:
+                    st.caption(f"📅 **When it buys:** {strategy_info['when_it_buys']}")
+                with col_b:
+                    st.caption(f"💵 **When it sells:** {strategy_info['when_it_sells']}")
+
+                # Risk level
+                st.caption(f"⚠️ **Risk level:** {strategy_info['risk_level']}")
 else:
-    st.info("No bots running. Start a bot using `run_bot.py` on the VPS.")
+    if beginner_mode:
+        st.info("🤖 No trading bots are active yet. Don't worry - this dashboard will show your bots when they start working!")
+    else:
+        st.info("No bots running. Start a bot using `run_bot.py` on the VPS.")
 
 st.markdown("---")
 
@@ -295,8 +504,25 @@ st.markdown("---")
 
 st.markdown("---")
 
-# Tabs
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["📈 Open Positions", "🔍 Confluence V2", "📜 Trade History", "📊 Market Overview", "🔭 Watchlist Review", "🧠 Intelligence"])
+# Tabs with beginner-friendly names
+if beginner_mode:
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+        "💰 My Coins",
+        "🎯 Safety Scores",
+        "📜 Trade History",
+        "📊 Price Charts",
+        "🔭 New Coins",
+        "🧠 Advanced"
+    ])
+else:
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+        "📈 Open Positions",
+        "🔍 Confluence V2",
+        "📜 Trade History",
+        "📊 Market Overview",
+        "🔭 Watchlist Review",
+        "🧠 Intelligence"
+    ])
 
 with tab1:
     if beginner_mode:
