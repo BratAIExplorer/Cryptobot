@@ -43,7 +43,7 @@ class DynamicGridStrategy:
 
         # Calculate Indicators
         sma = calculate_sma(df['close'], self.ma_period).iloc[-1]
-        atr = calculate_atr(df['high'], df['low'], df['close'], self.atr_period).iloc[-1]
+        atr = calculate_atr(df, self.atr_period).iloc[-1]
         
         if pd.isna(sma) or pd.isna(atr):
             return False
