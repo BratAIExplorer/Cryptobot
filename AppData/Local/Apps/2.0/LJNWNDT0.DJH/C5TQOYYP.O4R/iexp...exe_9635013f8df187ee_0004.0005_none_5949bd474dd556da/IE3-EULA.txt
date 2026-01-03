@@ -1,0 +1,65 @@
+MACROPLANT IEXPLORER LICENSE AGREEMENT
+
+CAREFULLY READ THE FOLLOWING LICENSE AGREEMENT BY USING THE SOFTWARE YOU ACCEPT AND AGREE TO BE BOUND BY THIS LICENSE AGREEMENT FOR IEXPLORER.
+
+
+
+LIMITED WARRANTY
+
+For users, we warrant that for a period of 30 of days after purchase of the Software:
+
+The Software will perform in substantial accordance with advertised functionality. Our entire liability and your exclusive remedy for breach of the foregoing warranty shall be to refund the purchase price you paid for the software. IN NO EVENT WILL WE BE LIABLE TO YOU FOR ANY DAMAGES, INCLUDING ANY LOST PROFITS, LOST SAVINGS, OR OTHER INCIDENTAL OR CONSEQUENTIAL DAMAGES ARISING FROM THE USE OR THE INABILITY TO USE THE SOFTWARE (EVEN IF WE OR AN AUTHORIZED DEALER OR DISTRIBUTOR HAS BEEN ADVISED OF THE POSSIBILITY OF THESE DAMAGES), OR FOR ANY CLAIM BY ANY OTHER PARTY. To the extent permitted by applicable law, THE FOREGOING LIMITED WARRANTY IS IN LIEU OF ALL OTHER WARRANTIES OR CONDITIONS, EXPRESS OR IMPLIED, AND WE DISCLAIM ANY AND ALL IMPLIED WARRANTIES OR CONDITIONS, INCLUDING ANY IMPLIED WARRANTY OF TITLE, NONINFRINGEMENT, MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, regardless of whether we know or had reason to know of your particular needs. No employee, agent, dealer or distributor of ours is authorized to modify this limited warranty, nor to make any additional warranties.
+
+
+
+DISTRIBUTION OF TRIAL AND FREE DOWNLOADS
+
+You may copy publicly available download versions of the software and documentation as you wish for personal use. You may give unaltered, exact copies of the original installer to anyone, and distribute the trial and free editions of the software and documentation in its unmodified form via electronic means as long as the following conditions are met. You should not charge, request donations or membership to access the software. You may not modify the software, installer, bundle the installer in any other package or promote other software on the same page without express written permission from Macroplant.
+
+
+
+SINGLE USER LICENSE
+
+One copy of the software may be used on either a Mac or PC by a given user. The single user license does not provide for network access by more than one client machine. An enterprise license for a server, or individual single user licenses must be purchased for each client that accesses the software.
+
+
+
+MULTI-USER LICENSES
+
+License keys obtained by purchasing an enterprise or bundle pack of this software may be used to activate the software on the number of computers described in the product description at the time of purchase. Multi-user licenses may be used to activate the software interchangably on both Mac and PC computers so long as the total number of activations is less than or equal to the number of computers for which the license key was purchased.
+
+
+
+ACTIVATION
+
+Upon completion of registration of this software, our servers are notified of the registration code which was entered. In the event that we determine a particular registration code has been used in excess of the number of times that it is licensed, we may remotely deactivate the license code, thereby preventing it from being used to activate the software on additional computers. For additional information or concerns, please contact support@macroplant.com.
+
+
+
+QUICKTIME & ITUNES INSTALLATION
+
+Our software requires drivers and other files that are installed with iTunes and QuickTime. Without a proper installation of these two programs our software may not function properly. For this reason, our software may convienetly and automatically install iTunes and/or QuickTime if they aren't already installed on the computer.
+
+
+
+DISK MOUNTING FRAMEWORK INSTALLATION
+
+In order to use the disk mounting features of iExplorer for Windows, our software may prompt users to optionally install Callback File System, a third party component, during its installation or at runtime. Callback File System is licenced by Macroplant from Eldos. To learn more click here.
+
+
+
+TITLE
+
+Macroplant LLC is the exclusive copyright holder of the software and reserve all rights provided under the law.
+
+
+
+TERM AND TERMINATION
+
+This license agreement takes effect upon your use of the software and remains effective until terminated. You may terminate it at any time by destroying all copies of the Software and Documentation in your possession. The license will also automatically terminate if you fail to comply with any term or condition of this license agreement. You agree on termination of this license to destroy all copies of the Software and Documentation in your possession.
+
+
+
+QUESTIONS & CONTACT INFORMATION
+
+If you have additional questions or comments regarding this license agreement or our software, please contact us by either e-mail at support@macroplant.com or regular mail at 114 E Louisiana St., Ste 206, McKinney, TX 75013.

@@ -582,13 +582,18 @@ class TradingEngine:
                 regime_state, _, _ = self.regime_detector.detect_regime(btc_df_macro)
 
                 # --- PER-COIN CRASH DETECTION ---
-                is_crashing, crash_reason, crash_metrics = self.regime_detector.detect_coin_crash(
-                    symbol, df, lookback_hours=24
-                )
+                # === CRASH DETECTION (EXEMPT GRID BOTS) ===
+                strategy_type = bot.get('type', '')
+                
+                # Grid Bots trade through volatility - skip crash check
+                if strategy_type != 'Grid':
+                    is_crashing, crash_reason, crash_metrics = self.regime_detector.detect_coin_crash(
+                        symbol, df, lookback_hours=24
+                    )
 
-                if is_crashing:
-                    # Log crash detection
-                    print(f"⚠️  [{bot['name']}] CRASH DETECTED: {symbol} - {crash_reason}")
+                    if is_crashing:
+                        # Log crash detection
+                        print(f"⚠️  [{bot['name']}] CRASH DETECTED: {symbol} - {crash_reason}")
 
                     # Notify via Telegram (throttled to prevent spam)
                     alert_key = f"crash_{symbol}"
@@ -601,10 +606,11 @@ class TradingEngine:
                             f"⛔ Trading blocked for this coin for 4 hours"
                         )
 
-                    # Skip this coin entirely - don't buy or sell during crash
-                    continue
+                        # Skip this coin entirely - don't buy or sell during crash
+                        continue
 
                 # --- SPECIAL HANDLING FOR GRID BOT ---
+                print(f"[DEBUG] Evaluating {bot['name']} - Type: {strategy_type}")
                 if strategy_type == 'Grid':
                     strategy_instance = self.strategies.get(bot['name'])
                     if strategy_instance:
@@ -989,48 +995,59 @@ class TradingEngine:
             
             # Base amount for dynamic scaling
             base_amount = trade_amount_usd
+            # === GRID BOT CONFLUENCE BYPASS ===
+            # Grid Bots have proven 81-100% win rates with $8,204 total profit
+            # They use ATR-based grid logic and don't need confluence scoring
+            strategy_type = bot.get('type', '')
+            strategy_name = bot.get('name', '')
             
-            # --- V2 CONFLUENCE CHECK ---
-            from confluence_engine import ConfluenceEngine
-            c_engine = ConfluenceEngine(db_path=self.logger.db_path)
-            
-            # Use provided btc_df_macro or fetch if missing
-            if btc_df_macro is None or btc_df_macro.empty:
-                btc_df_macro = self.exchange.fetch_ohlcv('BTC/USDT', timeframe='1d', limit=250)
-            
-            # Simplified manual inputs (in production, these should be more accurate)
-            manual_inputs = {
-                'rsi': rsi,
-                'price': price,
-                'volume_trend': 'INCREASING' if rsi > 50 else 'STABLE' # Proxy
-            }
-            
-            v2_result = c_engine.get_total_confluence_score(
-                symbol.split('/')[0],
-                manual_inputs=manual_inputs,
-                btc_df=btc_df_macro
-            )
-            
-            # Record V2 result to DB for dashboard/calibration
-            if 'exchange' not in v2_result:
-                v2_result['exchange'] = self.exchange_name
-            self.logger.log_confluence_score(v2_result)
-            
-            # --- DYNAMIC TRANCHING ---
-            v2_score = v2_result['scores']['final_total']
-            
-            if v2_score >= 85:
-                # STRONG BUY: 40% of planned tranche
-                trade_amount_usd = base_amount * 0.40
-                print(f"🔥 HIGH CONVICTION: Score {v2_score}. Scaling to 40% (${trade_amount_usd:.2f})")
-            elif v2_score >= 75:
-                # MODERATE BUY: 25% of planned tranche
-                trade_amount_usd = base_amount * 0.25
-                print(f"✅ MODERATE CONVICTION: Score {v2_score}. Scaling to 25% (${trade_amount_usd:.2f})")
+            if strategy_type == 'Grid' or 'Grid Bot' in strategy_name:
+                print(f"✅ [GRID] Bypassing confluence check (using ATR-based grid entry)")
+                amount = trade_amount_usd / price
             else:
-                # Score < 75: AVOID/WAIT
-                print(f"[SKIP] Confluence V2 Reject: Score {v2_score}/100 (Threshold 75)")
-                return
+                # === CONFLUENCE CHECK FOR NON-GRID STRATEGIES ===
+            
+                # --- V2 CONFLUENCE CHECK ---
+                from confluence_engine import ConfluenceEngine
+                c_engine = ConfluenceEngine(db_path=self.logger.db_path)
+            
+                # Use provided btc_df_macro or fetch if missing
+                if btc_df_macro is None or btc_df_macro.empty:
+                    btc_df_macro = self.exchange.fetch_ohlcv('BTC/USDT', timeframe='1d', limit=250)
+            
+                # Simplified manual inputs (in production, these should be more accurate)
+                manual_inputs = {
+                    'rsi': rsi,
+                    'price': price,
+                    'volume_trend': 'INCREASING' if rsi > 50 else 'STABLE' # Proxy
+                }
+            
+                v2_result = c_engine.get_total_confluence_score(
+                    symbol.split('/')[0],
+                    manual_inputs=manual_inputs,
+                    btc_df=btc_df_macro
+                )
+            
+                # Record V2 result to DB for dashboard/calibration
+                if 'exchange' not in v2_result:
+                    v2_result['exchange'] = self.exchange_name
+                self.logger.log_confluence_score(v2_result)
+            
+                # --- DYNAMIC TRANCHING ---
+                v2_score = v2_result['scores']['final_total']
+            
+                if v2_score >= 85:
+                    # STRONG BUY: 40% of planned tranche
+                    trade_amount_usd = base_amount * 0.40
+                    print(f"🔥 HIGH CONVICTION: Score {v2_score}. Scaling to 40% (${trade_amount_usd:.2f})")
+                elif v2_score >= 75:
+                    # MODERATE BUY: 25% of planned tranche
+                    trade_amount_usd = base_amount * 0.25
+                    print(f"✅ MODERATE CONVICTION: Score {v2_score}. Scaling to 25% (${trade_amount_usd:.2f})")
+                else:
+                    # Score < 75: AVOID/WAIT
+                    print(f"[SKIP] Confluence V2 Reject: Score {v2_score}/100 (Threshold 75)")
+                    return
 
             # Recalculate amount with scaled trade_amount_usd
             amount = trade_amount_usd / price

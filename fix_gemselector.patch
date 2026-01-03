@@ -1,0 +1,22 @@
+--- a/run_bot.py
++++ b/run_bot.py
+@@ -226,12 +226,9 @@
+     # ✅ Filters: Volume > $5M, avoid dead narratives (Metaverse/GameFi)
+ 
+-    # Initialize GemSelector
+-    from intelligence.gem_selector import GemSelector
+-    gem_selector = GemSelector(exchange.exchange)
+-    gem_symbols = gem_selector.select_gems(max_count=15, hot_narratives_only=True)
+-
+     engine.add_bot({
+         'name': 'Hidden Gem Monitor V2',
+         'type': 'Buy-the-Dip',
+-        'symbols': gem_symbols,  # DYNAMIC (refreshed on startup)
++        'symbols': [  # Temporary static list until GemSelector integrated into engine
++            'FET/USDT', 'AGIX/USDT', 'RNDR/USDT', 'GRT/USDT',  # AI
++            'ARB/USDT', 'OP/USDT', 'MATIC/USDT', 'IMX/USDT',   # L2
++            'UNI/USDT', 'AAVE/USDT', 'CRV/USDT', 'SNX/USDT',   # DeFi
++            'LINK/USDT', 'ATOM/USDT', 'NEAR/USDT'              # Infra
++        ],  # V2: Current narratives (AI/L2/DeFi) - no dead coins!
+ 
+         'amount': 100,

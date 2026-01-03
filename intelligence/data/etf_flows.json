@@ -1,0 +1,22 @@
+{
+    "BTC": {
+        "status": "APPROVED",
+        "flows_7d": 1500,
+        "last_updated": "2025-12-25T15:09:47.007774"
+    },
+    "ETH": {
+        "status": "APPROVED",
+        "flows_7d": -200,
+        "last_updated": "2025-12-25T15:09:47.008149"
+    },
+    "XRP": {
+        "status": "FILING_ACTIVE",
+        "flows_7d": 0,
+        "last_updated": "2025-12-25T15:09:47.008476"
+    },
+    "SOL": {
+        "status": "FILING_ACTIVE",
+        "flows_7d": 0,
+        "last_updated": "2025-12-25T15:09:47.008879"
+    }
+}

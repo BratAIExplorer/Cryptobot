@@ -1,0 +1,1183 @@
+%!Adobe-FontList 1.24
+%Locale:0x409
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:Type1
+FontName:AdobeArabic-Bold
+FamilyName:Adobe Arabic
+StyleName:Bold
+FullName:Adobe Arabic Bold
+MenuName:Adobe Arabic
+StyleBits:2
+FamilyNameNative:Adobe Arabic
+StyleNameNative:Bold
+FullNameNative:Adobe Arabic Bold
+WritingScript:Arabic
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\Font\AdobeArabic-Bold.otf
+DataFormat:sfntData
+UsesStandardEncoding:yes
+isCFF:yes
+hasSVG:no
+hasCOLR:no
+VariableFontType:NonVariableFont
+FileLength:269672
+FileModTime:1612187368
+WeightClass:700
+WidthClass:5
+AngleClass:0
+DesignSize:110
+NameArray:0,Mac,4,Adobe Arabic Bold
+NameArray:0,Win,1,Adobe Arabic
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:Type1
+FontName:AdobeArabic-BoldItalic
+FamilyName:Adobe Arabic
+StyleName:Bold Italic
+FullName:Adobe Arabic Bold Italic
+MenuName:Adobe Arabic
+StyleBits:3
+FamilyNameNative:Adobe Arabic
+StyleNameNative:Bold Italic
+FullNameNative:Adobe Arabic Bold Italic
+WritingScript:Arabic
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\Font\AdobeArabic-BoldItalic.otf
+DataFormat:sfntData
+UsesStandardEncoding:yes
+isCFF:yes
+hasSVG:no
+hasCOLR:no
+VariableFontType:NonVariableFont
+FileLength:287804
+FileModTime:1612187368
+WeightClass:700
+WidthClass:5
+AngleClass:1
+DesignSize:110
+NameArray:0,Mac,4,Adobe Arabic Bold Italic
+NameArray:0,Win,1,Adobe Arabic
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:Type1
+FontName:AdobeArabic-Italic
+FamilyName:Adobe Arabic
+StyleName:Italic
+FullName:Adobe Arabic Italic
+MenuName:Adobe Arabic
+StyleBits:1
+FamilyNameNative:Adobe Arabic
+StyleNameNative:Italic
+FullNameNative:Adobe Arabic Italic
+WritingScript:Arabic
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\Font\AdobeArabic-Italic.otf
+DataFormat:sfntData
+UsesStandardEncoding:yes
+isCFF:yes
+hasSVG:no
+hasCOLR:no
+VariableFontType:NonVariableFont
+FileLength:286604
+FileModTime:1612187368
+WeightClass:400
+WidthClass:5
+AngleClass:1
+DesignSize:110
+NameArray:0,Mac,4,Adobe Arabic Italic
+NameArray:0,Win,1,Adobe Arabic
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:Type1
+FontName:AdobeArabic-Regular
+FamilyName:Adobe Arabic
+StyleName:Regular
+FullName:Adobe Arabic
+MenuName:Adobe Arabic
+StyleBits:0
+FamilyNameNative:Adobe Arabic
+StyleNameNative:Regular
+FullNameNative:Adobe Arabic Regular
+WritingScript:Arabic
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\Font\AdobeArabic-Regular.otf
+DataFormat:sfntData
+UsesStandardEncoding:yes
+isCFF:yes
+hasSVG:no
+hasCOLR:no
+VariableFontType:NonVariableFont
+FileLength:269028
+FileModTime:1612187368
+WeightClass:400
+WidthClass:5
+AngleClass:0
+DesignSize:110
+NameArray:0,Mac,4,Adobe Arabic
+NameArray:0,Win,1,Adobe Arabic
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:Type1
+FontName:AdobeDevanagari-Bold
+FamilyName:Adobe Devanagari
+StyleName:Bold
+FullName:Adobe Devanagari Bold
+MenuName:Adobe Devanagari
+StyleBits:2
+WritingScript:Devanagari
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\Font\AdobeDevanagari-Bold.otf
+DataFormat:sfntData
+UsesStandardEncoding:yes
+isCFF:yes
+hasSVG:no
+hasCOLR:no
+VariableFontType:NonVariableFont
+FileLength:327436
+FileModTime:1612187368
+WeightClass:700
+WidthClass:5
+AngleClass:0
+DesignSize:110
+NameArray:0,Mac,4,Adobe Devanagari Bold
+NameArray:0,Win,1,Adobe Devanagari
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:Type1
+FontName:AdobeDevanagari-BoldItalic
+FamilyName:Adobe Devanagari
+StyleName:Bold Italic
+FullName:Adobe Devanagari Bold Italic
+MenuName:Adobe Devanagari
+StyleBits:3
+WritingScript:Devanagari
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\Font\AdobeDevanagari-BoldItalic.otf
+DataFormat:sfntData
+UsesStandardEncoding:yes
+isCFF:yes
+hasSVG:no
+hasCOLR:no
+VariableFontType:NonVariableFont
+FileLength:333556
+FileModTime:1612187368
+WeightClass:700
+WidthClass:5
+AngleClass:1
+DesignSize:110
+NameArray:0,Mac,4,Adobe Devanagari Bold Italic
+NameArray:0,Win,1,Adobe Devanagari
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:Type1
+FontName:AdobeDevanagari-Italic
+FamilyName:Adobe Devanagari
+StyleName:Italic
+FullName:Adobe Devanagari Italic
+MenuName:Adobe Devanagari
+StyleBits:1
+WritingScript:Devanagari
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\Font\AdobeDevanagari-Italic.otf
+DataFormat:sfntData
+UsesStandardEncoding:yes
+isCFF:yes
+hasSVG:no
+hasCOLR:no
+VariableFontType:NonVariableFont
+FileLength:337716
+FileModTime:1612187368
+WeightClass:400
+WidthClass:5
+AngleClass:1
+DesignSize:110
+NameArray:0,Mac,4,Adobe Devanagari Italic
+NameArray:0,Win,1,Adobe Devanagari
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:Type1
+FontName:AdobeDevanagari-Regular
+FamilyName:Adobe Devanagari
+StyleName:Regular
+FullName:Adobe Devanagari
+MenuName:Adobe Devanagari
+StyleBits:0
+WritingScript:Devanagari
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\Font\AdobeDevanagari-Regular.otf
+DataFormat:sfntData
+UsesStandardEncoding:yes
+isCFF:yes
+hasSVG:no
+hasCOLR:no
+VariableFontType:NonVariableFont
+FileLength:331096
+FileModTime:1612187368
+WeightClass:400
+WidthClass:5
+AngleClass:0
+DesignSize:110
+NameArray:0,Mac,4,Adobe Devanagari
+NameArray:0,Win,1,Adobe Devanagari
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:Type1
+FontName:AdobeHebrew-Bold
+FamilyName:Adobe Hebrew
+StyleName:Bold
+FullName:Adobe Hebrew Bold
+MenuName:Adobe Hebrew
+StyleBits:2
+FamilyNameNative:Adobe Hebrew
+StyleNameNative:Bold
+FullNameNative:Adobe Hebrew Bold
+WritingScript:Hebrew
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\Font\AdobeHebrew-Bold.otf
+DataFormat:sfntData
+UsesStandardEncoding:yes
+isCFF:yes
+hasSVG:no
+hasCOLR:no
+VariableFontType:NonVariableFont
+FileLength:62360
+FileModTime:1612187368
+WeightClass:600
+WidthClass:5
+AngleClass:0
+DesignSize:110
+NameArray:0,Mac,4,Adobe Hebrew Bold
+NameArray:0,Win,1,Adobe Hebrew
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:Type1
+FontName:AdobeHebrew-BoldItalic
+FamilyName:Adobe Hebrew
+StyleName:Bold Italic
+FullName:Adobe Hebrew Bold Italic
+MenuName:Adobe Hebrew
+StyleBits:3
+FamilyNameNative:Adobe Hebrew
+StyleNameNative:Bold Italic
+FullNameNative:Adobe Hebrew Bold Italic
+WritingScript:Hebrew
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\Font\AdobeHebrew-BoldItalic.otf
+DataFormat:sfntData
+UsesStandardEncoding:yes
+isCFF:yes
+hasSVG:no
+hasCOLR:no
+VariableFontType:NonVariableFont
+FileLength:64900
+FileModTime:1612187368
+WeightClass:600
+WidthClass:5
+AngleClass:1
+DesignSize:110
+NameArray:0,Mac,4,Adobe Hebrew Bold Italic
+NameArray:0,Win,1,Adobe Hebrew
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:Type1
+FontName:AdobeHebrew-Italic
+FamilyName:Adobe Hebrew
+StyleName:Italic
+FullName:Adobe Hebrew Italic
+MenuName:Adobe Hebrew
+StyleBits:1
+FamilyNameNative:Adobe Hebrew
+StyleNameNative:Italic
+FullNameNative:Adobe Hebrew Italic
+WritingScript:Hebrew
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\Font\AdobeHebrew-Italic.otf
+DataFormat:sfntData
+UsesStandardEncoding:yes
+isCFF:yes
+hasSVG:no
+hasCOLR:no
+VariableFontType:NonVariableFont
+FileLength:64228
+FileModTime:1612187368
+WeightClass:400
+WidthClass:5
+AngleClass:1
+DesignSize:110
+NameArray:0,Mac,4,Adobe Hebrew Italic
+NameArray:0,Win,1,Adobe Hebrew
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:Type1
+FontName:AdobeHebrew-Regular
+FamilyName:Adobe Hebrew
+StyleName:Regular
+FullName:Adobe Hebrew
+MenuName:Adobe Hebrew
+StyleBits:0
+FamilyNameNative:Adobe Hebrew
+StyleNameNative:Regular
+FullNameNative:Adobe Hebrew Regular
+WritingScript:Hebrew
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\Font\AdobeHebrew-Regular.otf
+DataFormat:sfntData
+UsesStandardEncoding:yes
+isCFF:yes
+hasSVG:no
+hasCOLR:no
+VariableFontType:NonVariableFont
+FileLength:61752
+FileModTime:1612187368
+WeightClass:400
+WidthClass:5
+AngleClass:0
+DesignSize:110
+NameArray:0,Mac,4,Adobe Hebrew
+NameArray:0,Win,1,Adobe Hebrew
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:Type1
+FontName:AdobePiStd
+FamilyName:Adobe Pi Std
+StyleName:Regular
+FullName:Adobe Pi Std
+MenuName:Adobe Pi Std
+StyleBits:0
+WritingScript:Roman
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\Font\AdobePIStd.otf
+DataFormat:sfntData
+UsesStandardEncoding:yes
+isCFF:yes
+hasSVG:no
+hasCOLR:no
+VariableFontType:NonVariableFont
+FileLength:85552
+FileModTime:1612187368
+WeightClass:400
+WidthClass:5
+AngleClass:0
+DesignSize:240
+NameArray:0,Mac,4,Adobe Pi Std
+NameArray:0,Win,1,Adobe Pi Std
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:Type1
+FontName:AdobeThai-Bold
+FamilyName:Adobe Thai
+StyleName:Bold
+FullName:Adobe Thai Bold
+MenuName:Adobe Thai
+StyleBits:2
+WritingScript:Thai
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\Font\AdobeThai-Bold.otf
+DataFormat:sfntData
+UsesStandardEncoding:yes
+isCFF:yes
+hasSVG:no
+hasCOLR:no
+VariableFontType:NonVariableFont
+FileLength:63056
+FileModTime:1612187368
+WeightClass:600
+WidthClass:5
+AngleClass:0
+NameArray:0,Mac,4,Adobe Thai Bold
+NameArray:0,Win,1,Adobe Thai
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:Type1
+FontName:AdobeThai-BoldItalic
+FamilyName:Adobe Thai
+StyleName:Bold Italic
+FullName:Adobe Thai Bold Italic
+MenuName:Adobe Thai
+StyleBits:3
+WritingScript:Thai
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\Font\AdobeThai-BoldItalic.otf
+DataFormat:sfntData
+UsesStandardEncoding:yes
+isCFF:yes
+hasSVG:no
+hasCOLR:no
+VariableFontType:NonVariableFont
+FileLength:66188
+FileModTime:1612187368
+WeightClass:600
+WidthClass:5
+AngleClass:1
+NameArray:0,Mac,4,Adobe Thai Bold Italic
+NameArray:0,Win,1,Adobe Thai
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:Type1
+FontName:AdobeThai-Italic
+FamilyName:Adobe Thai
+StyleName:Italic
+FullName:Adobe Thai Italic
+MenuName:Adobe Thai
+StyleBits:1
+WritingScript:Thai
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\Font\AdobeThai-Italic.otf
+DataFormat:sfntData
+UsesStandardEncoding:yes
+isCFF:yes
+hasSVG:no
+hasCOLR:no
+VariableFontType:NonVariableFont
+FileLength:66476
+FileModTime:1612187368
+WeightClass:400
+WidthClass:5
+AngleClass:1
+NameArray:0,Mac,4,Adobe Thai Italic
+NameArray:0,Win,1,Adobe Thai
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:Type1
+FontName:AdobeThai-Regular
+FamilyName:Adobe Thai
+StyleName:Regular
+FullName:Adobe Thai Regular
+MenuName:Adobe Thai
+StyleBits:0
+WritingScript:Thai
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\Font\AdobeThai-Regular.otf
+DataFormat:sfntData
+UsesStandardEncoding:yes
+isCFF:yes
+hasSVG:no
+hasCOLR:no
+VariableFontType:NonVariableFont
+FileLength:62804
+FileModTime:1612187368
+WeightClass:400
+WidthClass:5
+AngleClass:0
+NameArray:0,Mac,18,Adobe Thai
+NameArray:0,Mac,4,Adobe Thai Regular
+NameArray:0,Win,1,Adobe Thai
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:Type1
+FontName:CourierStd-Bold
+FamilyName:Courier Std
+StyleName:Bold
+FullName:Courier Std Bold
+MenuName:Courier Std
+StyleBits:2
+WritingScript:Roman
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\Font\CourierStd-Bold.otf
+DataFormat:sfntData
+UsesStandardEncoding:yes
+isCFF:yes
+hasSVG:no
+hasCOLR:no
+VariableFontType:NonVariableFont
+FileLength:30488
+FileModTime:1612187368
+WeightClass:700
+WidthClass:5
+AngleClass:0
+DesignSize:120
+NameArray:0,Mac,4,Courier Std Bold
+NameArray:0,Win,1,Courier Std
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:Type1
+FontName:CourierStd-BoldOblique
+FamilyName:Courier Std
+StyleName:Bold Oblique
+FullName:Courier Std Bold Oblique
+MenuName:Courier Std
+StyleBits:3
+WritingScript:Roman
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\Font\CourierStd-BoldOblique.otf
+DataFormat:sfntData
+UsesStandardEncoding:yes
+isCFF:yes
+hasSVG:no
+hasCOLR:no
+VariableFontType:NonVariableFont
+FileLength:31948
+FileModTime:1612187368
+WeightClass:700
+WidthClass:5
+AngleClass:1
+DesignSize:120
+NameArray:0,Mac,4,Courier Std Bold Oblique
+NameArray:0,Win,1,Courier Std
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:Type1
+FontName:CourierStd-Oblique
+FamilyName:Courier Std
+StyleName:Medium Oblique
+FullName:Courier Std Medium Oblique
+MenuName:Courier Std
+StyleBits:1
+WritingScript:Roman
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\Font\CourierStd-Oblique.otf
+DataFormat:sfntData
+UsesStandardEncoding:yes
+isCFF:yes
+hasSVG:no
+hasCOLR:no
+VariableFontType:NonVariableFont
+FileLength:32296
+FileModTime:1612187368
+WeightClass:500
+WidthClass:5
+AngleClass:1
+DesignSize:120
+NameArray:0,Mac,18,Courier Std Oblique
+NameArray:0,Mac,4,Courier Std Medium Oblique
+NameArray:0,Win,1,Courier Std
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:Type1
+FontName:CourierStd
+FamilyName:Courier Std
+StyleName:Medium
+FullName:Courier Std Medium
+MenuName:Courier Std
+StyleBits:0
+WritingScript:Roman
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\Font\CourierStd.otf
+DataFormat:sfntData
+UsesStandardEncoding:yes
+isCFF:yes
+hasSVG:no
+hasCOLR:no
+VariableFontType:NonVariableFont
+FileLength:30824
+FileModTime:1612187368
+WeightClass:500
+WidthClass:5
+AngleClass:0
+DesignSize:120
+NameArray:0,Mac,18,Courier Std
+NameArray:0,Mac,4,Courier Std Medium
+NameArray:0,Win,1,Courier Std
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:Type1
+FontName:MinionPro-Bold
+FamilyName:Minion Pro
+StyleName:Bold
+FullName:Minion Pro Bold
+MenuName:Minion Pro
+StyleBits:2
+WritingScript:Roman
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\Font\MinionPro-Bold.otf
+DataFormat:sfntData
+UsesStandardEncoding:yes
+isCFF:yes
+hasSVG:no
+hasCOLR:no
+VariableFontType:NonVariableFont
+FileLength:210284
+FileModTime:1612187368
+WeightClass:700
+WidthClass:5
+AngleClass:0
+DesignSize:110
+NameArray:0,Mac,4,Minion Pro Bold
+NameArray:0,Win,1,Minion Pro
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:Type1
+FontName:MinionPro-BoldIt
+FamilyName:Minion Pro
+StyleName:Bold Italic
+FullName:Minion Pro Bold Italic
+MenuName:Minion Pro
+StyleBits:3
+WritingScript:Roman
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\Font\MinionPro-BoldIt.otf
+DataFormat:sfntData
+UsesStandardEncoding:yes
+isCFF:yes
+hasSVG:no
+hasCOLR:no
+VariableFontType:NonVariableFont
+FileLength:251140
+FileModTime:1612187368
+WeightClass:700
+WidthClass:5
+AngleClass:1
+DesignSize:110
+NameArray:0,Mac,18,Minion Pro Bold Ital
+NameArray:0,Mac,4,Minion Pro Bold Italic
+NameArray:0,Win,1,Minion Pro
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:Type1
+FontName:MinionPro-It
+FamilyName:Minion Pro
+StyleName:Italic
+FullName:Minion Pro Italic
+MenuName:Minion Pro
+StyleBits:1
+WritingScript:Roman
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\Font\MinionPro-It.otf
+DataFormat:sfntData
+UsesStandardEncoding:yes
+isCFF:yes
+hasSVG:no
+hasCOLR:no
+VariableFontType:NonVariableFont
+FileLength:252108
+FileModTime:1612187368
+WeightClass:400
+WidthClass:5
+AngleClass:1
+DesignSize:110
+NameArray:0,Mac,18,Minion Pro Ital
+NameArray:0,Mac,4,Minion Pro Italic
+NameArray:0,Win,1,Minion Pro
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:Type1
+FontName:MinionPro-Regular
+FamilyName:Minion Pro
+StyleName:Regular
+FullName:Minion Pro
+MenuName:Minion Pro
+StyleBits:0
+WritingScript:Roman
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\Font\MinionPro-Regular.otf
+DataFormat:sfntData
+UsesStandardEncoding:yes
+isCFF:yes
+hasSVG:no
+hasCOLR:no
+VariableFontType:NonVariableFont
+FileLength:210808
+FileModTime:1612187368
+WeightClass:400
+WidthClass:5
+AngleClass:0
+DesignSize:110
+NameArray:0,Mac,4,Minion Pro
+NameArray:0,Win,1,Minion Pro
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:Type1
+FontName:MyriadArabic-Bold
+FamilyName:Myriad Arabic
+StyleName:Bold
+FullName:Myriad Arabic Bold
+MenuName:Myriad Arabic
+StyleBits:2
+FamilyNameNative:Myriad عربي
+StyleNameNative:Bold
+FullNameNative:Myriad عربي Bold
+WritingScript:Arabic
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\Font\MyriadArabic-Bold.otf
+DataFormat:sfntData
+UsesStandardEncoding:yes
+isCFF:yes
+hasSVG:no
+hasCOLR:no
+VariableFontType:NonVariableFont
+FileLength:156044
+FileModTime:1612187368
+WeightClass:700
+WidthClass:5
+AngleClass:0
+DesignSize:120
+NameArray:0,Mac,4,Myriad Arabic Bold
+NameArray:4,Win,1,Myriad عربي
+NameArray:0,Win,1,Myriad Arabic
+NameArray:0,Win,1,Myriad عربي
+NameArray:31,Win,1,Myriad عربي
+NameArray:0,Win,1,Myriad عربي
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:Type1
+FontName:MyriadArabic-BoldIt
+FamilyName:Myriad Arabic
+StyleName:Bold Italic
+FullName:Myriad Arabic Bold Italic
+MenuName:Myriad Arabic
+StyleBits:3
+FamilyNameNative:Myriad عربي
+StyleNameNative:Bold Italic
+FullNameNative:Myriad عربي Bold Italic
+WritingScript:Arabic
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\Font\MyriadArabic-BoldIt.otf
+DataFormat:sfntData
+UsesStandardEncoding:yes
+isCFF:yes
+hasSVG:no
+hasCOLR:no
+VariableFontType:NonVariableFont
+FileLength:178016
+FileModTime:1612187368
+WeightClass:700
+WidthClass:5
+AngleClass:1
+DesignSize:120
+NameArray:0,Mac,4,Myriad Arabic Bold Italic
+NameArray:4,Win,1,Myriad عربي
+NameArray:0,Win,1,Myriad Arabic
+NameArray:0,Win,1,Myriad عربي
+NameArray:31,Win,1,Myriad عربي
+NameArray:0,Win,1,Myriad عربي
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:Type1
+FontName:MyriadArabic-It
+FamilyName:Myriad Arabic
+StyleName:Italic
+FullName:Myriad Arabic Italic
+MenuName:Myriad Arabic
+StyleBits:1
+FamilyNameNative:Myriad عربي
+StyleNameNative:Italic
+FullNameNative:Myriad عربي Italic
+WritingScript:Arabic
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\Font\MyriadArabic-It.otf
+DataFormat:sfntData
+UsesStandardEncoding:yes
+isCFF:yes
+hasSVG:no
+hasCOLR:no
+VariableFontType:NonVariableFont
+FileLength:174744
+FileModTime:1612187368
+WeightClass:400
+WidthClass:5
+AngleClass:1
+DesignSize:120
+NameArray:0,Mac,4,Myriad Arabic Italic
+NameArray:4,Win,1,Myriad عربي
+NameArray:0,Win,1,Myriad Arabic
+NameArray:0,Win,1,Myriad عربي
+NameArray:31,Win,1,Myriad عربي
+NameArray:0,Win,1,Myriad عربي
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:Type1
+FontName:MyriadArabic-Regular
+FamilyName:Myriad Arabic
+StyleName:Regular
+FullName:Myriad Arabic
+MenuName:Myriad Arabic
+StyleBits:0
+FamilyNameNative:Myriad عربي
+StyleNameNative:Regular
+FullNameNative:Myriad عربي Regular
+WritingScript:Arabic
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\Font\MyriadArabic-Regular.otf
+DataFormat:sfntData
+UsesStandardEncoding:yes
+isCFF:yes
+hasSVG:no
+hasCOLR:no
+VariableFontType:NonVariableFont
+FileLength:150996
+FileModTime:1612187368
+WeightClass:400
+WidthClass:5
+AngleClass:0
+DesignSize:120
+NameArray:0,Mac,4,Myriad Arabic
+NameArray:4,Win,1,Myriad عربي
+NameArray:0,Win,1,Myriad Arabic
+NameArray:0,Win,1,Myriad عربي
+NameArray:31,Win,1,Myriad عربي
+NameArray:0,Win,1,Myriad عربي
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:Type1
+FontName:MyriadHebrew-Bold
+FamilyName:Myriad Hebrew
+StyleName:Bold
+FullName:Myriad Hebrew Bold
+MenuName:Myriad Hebrew
+StyleBits:2
+FamilyNameNative:Myriad עברית
+StyleNameNative:Bold
+FullNameNative:Myriad עברית Bold
+WritingScript:Hebrew
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\Font\MyriadHebrew-Bold.otf
+DataFormat:sfntData
+UsesStandardEncoding:yes
+isCFF:yes
+hasSVG:no
+hasCOLR:no
+VariableFontType:NonVariableFont
+FileLength:72604
+FileModTime:1612187368
+WeightClass:700
+WidthClass:5
+AngleClass:0
+DesignSize:120
+NameArray:0,Mac,4,Myriad Hebrew Bold
+NameArray:0,Win,1,Myriad Hebrew
+NameArray:5,Win,1,Myriad עברית
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:Type1
+FontName:MyriadHebrew-BoldIt
+FamilyName:Myriad Hebrew
+StyleName:Bold Italic
+FullName:Myriad Hebrew Bold Italic
+MenuName:Myriad Hebrew
+StyleBits:3
+FamilyNameNative:Myriad עברית
+StyleNameNative:Bold Italic
+FullNameNative:Myriad עברית Bold Italic
+WritingScript:Hebrew
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\Font\MyriadHebrew-BoldIt.otf
+DataFormat:sfntData
+UsesStandardEncoding:yes
+isCFF:yes
+hasSVG:no
+hasCOLR:no
+VariableFontType:NonVariableFont
+FileLength:73768
+FileModTime:1612187368
+WeightClass:700
+WidthClass:5
+AngleClass:1
+DesignSize:120
+NameArray:0,Mac,4,Myriad Hebrew Bold Italic
+NameArray:0,Win,1,Myriad Hebrew
+NameArray:5,Win,1,Myriad עברית
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:Type1
+FontName:MyriadHebrew-It
+FamilyName:Myriad Hebrew
+StyleName:Italic
+FullName:Myriad Hebrew Italic
+MenuName:Myriad Hebrew
+StyleBits:1
+FamilyNameNative:Myriad עברית
+StyleNameNative:Italic
+FullNameNative:Myriad עברית Italic
+WritingScript:Hebrew
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\Font\MyriadHebrew-It.otf
+DataFormat:sfntData
+UsesStandardEncoding:yes
+isCFF:yes
+hasSVG:no
+hasCOLR:no
+VariableFontType:NonVariableFont
+FileLength:73816
+FileModTime:1612187368
+WeightClass:400
+WidthClass:5
+AngleClass:1
+DesignSize:120
+NameArray:0,Mac,4,Myriad Hebrew Italic
+NameArray:0,Win,1,Myriad Hebrew
+NameArray:5,Win,1,Myriad עברית
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:Type1
+FontName:MyriadHebrew-Regular
+FamilyName:Myriad Hebrew
+StyleName:Regular
+FullName:Myriad Hebrew
+MenuName:Myriad Hebrew
+StyleBits:0
+FamilyNameNative:Myriad עברית
+StyleNameNative:Regular
+FullNameNative:Myriad עברית Regular
+WritingScript:Hebrew
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\Font\MyriadHebrew-Regular.otf
+DataFormat:sfntData
+UsesStandardEncoding:yes
+isCFF:yes
+hasSVG:no
+hasCOLR:no
+VariableFontType:NonVariableFont
+FileLength:73428
+FileModTime:1612187368
+WeightClass:400
+WidthClass:5
+AngleClass:0
+DesignSize:120
+NameArray:0,Mac,18,Myriad Hebrew Regular
+NameArray:0,Mac,4,Myriad Hebrew
+NameArray:0,Win,1,Myriad Hebrew
+NameArray:5,Win,1,Myriad עברית
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:Type1
+FontName:MyriadPro-Bold
+FamilyName:Myriad Pro
+StyleName:Bold
+FullName:Myriad Pro Bold
+MenuName:Myriad Pro
+StyleBits:2
+WritingScript:Roman
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\Font\MyriadPro-Bold.otf
+DataFormat:sfntData
+UsesStandardEncoding:yes
+isCFF:yes
+hasSVG:no
+hasCOLR:no
+VariableFontType:NonVariableFont
+FileLength:90456
+FileModTime:1612187368
+WeightClass:700
+WidthClass:5
+AngleClass:0
+DesignSize:110
+NameArray:0,Mac,4,Myriad Pro Bold
+NameArray:0,Win,1,Myriad Pro
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:Type1
+FontName:MyriadPro-BoldIt
+FamilyName:Myriad Pro
+StyleName:Bold Italic
+FullName:Myriad Pro Bold Italic
+MenuName:Myriad Pro
+StyleBits:3
+WritingScript:Roman
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\Font\MyriadPro-BoldIt.otf
+DataFormat:sfntData
+UsesStandardEncoding:yes
+isCFF:yes
+hasSVG:no
+hasCOLR:no
+VariableFontType:NonVariableFont
+FileLength:92636
+FileModTime:1612187368
+WeightClass:700
+WidthClass:5
+AngleClass:1
+DesignSize:110
+NameArray:0,Mac,18,Myriad Pro Bold It
+NameArray:0,Mac,4,Myriad Pro Bold Italic
+NameArray:0,Win,1,Myriad Pro
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:Type1
+FontName:MyriadPro-It
+FamilyName:Myriad Pro
+StyleName:Italic
+FullName:Myriad Pro Italic
+MenuName:Myriad Pro
+StyleBits:1
+WritingScript:Roman
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\Font\MyriadPro-It.otf
+DataFormat:sfntData
+UsesStandardEncoding:yes
+isCFF:yes
+hasSVG:no
+hasCOLR:no
+VariableFontType:NonVariableFont
+FileLength:91132
+FileModTime:1612187368
+WeightClass:400
+WidthClass:5
+AngleClass:1
+DesignSize:110
+NameArray:0,Mac,18,Myriad Pro It
+NameArray:0,Mac,4,Myriad Pro Italic
+NameArray:0,Win,1,Myriad Pro
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:Type1
+FontName:MyriadPro-Regular
+FamilyName:Myriad Pro
+StyleName:Regular
+FullName:Myriad Pro
+MenuName:Myriad Pro
+StyleBits:0
+WritingScript:Roman
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\Font\MyriadPro-Regular.otf
+DataFormat:sfntData
+UsesStandardEncoding:yes
+isCFF:yes
+hasSVG:no
+hasCOLR:no
+VariableFontType:NonVariableFont
+FileLength:90404
+FileModTime:1612187368
+WeightClass:400
+WidthClass:5
+AngleClass:0
+DesignSize:110
+NameArray:0,Mac,4,Myriad Pro
+NameArray:0,Win,1,Myriad Pro
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:PFM
+FontName:Symbol
+NumMMAxes:0
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\Font\Pfm\SY______.PFM
+FileLength:672
+FileModTime:1612187368
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:PFM
+FontName:AdobeSansMM
+NumMMAxes:0
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\Font\Pfm\zx______.pfm
+FileLength:683
+FileModTime:1612187368
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:PFM
+FontName:AdobeSerifMM
+NumMMAxes:0
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\Font\Pfm\zy______.pfm
+FileLength:684
+FileModTime:1612187368
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:Type1
+FontName:Symbol
+FamilyName:Symbol
+StyleName:Regular
+FullName:Symbol
+MenuName:Symbol
+StyleBits:0
+WritingScript:Roman
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\Font\SY______.PFB
+DataFormat:Plain
+UsesStandardEncoding:no
+isCFF:no
+hasSVG:no
+hasCOLR:no
+VariableFontType:NonVariableFont
+FileLength:34705
+FileModTime:1612187368
+WeightClass:400
+WidthClass:5
+AngleClass:0
+DesignSize:-1
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:Type1
+FontName:AdobeSansMM
+FamilyName:Adobe Sans MM
+StyleName:Regular
+FullName:Adobe Sans MM
+MenuName:Adobe Sans MM
+StyleBits:0
+WritingScript:Roman
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\Font\ZX______.PFB
+DataFormat:Plain
+MMAxisName:Weight
+MMAxisName:Width
+UsesStandardEncoding:yes
+isCFF:no
+hasSVG:no
+hasCOLR:no
+VariableFontType:NonVariableFont
+FileLength:75573
+FileModTime:1612187368
+WeightClass:400
+WidthClass:5
+AngleClass:0
+DesignSize:-1
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:Type1
+FontName:AdobeSerifMM
+FamilyName:Adobe Serif MM
+StyleName:Regular
+FullName:Adobe Serif MM
+MenuName:Adobe Serif MM
+StyleBits:0
+WritingScript:Roman
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\Font\ZY______.PFB
+DataFormat:Plain
+MMAxisName:Weight
+MMAxisName:Width
+UsesStandardEncoding:yes
+isCFF:no
+hasSVG:no
+hasCOLR:no
+VariableFontType:NonVariableFont
+FileLength:96418
+FileModTime:1612187368
+WeightClass:400
+WidthClass:5
+AngleClass:0
+DesignSize:-1
+%EndFont
+

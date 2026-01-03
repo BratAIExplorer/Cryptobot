@@ -1,0 +1,293 @@
+%!Adobe-FontList 1.24
+%Locale:0x409
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:CID
+FontName:AdobeFanHeitiStd-Bold
+FamilyName:Adobe Fan Heiti Std
+StyleName:B
+FullName:Adobe Fan Heiti Std B
+MenuName:Adobe Fan Heiti Std B
+StyleBits:2
+FamilyNameNative:Adobe 繁黑體 Std
+StyleNameNative:B
+FullNameNative:Adobe 繁黑體 Std B
+WritingScript:TraditionalChinese
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\CIDFont\AdobeFanHeitiStd-Bold.otf
+DataFormat:sfntData
+isCFF:yes
+hasSVG:no
+hasCOLR:no
+VariableFontType:NonVariableFont
+FileLength:5493688
+FileModTime:1612187368
+WeightClass:600
+WidthClass:5
+AngleClass:0
+NameArray:0,Mac,4,Adobe Fan Heiti Std B
+NameArray:2,Mac,4,Adobe 繁黑體 Std B
+NameArray:2,Win,1,Adobe 繁黑體 Std B
+NameArray:2,Win,16,Adobe 繁黑體 Std
+NameArray:0,Win,1,Adobe Fan Heiti Std B
+NameArray:0,Win,16,Adobe Fan Heiti Std
+NameArray:2,Win,1,Adobe 繁黑體 Std B
+NameArray:2,Win,16,Adobe 繁黑體 Std
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:CID
+FontName:AdobeGothicStd-Bold
+FamilyName:Adobe Gothic Std
+StyleName:B
+FullName:Adobe Gothic Std B
+MenuName:Adobe Gothic Std B
+StyleBits:2
+FamilyNameNative:Adobe 고딕 Std
+StyleNameNative:B
+FullNameNative:Adobe 고딕 Std B
+WritingScript:Korean
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\CIDFont\AdobeGothicStd-Bold.otf
+DataFormat:sfntData
+isCFF:yes
+hasSVG:no
+hasCOLR:no
+VariableFontType:NonVariableFont
+FileLength:2880900
+FileModTime:1612187368
+WeightClass:700
+WidthClass:5
+AngleClass:0
+NameArray:0,Mac,4,Adobe Gothic Std B
+NameArray:3,Mac,4,Adobe 고딕 Std B
+NameArray:0,Win,1,Adobe Gothic Std B
+NameArray:0,Win,16,Adobe Gothic Std
+NameArray:3,Win,1,Adobe 고딕 Std B
+NameArray:3,Win,16,Adobe 고딕 Std
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:CID
+FontName:AdobeGothicStd-Light
+FamilyName:Adobe Gothic Std
+StyleName:L
+FullName:Adobe Gothic Std L
+MenuName:Adobe Gothic Std L
+StyleBits:0
+FamilyNameNative:Adobe 고딕 Std
+StyleNameNative:L
+FullNameNative:Adobe 고딕 Std L
+WritingScript:Korean
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\CIDFont\AdobeGothicStd-Light.otf
+DataFormat:sfntData
+isCFF:yes
+hasSVG:no
+hasCOLR:no
+VariableFontType:NonVariableFont
+FileLength:2855920
+FileModTime:1612187368
+WeightClass:500
+WidthClass:5
+AngleClass:0
+NameArray:0,Mac,4,Adobe Gothic Std L
+NameArray:3,Mac,4,Adobe 고딕 Std L
+NameArray:0,Win,1,Adobe Gothic Std L
+NameArray:0,Win,16,Adobe Gothic Std
+NameArray:3,Win,1,Adobe 고딕 Std L
+NameArray:3,Win,16,Adobe 고딕 Std
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:CID
+FontName:AdobeHeitiStd-Regular
+FamilyName:Adobe Heiti Std
+StyleName:R
+FullName:Adobe Heiti Std R
+MenuName:Adobe Heiti Std R
+StyleBits:0
+FamilyNameNative:Adobe 黑体 Std
+StyleNameNative:R
+FullNameNative:Adobe 黑体 Std R
+WritingScript:SimplifiedChinese
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\CIDFont\AdobeHeitiStd-Regular.otf
+DataFormat:sfntData
+isCFF:yes
+hasSVG:no
+hasCOLR:no
+VariableFontType:NonVariableFont
+FileLength:12257480
+FileModTime:1612187368
+WeightClass:400
+WidthClass:5
+AngleClass:0
+NameArray:0,Mac,4,Adobe Heiti Std R
+NameArray:25,Mac,4,Adobe 黑体 Std R
+NameArray:0,Win,1,Adobe Heiti Std R
+NameArray:0,Win,16,Adobe Heiti Std
+NameArray:25,Win,1,Adobe 黑体 Std R
+NameArray:25,Win,16,Adobe 黑体 Std
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:CID
+FontName:AdobeMingStd-Light
+FamilyName:Adobe Ming Std
+StyleName:L
+FullName:Adobe Ming Std L
+MenuName:Adobe Ming Std L
+StyleBits:0
+FamilyNameNative:Adobe 明體 Std
+StyleNameNative:L
+FullNameNative:Adobe 明體 Std L
+WritingScript:TraditionalChinese
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\CIDFont\AdobeMingStd-Light.otf
+DataFormat:sfntData
+isCFF:yes
+hasSVG:no
+hasCOLR:no
+VariableFontType:NonVariableFont
+FileLength:10167416
+FileModTime:1612187368
+WeightClass:300
+WidthClass:5
+AngleClass:0
+NameArray:0,Mac,4,Adobe Ming Std L
+NameArray:2,Mac,4,Adobe 明體 Std L
+NameArray:2,Win,1,Adobe 明體 Std L
+NameArray:2,Win,16,Adobe 明體 Std
+NameArray:0,Win,1,Adobe Ming Std L
+NameArray:0,Win,16,Adobe Ming Std
+NameArray:2,Win,1,Adobe 明體 Std L
+NameArray:2,Win,16,Adobe 明體 Std
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:CID
+FontName:AdobeMyungjoStd-Medium
+FamilyName:Adobe Myungjo Std
+StyleName:M
+FullName:Adobe Myungjo Std M
+MenuName:Adobe Myungjo Std M
+StyleBits:0
+FamilyNameNative:Adobe 명조 Std
+StyleNameNative:M
+FullNameNative:Adobe 명조 Std M
+WritingScript:Korean
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\CIDFont\AdobeMyungjoStd-Medium.otf
+DataFormat:sfntData
+isCFF:yes
+hasSVG:no
+hasCOLR:no
+VariableFontType:NonVariableFont
+FileLength:4096836
+FileModTime:1612187368
+WeightClass:500
+WidthClass:5
+AngleClass:0
+NameArray:0,Mac,4,Adobe Myungjo Std M
+NameArray:3,Mac,4,Adobe 명조 Std M
+NameArray:0,Win,1,Adobe Myungjo Std M
+NameArray:0,Win,16,Adobe Myungjo Std
+NameArray:3,Win,1,Adobe 명조 Std M
+NameArray:3,Win,16,Adobe 명조 Std
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:CID
+FontName:AdobeSongStd-Light
+FamilyName:Adobe Song Std
+StyleName:L
+FullName:Adobe Song Std L
+MenuName:Adobe Song Std L
+StyleBits:0
+FamilyNameNative:Adobe 宋体 Std
+StyleNameNative:L
+FullNameNative:Adobe 宋体 Std L
+WritingScript:SimplifiedChinese
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\CIDFont\AdobeSongStd-Light.otf
+DataFormat:sfntData
+isCFF:yes
+hasSVG:no
+hasCOLR:no
+VariableFontType:NonVariableFont
+FileLength:15582876
+FileModTime:1612187368
+WeightClass:300
+WidthClass:5
+AngleClass:0
+NameArray:0,Mac,4,Adobe Song Std L
+NameArray:25,Mac,4,Adobe 宋体 Std L
+NameArray:0,Win,1,Adobe Song Std L
+NameArray:0,Win,16,Adobe Song Std
+NameArray:25,Win,1,Adobe 宋体 Std L
+NameArray:25,Win,16,Adobe 宋体 Std
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:CID
+FontName:KozGoPr6N-Medium
+FamilyName:Kozuka Gothic Pr6N
+StyleName:M
+FullName:KozGoPr6N-Medium
+MenuName:Kozuka Gothic Pr6N M
+StyleBits:0
+FamilyNameNative:小塚ゴシック Pr6N
+StyleNameNative:M
+FullNameNative:小塚ゴシック Pr6N M
+WritingScript:Japanese
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\CIDFont\KozGoPr6N-Medium.otf
+DataFormat:sfntData
+isCFF:yes
+hasSVG:no
+hasCOLR:no
+VariableFontType:NonVariableFont
+FileLength:5646012
+FileModTime:1612187368
+WeightClass:500
+WidthClass:5
+AngleClass:0
+NameArray:1,Mac,4,小塚ゴシック Pr6N M
+NameArray:0,Win,1,Kozuka Gothic Pr6N M
+NameArray:0,Win,16,Kozuka Gothic Pr6N
+NameArray:1,Win,1,小塚ゴシック Pr6N M
+NameArray:1,Win,16,小塚ゴシック Pr6N
+%EndFont
+
+%BeginFont
+Handler:DirectoryHandler
+FontType:CID
+FontName:KozMinPr6N-Regular
+FamilyName:Kozuka Mincho Pr6N
+StyleName:R
+FullName:KozMinPr6N-Regular
+MenuName:Kozuka Mincho Pr6N R
+StyleBits:0
+FamilyNameNative:小塚明朝 Pr6N
+StyleNameNative:R
+FullNameNative:小塚明朝 Pr6N R
+WritingScript:Japanese
+OutlineFileName:C:\Program Files\Adobe\Acrobat DC\Resource\CIDFont\KozMinPr6N-Regular.otf
+DataFormat:sfntData
+isCFF:yes
+hasSVG:no
+hasCOLR:no
+VariableFontType:NonVariableFont
+FileLength:6657356
+FileModTime:1612187368
+WeightClass:400
+WidthClass:5
+AngleClass:0
+NameArray:1,Mac,4,小塚明朝 Pr6N R
+NameArray:0,Win,1,Kozuka Mincho Pr6N R
+NameArray:0,Win,16,Kozuka Mincho Pr6N
+NameArray:1,Win,1,小塚明朝 Pr6N R
+NameArray:1,Win,16,小塚明朝 Pr6N
+%EndFont
+

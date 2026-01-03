@@ -74,8 +74,8 @@ def main():
         'grid_levels': 20,
         'atr_multiplier': 2.0,
         'atr_period': 14,
-        'lower_limit': 88000,
-        'upper_limit': 108000,
+        'lower_limit': 85000,
+        'upper_limit': 110000,
         'initial_balance': 3000,  # Scaled from $1K to $3K
         'max_exposure_per_coin': 3000
     })
@@ -236,34 +236,34 @@ def main():
     # ✅ Current narratives: AI, L2, DeFi, Infra (no dead Metaverse/GameFi coins!)
     # NOTE: GemSelector integration pending - using curated static list for now
 
-    engine.add_bot({
-        'name': 'Hidden Gem Monitor V2',
-        'type': 'Buy-the-Dip',
-        'symbols': [
-            # AI Narrative
-            'FET/USDT', 'AGIX/USDT', 'RNDR/USDT', 'GRT/USDT',
-            # L2 Narrative
-            'ARB/USDT', 'OP/USDT', 'MATIC/USDT', 'IMX/USDT',
-            # DeFi Blue Chips
-            'UNI/USDT', 'AAVE/USDT', 'CRV/USDT', 'SNX/USDT',
-            # Infrastructure
-            'LINK/USDT', 'ATOM/USDT', 'NEAR/USDT'
-        ],  # V2: Current hot narratives (no SAND, MANA, AXS dead coins!)
-
-        'amount': 100,
-        'initial_balance': 1800,
-
-        # V2 EXIT RULES (FIXED!)
-        'take_profit_pct': 0.15,      # 15% TP (was 10% - gems pump harder)
-        'stop_loss_pct': 0.10,        # 10% SL (was 20% - suicidal!)
-        'max_hold_hours': None,       # No time limit (was 72h - forced bad exits)
-
-        # Dip parameters
-        'dip_percentage': 0.08,       # 8% dip (bigger than BTC/ETH)
-        'min_confluence': 70,         # Higher quality filter
-
-        'max_exposure_per_coin': 100
-    })
+#     engine.add_bot({
+#         'name': 'Hidden Gem Monitor V2',
+#         'type': 'Buy-the-Dip',
+#         'symbols': [
+#             # AI Narrative
+#             'FET/USDT', 'AGIX/USDT', 'RNDR/USDT', 'GRT/USDT',
+#             # L2 Narrative
+#             'ARB/USDT', 'OP/USDT', 'MATIC/USDT', 'IMX/USDT',
+#             # DeFi Blue Chips
+#             'UNI/USDT', 'AAVE/USDT', 'CRV/USDT', 'SNX/USDT',
+#             # Infrastructure
+#             'LINK/USDT', 'ATOM/USDT', 'NEAR/USDT'
+#         ],  # V2: Current hot narratives (no SAND, MANA, AXS dead coins!)
+# 
+#         'amount': 100,
+#         'initial_balance': 1800,
+# 
+#         # V2 EXIT RULES (FIXED!)
+#         'take_profit_pct': 0.15,      # 15% TP (was 10% - gems pump harder)
+#         'stop_loss_pct': 0.10,        # 10% SL (was 20% - suicidal!)
+#         'max_hold_hours': None,       # No time limit (was 72h - forced bad exits)
+# 
+#         # Dip parameters
+#         'dip_percentage': 0.08,       # 8% dip (bigger than BTC/ETH)
+#         'min_confluence': 70,         # Higher quality filter
+# 
+#         'max_exposure_per_coin': 100
+#     })
     
     # ==========================================
     # 🗑️ DIP SNIPER - DELETED (2025-12-30)

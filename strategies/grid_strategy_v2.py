@@ -68,6 +68,17 @@ class DynamicGridStrategy:
         # 0. Check Grid State
         has_positions = not open_positions.empty
         
+        # DEBUG
+        print(f"[GRID DEBUG] {self.symbol}: Price=${current_price:.2f}, Lower=${self.lower_limit}, Upper=${self.upper_limit}")
+
+        # Initialize limits if None (use static fallback)
+        if self.lower_limit is None:
+            self.lower_limit = self.lower_limit_static
+            self.upper_limit = self.upper_limit_static
+            self.grids = np.linspace(self.lower_limit_static, self.upper_limit_static, self.grid_levels)
+            self.grid_step = (self.upper_limit_static - self.lower_limit_static) / (self.grid_levels - 1)
+            print(f"[Grid] {self.symbol}: Initialized with static range ${self.lower_limit:.0f}-${self.upper_limit:.0f}")
+
         # Lock grids if we have positions, Unlock if empty
         if has_positions:
             self.is_locked = True
@@ -75,14 +86,17 @@ class DynamicGridStrategy:
             self.is_locked = False
             
         # If unlocked and we have data, update grids
-        if not self.is_locked and df is not None:
+        if False and not self.is_locked and df is not None:  # FORCE STATIC GRIDS FOR PROFITABILITY
              if self.calculate_grids(df):
                  # print(f"[GridUpdate] New Range: {self.lower_limit:.2f} - {self.upper_limit:.2f}")
                  pass
              elif self.grids is None:
                  # Fallback to static if calc failed and no grids exist
+                 self.lower_limit = self.lower_limit_static
+                 self.upper_limit = self.upper_limit_static
                  self.grids = np.linspace(self.lower_limit_static, self.upper_limit_static, self.grid_levels)
                  self.grid_step = (self.upper_limit_static - self.lower_limit_static) / (self.grid_levels - 1)
+                 print(f"[Grid] Using static range ${self.lower_limit:.0f}-${self.upper_limit:.0f}")
 
         # Safety: If grids still None, abort
         if self.grids is None:
@@ -105,6 +119,7 @@ class DynamicGridStrategy:
                     }
 
         # 2. Check for BUY opportunities
+        print(f"[GRID] {self.symbol}: Checking BUY opportunities, grids={len(self.grids) if self.grids is not None else 0}")
         
         # Stop-Grid Protection: Don't buy if price is below lower limit (falling knife)
         if self.lower_limit and current_price < self.lower_limit * 0.98: # 2% buffer below range
@@ -127,7 +142,7 @@ class DynamicGridStrategy:
         
         if not has_position_at_level:
             # Buy if close to grid line
-            if abs(current_price - buy_level) < (self.grid_step * 0.2):
+            if abs(current_price - buy_level) < (self.grid_step * 0.5):
                 return {
                     'side': 'BUY',
                     'price': current_price,
