@@ -186,12 +186,102 @@ try:
 except Exception as e:
     st.sidebar.error(f"Health Monitor Error: {e}")
 
-# Kill Switch
-st.sidebar.subheader("🚨 Emergency Control")
-if st.sidebar.button("🛑 STOP BOT IMMEDIATElY"):
-    with open("STOP_SIGNAL", "w") as f:
-        f.write("STOP")
-    st.sidebar.error("STOP SIGNAL SENT! Bot should exit shortly.")
+# ==========================================
+# 🚨 ENHANCED EMERGENCY STOP CONTROLS
+# ==========================================
+st.sidebar.subheader("🚨 Emergency Stop Controls")
+
+# Fetch bot status for emergency controls
+emergency_bot_status = logger.get_bot_status()
+
+# Calculate current total P&L
+total_pnl = emergency_bot_status['total_pnl'].sum() if emergency_bot_status is not None and not emergency_bot_status.empty else 0
+
+# P&L Warning Display
+if total_pnl < -50:
+    st.sidebar.error(f"⚠️ **CRITICAL: P&L at ${total_pnl:.2f}**")
+    st.sidebar.error("Consider stopping the bot!")
+elif total_pnl < -20:
+    st.sidebar.warning(f"⚠️ P&L Warning: ${total_pnl:.2f}")
+elif total_pnl < 0:
+    st.sidebar.info(f"📊 Current P&L: ${total_pnl:.2f}")
+else:
+    st.sidebar.success(f"✅ Current P&L: ${total_pnl:.2f}")
+
+st.sidebar.markdown("---")
+
+# Mode-Specific Stop Buttons
+if mode_slug == 'live':
+    st.sidebar.markdown("**🔴 LIVE MODE - Real Money**")
+
+    # Enhanced LIVE stop button with confirmation
+    stop_live_key = f"stop_live_{time.time()}"  # Unique key
+
+    if 'confirm_live_stop' not in st.session_state:
+        st.session_state.confirm_live_stop = False
+
+    if not st.session_state.confirm_live_stop:
+        if st.sidebar.button("🛑 EMERGENCY STOP LIVE BOT", type="primary", use_container_width=True):
+            st.session_state.confirm_live_stop = True
+            st.rerun()
+    else:
+        st.sidebar.error("⚠️ **CONFIRM: Stop LIVE Bot?**")
+        st.sidebar.caption(f"Current P&L: ${total_pnl:.2f}")
+
+        col1, col2 = st.sidebar.columns(2)
+        with col1:
+            if st.button("✅ YES, STOP", type="primary"):
+                # Create stop signal for LIVE bot
+                stop_signal_path = "/Antigravity/antigravity/scratch/crypto_trading_bot_LIVE/STOP_SIGNAL_LIVE"
+                try:
+                    with open(stop_signal_path, "w") as f:
+                        f.write(f"EMERGENCY STOP - P&L: ${total_pnl:.2f}\nTime: {time.strftime('%Y-%m-%d %H:%M:%S')}")
+                    st.sidebar.success("✅ LIVE BOT STOP SIGNAL SENT!")
+                    st.sidebar.info("Bot will stop within 3 minutes")
+                except Exception as e:
+                    # Fallback to local signal file
+                    with open("STOP_SIGNAL_LIVE", "w") as f:
+                        f.write(f"EMERGENCY STOP - P&L: ${total_pnl:.2f}")
+                    st.sidebar.warning(f"Stop signal created locally: {e}")
+
+                st.session_state.confirm_live_stop = False
+
+        with col2:
+            if st.button("❌ Cancel"):
+                st.session_state.confirm_live_stop = False
+                st.rerun()
+
+else:
+    st.sidebar.markdown("**📝 PAPER MODE - Practice**")
+
+    # Paper mode stop button (less critical)
+    if st.sidebar.button("🛑 Stop Paper Bot", use_container_width=True):
+        try:
+            with open("/Antigravity/antigravity/scratch/crypto_trading_bot/STOP_SIGNAL", "w") as f:
+                f.write(f"STOP - P&L: ${total_pnl:.2f}")
+            st.sidebar.success("Paper bot stop signal sent")
+        except:
+            with open("STOP_SIGNAL", "w") as f:
+                f.write("STOP")
+            st.sidebar.success("Stop signal created")
+
+# Auto-Stop Feature (LIVE mode only)
+if mode_slug == 'live' and total_pnl < -50:
+    st.sidebar.markdown("---")
+    st.sidebar.error("🚨 **AUTO-STOP TRIGGERED**")
+    st.sidebar.error(f"P&L below -$50: ${total_pnl:.2f}")
+    st.sidebar.info("Review trades immediately!")
+
+    # Automatic stop signal creation
+    if st.sidebar.button("🛑 EXECUTE AUTO-STOP", type="primary", use_container_width=True):
+        stop_signal_path = "/Antigravity/antigravity/scratch/crypto_trading_bot_LIVE/STOP_SIGNAL_LIVE"
+        try:
+            with open(stop_signal_path, "w") as f:
+                f.write(f"AUTO-STOP TRIGGERED - P&L: ${total_pnl:.2f}\nThreshold: -$50\nTime: {time.strftime('%Y-%m-%d %H:%M:%S')}")
+            st.sidebar.success("✅ AUTO-STOP EXECUTED!")
+            st.sidebar.info("LIVE bot will stop within 3 minutes")
+        except Exception as e:
+            st.sidebar.error(f"Failed to create stop signal: {e}")
 
 # --- PENDING APPROVALS ---
 # Query Pending Decisions directly for UI speed or add method to logger
