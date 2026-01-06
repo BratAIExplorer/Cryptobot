@@ -252,6 +252,36 @@ class TradingEngine:
             except Exception as e:
                 print(f"❌ Error initializing status for bot {bot.get('name', 'Unknown')}: {e}")
 
+        # Main monitoring loop
+        print("\n💫 Starting continuous monitoring loop...")
+        print("   Press Ctrl+C to stop gracefully\n")
+
+        cycle_count = 0
+        while self.is_running:
+            try:
+                cycle_count += 1
+                print(f"\n{'='*60}")
+                print(f"📊 Cycle {cycle_count} - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                print(f"{'='*60}")
+
+                # Run one trading cycle
+                self.run_cycle()
+
+                # Sleep between cycles (60 seconds)
+                print(f"\n⏸️  Waiting 60 seconds until next cycle...")
+                time.sleep(60)
+
+            except KeyboardInterrupt:
+                print("\n\n⚠️  Ctrl+C detected - stopping gracefully...")
+                self.is_running = False
+                break
+            except Exception as e:
+                print(f"\n❌ Error in trading cycle: {e}")
+                import traceback
+                traceback.print_exc()
+                print(f"\n⏸️  Waiting 60 seconds before retry...")
+                time.sleep(60)
+
     def run_cycle(self):
         """Execute one full pass of the trading logic and safety checks"""
         # Observability Snapshot (Safety Heartbeat)
