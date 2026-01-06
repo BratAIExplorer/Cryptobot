@@ -238,6 +238,14 @@ def main():
         except Exception as e:
             print(f"   ⚠️  Could not disable crash veto: {e}")
 
+        # Disable drawdown checks (testnet has bad peak equity data)
+        try:
+            if hasattr(engine, 'risk_manager') and engine.risk_manager:
+                engine.risk_manager.disable_drawdown_check = True
+                print("   ✅ Drawdown checks disabled (testnet data unreliable)")
+        except Exception as e:
+            print(f"   ⚠️  Could not disable drawdown checks: {e}")
+
         # Disable CryptoPanic (not needed for testnet)
         try:
             if hasattr(engine, 'fundamental_analyzer') and engine.fundamental_analyzer:
@@ -249,7 +257,7 @@ def main():
         except Exception as e:
             print(f"   ⚠️  Could not disable CryptoPanic: {e}")
 
-        print("   ℹ️  Bot will rely on technical analysis only")
+        print("   ℹ️  Bot will rely on technical analysis only for testnet")
 
     print("\n" + "=" * 80)
     print("💰 PHASE 1 CAPITAL ALLOCATION")

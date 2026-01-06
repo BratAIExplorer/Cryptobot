@@ -115,10 +115,13 @@ class RiskManager:
         self.cooldown_until: Optional[datetime] = None
         from datetime import time
         self.allowed_hours = (time(0, 0), time(23, 59)) # Default: 24/7
-        
+
         # Institutional Hardening
         self.portfolio_analyzer = PortfolioCorrelationAnalyzer()
         self.peak_equity = Decimal("0")
+
+        # Paper mode override (can be set by bot launcher)
+        self.disable_drawdown_check = False  # Set to True to skip drawdown checks
 
         
     @property
@@ -562,17 +565,21 @@ class RiskManager:
         """
         Check if total account drawdown exceeds max allowed limit.
         """
+        # Skip drawdown check if disabled (paper mode with unreliable data)
+        if self.disable_drawdown_check:
+            return True, Decimal("0")
+
         if current_equity > self.peak_equity:
             self.peak_equity = current_equity
-            
+
         drawdown_pct = Decimal("0")
         if self.peak_equity > 0:
             drawdown_pct = (self.peak_equity - current_equity) / self.peak_equity * Decimal("100")
-            
+
         # Comparison with limit (already in pct)
         if drawdown_pct >= self.limits.max_drawdown_pct:
             return False, drawdown_pct
-            
+
         return True, drawdown_pct
 
     def check_drawdown_velocity(self, logger=None) -> Tuple[bool, Optional[str]]:
