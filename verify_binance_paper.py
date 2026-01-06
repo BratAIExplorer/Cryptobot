@@ -49,29 +49,27 @@ print(f"✅ Paper API Key: {api_key[:10]}...{api_key[-4:]}")
 print(f"✅ Secret: {'*' * 40}")
 print()
 
-# Initialize Binance (testnet for paper trading)
+# Initialize Binance with testnet/sandbox mode
 print("Step 2: Connecting to Binance Testnet...")
 print("-" * 80)
 
 try:
-    # Use testnet for paper trading
+    # Create exchange instance
     binance = ccxt.binance({
         'apiKey': api_key,
         'secret': secret,
         'enableRateLimit': True,
         'options': {
             'defaultType': 'spot',
-            'adjustForTimeDifference': True,
-        },
-        # Testnet URLs for paper trading
-        'urls': {
-            'api': {
-                'public': 'https://testnet.binance.vision/api/v3',
-                'private': 'https://testnet.binance.vision/api/v3',
-            }
         }
     })
+
+    # CRITICAL: Enable sandbox/testnet mode
+    binance.set_sandbox_mode(True)
+
     print("✅ Connected to Binance Testnet (Paper Trading)")
+    print(f"   Using sandbox mode: {binance.urls['api']}")
+
 except Exception as e:
     print(f"❌ Connection failed: {e}")
     sys.exit(1)
@@ -90,18 +88,36 @@ try:
 
     # Show balances
     print("\n   Testnet balances:")
+    has_balance = False
     for currency in ['USDT', 'BTC', 'ETH', 'BNB']:
         bal = balance.get(currency, {}).get('total', 0)
         if bal > 0:
             print(f"      {currency}: {bal:,.8f}")
+            has_balance = True
 
-    if usdt == 0:
-        print("\n   ⚠️  Testnet account empty - you may need to fund it")
+    if not has_balance:
+        print("\n   ⚠️  Testnet account empty - you need to fund it")
         print("      Visit: https://testnet.binance.vision/")
-        print("      Get testnet funds to test with")
+        print("      Look for 'Faucet' to get free testnet funds")
+        print("\n   This is OK - API key works, just needs testnet funds")
 
 except Exception as e:
-    print(f"❌ Balance check failed: {e}")
+    error_msg = str(e)
+    print(f"❌ Balance check failed: {error_msg}")
+
+    if '-2008' in error_msg or 'Invalid Api-Key ID' in error_msg:
+        print("\n🔍 ERROR -2008: API Key Mismatch")
+        print("   This means your API key doesn't belong to the testnet")
+        print("\n   Possible issues:")
+        print("   1. You used LIVE API key instead of TESTNET key")
+        print("      → Go to https://testnet.binance.vision/")
+        print("      → Generate NEW testnet API key")
+        print("   2. You haven't created a testnet API key yet")
+        print("      → Visit testnet.binance.vision and create one")
+        print("\n   TESTNET vs LIVE keys are DIFFERENT!")
+        print("   TESTNET: https://testnet.binance.vision/ (fake money)")
+        print("   LIVE:    https://www.binance.com/ (real money)")
+
     sys.exit(1)
 
 print()
@@ -213,12 +229,23 @@ try:
 except ccxt.InsufficientFunds:
     print("⚠️  Insufficient testnet funds")
     print("   Visit: https://testnet.binance.vision/")
-    print("   Get testnet USDT to continue testing")
+    print("   Look for 'Faucet' to get free testnet USDT")
     print()
     print("   (This is OK - API has permission, just needs testnet funds)")
 
 except Exception as e:
-    print(f"❌ Testnet order failed: {e}")
+    error_msg = str(e)
+    print(f"❌ Testnet order failed: {error_msg}")
+
+    if '-2008' in error_msg or 'Invalid Api-Key ID' in error_msg:
+        print("\n🔍 ERROR -2008: Using wrong API key type")
+        print("   You're using a LIVE API key with testnet endpoint")
+        print("   or vice versa")
+        print("\n   Solution:")
+        print("   1. Go to https://testnet.binance.vision/")
+        print("   2. Generate a TESTNET API key")
+        print("   3. Update .env.binance.paper with TESTNET key")
+
     import traceback
     traceback.print_exc()
     sys.exit(1)
