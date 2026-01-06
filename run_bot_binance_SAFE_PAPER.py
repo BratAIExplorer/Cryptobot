@@ -246,6 +246,22 @@ def main():
         except Exception as e:
             print(f"   ⚠️  Could not disable drawdown checks: {e}")
 
+        # Disable new coin tracking (MEXC-specific, not applicable to Binance)
+        try:
+            if hasattr(engine, 'new_coin_detector') and engine.new_coin_detector:
+                engine.new_coin_detector.enabled = False
+                print("   ✅ New coin tracking disabled (exchange-specific)")
+        except Exception as e:
+            print(f"   ⚠️  Could not disable coin tracking: {e}")
+
+        # Disable watchlist tracker (uses MEXC data)
+        try:
+            if hasattr(engine, 'watchlist_tracker') and engine.watchlist_tracker:
+                engine.watchlist_tracker.enabled = False
+                print("   ✅ Watchlist tracker disabled (exchange-specific)")
+        except Exception as e:
+            print(f"   ⚠️  Could not disable watchlist: {e}")
+
         # Disable CryptoPanic (not needed for testnet)
         try:
             if hasattr(engine, 'fundamental_analyzer') and engine.fundamental_analyzer:
