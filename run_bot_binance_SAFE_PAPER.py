@@ -231,14 +231,23 @@ def main():
         print("\n📝 PAPER MODE ADJUSTMENTS:")
 
         # Disable crash veto (testnet has stale 24h high data)
-        if hasattr(engine, 'veto_manager'):
-            engine.veto_manager.disable_crash_veto = True
-            print("   ✅ Crash detection disabled (testnet data unreliable)")
+        try:
+            if hasattr(engine, 'veto_manager') and engine.veto_manager:
+                engine.veto_manager.disable_crash_veto = True
+                print("   ✅ Crash detection disabled (testnet data unreliable)")
+        except Exception as e:
+            print(f"   ⚠️  Could not disable crash veto: {e}")
 
         # Disable CryptoPanic (not needed for testnet)
-        if hasattr(engine, 'fundamental_analyzer'):
-            engine.fundamental_analyzer.use_cryptopanic = False
-            print("   ✅ CryptoPanic disabled (not needed for testnet)")
+        try:
+            if hasattr(engine, 'fundamental_analyzer') and engine.fundamental_analyzer:
+                if hasattr(engine.fundamental_analyzer, 'use_cryptopanic'):
+                    engine.fundamental_analyzer.use_cryptopanic = False
+                    print("   ✅ CryptoPanic disabled (not needed for testnet)")
+                else:
+                    print("   ℹ️  CryptoPanic setting not found (OK)")
+        except Exception as e:
+            print(f"   ⚠️  Could not disable CryptoPanic: {e}")
 
         print("   ℹ️  Bot will rely on technical analysis only")
 
