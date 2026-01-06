@@ -1,6 +1,6 @@
 from .mexc_adapter import MexcAdapter
 from .binance_adapter import BinanceAdapter
-# from .luno_adapter import LunoAdapter # TODO: Implement Luno
+from .luno_adapter import LunoAdapter
 
 class ExchangeFactory:
     """
@@ -16,7 +16,6 @@ class ExchangeFactory:
         elif exchange_name == 'BINANCE':
             return BinanceAdapter(mode)
         elif exchange_name == 'LUNO':
-             # Return None or raise until implemented
-             return None 
+            return LunoAdapter(mode)
         else:
             raise ValueError(f"Unsupported Exchange: {exchange_name}")

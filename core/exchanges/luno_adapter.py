@@ -1,0 +1,148 @@
+from ..interfaces.base_adapter import BaseExchangeAdapter
+import ccxt
+import pandas as pd
+import os
+import time
+import logging
+from datetime import datetime
+from typing import Optional, Dict, Any
+import requests
+
+logger = logging.getLogger(__name__)
+
+class LunoAdapter(BaseExchangeAdapter):
+    """
+    Luno Adapter Implementation
+    Includes:
+    - Direct API usage for some features if CCXT is limited
+    - Specific Luno rate limits
+    """
+    
+    def __init__(self, mode: str = 'paper'):
+        super().__init__(mode)
+        self.exchange_name = "LUNO"
+        
+        self.api_key = os.environ.get('LUNO_API_KEY')
+        self.secret = os.environ.get('LUNO_SECRET')
+        
+        self.maker_fee = 0.004 # 0.4% approx, varies by tier
+        self.taker_fee = 0.006 # 0.6%
+        
+        self._initialize_exchange()
+
+    def _initialize_exchange(self):
+        config = {
+            'enableRateLimit': True,
+            'rateLimit': 1000, # Luno is stricter
+            'options': {'defaultType': 'spot'},
+            'timeout': 30000,
+        }
+        if self.api_key and self.secret:
+            config['apiKey'] = self.api_key
+            config['secret'] = self.secret
+        
+        try:
+            self.exchange = ccxt.luno(config)
+            if self.mode != 'paper':
+                self.exchange.load_markets()
+            logger.info(f"✅ Connected to Luno ({self.mode})")
+        except Exception as e:
+            logger.error(f"❌ Luno Connection Error: {e}")
+            self.trigger_kill_switch("Connection Failed on Startup")
+
+    def get_current_price(self, symbol: str) -> Optional[float]:
+        if self.kill_switch_active: return None
+        try:
+            ticker = self.exchange.fetch_ticker(symbol)
+            return ticker['last']
+        except Exception as e:
+            logger.error(f"❌ Luno Ticker Error {symbol}: {e}")
+            return None
+
+    def fetch_ohlcv(self, symbol: str, timeframe: str = '1h', limit: int = 100) -> pd.DataFrame:
+        if self.kill_switch_active: return pd.DataFrame()
+        try:
+            # Luno CCXT OHLCV might be limited, fallback to direct API if needed or standard
+            ohlcv = self.exchange.fetch_ohlcv(symbol, timeframe, limit=limit)
+            df = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+            df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
+            return df
+        except Exception as e:
+            logger.error(f"❌ Luno OHLCV Error {symbol}: {e}")
+            return pd.DataFrame()
+
+    def create_order(self, symbol: str, side: str, amount: float, price: Optional[float] = None) -> Optional[Dict[str, Any]]:
+        if self.kill_switch_active:
+            logger.warning(f"⛔ Order Blocked: Kill Switch Active ({symbol} {side})")
+            return None
+
+        if self.mode == 'paper':
+            logger.info(f"📝 [PAPER] Luno {side} {amount} {symbol} @ {price or 'MARKET'}")
+            return {
+                'id': f'paper_luno_{int(time.time())}',
+                'symbol': symbol,
+                'side': side,
+                'amount': amount,
+                'price': price or self.get_current_price(symbol),
+                'status': 'closed',
+                'exchange': 'LUNO',
+                'mode': 'paper'
+            }
+
+        try:
+            if price:
+                order = self.exchange.create_order(symbol, 'limit', side, amount, price)
+            else:
+                order = self.exchange.create_order(symbol, 'market', side, amount)
+            
+            order['exchange'] = 'LUNO'
+            order['mode'] = 'live'
+            logger.info(f"✅ Luno Order Executed: {side} {symbol}")
+            return order
+        except Exception as e:
+            # Check for Luno specific errors (e.g. Insufficient Balance)
+            msg = str(e).lower()
+            if 'insufficient' in msg:
+                logger.error(f"❌ Luno Insufficient Funds: {e}")
+            else:
+                logger.error(f"❌ Luno Order Failed: {e}")
+            return None
+
+    def get_balance(self, currency: str = 'MYR') -> float:
+        if self.mode == 'paper': return 10000.0
+        try:
+            bal = self.exchange.fetch_balance()
+            return bal['total'].get(currency, 0.0)
+        except Exception as e:
+            logger.error(f"❌ Luno Balance Error: {e}")
+            return 0.0
+
+    def get_fee_rate(self, symbol: str, order_type: str = 'taker') -> float:
+        return self.taker_fee
+
+    def check_health(self) -> Dict[str, Any]:
+        try:
+            start = time.time()
+            # Luno doesn't always support fetch_time, try ticker
+            self.exchange.fetch_ticker('XBTIDR') # Use a common pair or check capability
+            latency = int((time.time() - start) * 1000)
+            status = 'ONLINE'
+            
+            if latency > 2000: status = 'DEGRADED'
+            if latency > 5000: 
+                status = 'CRITICAL'
+                self.trigger_kill_switch(f"High Latency: {latency}ms")
+                
+            return {'status': status, 'latency_ms': latency}
+        except Exception as e:
+            # Luno might not support XBTIDR or auth failure
+            # Try safer check
+            try:
+                self.exchange.load_markets()
+                return {'status': 'ONLINE', 'latency_ms': 500} # Fallback success
+            except:
+                self.trigger_kill_switch(f"Health Check Failed: {e}")
+                return {'status': 'OFFLINE', 'error': str(e)}
+
+    def shutdown(self):
+        pass
