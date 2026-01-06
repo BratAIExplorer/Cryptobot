@@ -22,6 +22,9 @@ class VetoManager:
         self.BTC_CRASH_DROP_PCT = 0.05 # 5% drop in 24h triggers crash alert
         self.BTC_DUMP_PCT = 0.03 # 3% drop in 4h triggers dump alert
 
+        # Paper mode override (can be set by bot launcher)
+        self.disable_crash_veto = False  # Set to True to skip crash detection
+
         # Initialize CryptoPanic API (optional)
         cryptopanic_key = os.environ.get('CRYPTOPANIC_API_KEY')
         self.news_api = CryptoPanicAPI(api_key=cryptopanic_key) if cryptopanic_key else None
@@ -56,20 +59,21 @@ class VetoManager:
     def _update_global_vetoes(self):
         """Update the list of global vetoes (BTC Crash, etc.)"""
         self.active_vetoes = [] # Reset
-        
-        # A. BTC Crash Check
-        is_crash, reason = self._check_btc_crash()
-        if is_crash:
-            veto = VetoEvent(
-                rule_type="BTC_CRASH",
-                severity_level=3,
-                reason=reason,
-                triggered_at=datetime.utcnow()
-            )
-            self.active_vetoes.append(veto)
-            # Log to DB if we can (optional for now)
-            if self.logger:
-                pass # self.logger.log_veto(veto) OR similar
+
+        # A. BTC Crash Check (skip if disabled for paper mode)
+        if not self.disable_crash_veto:
+            is_crash, reason = self._check_btc_crash()
+            if is_crash:
+                veto = VetoEvent(
+                    rule_type="BTC_CRASH",
+                    severity_level=3,
+                    reason=reason,
+                    triggered_at=datetime.utcnow()
+                )
+                self.active_vetoes.append(veto)
+                # Log to DB if we can (optional for now)
+                if self.logger:
+                    pass # self.logger.log_veto(veto) OR similar
 
         # B. Bad News Check (CryptoPanic API)
         if self.news_api:

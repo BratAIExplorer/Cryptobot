@@ -226,6 +226,22 @@ def main():
         engine.exchange.set_sandbox_mode(True)
         print("✅ Sandbox mode enabled on trading engine")
 
+    # PAPER MODE ADJUSTMENTS: Disable features that don't work well with testnet data
+    if TRADING_MODE == 'paper':
+        print("\n📝 PAPER MODE ADJUSTMENTS:")
+
+        # Disable crash veto (testnet has stale 24h high data)
+        if hasattr(engine, 'veto_manager'):
+            engine.veto_manager.disable_crash_veto = True
+            print("   ✅ Crash detection disabled (testnet data unreliable)")
+
+        # Disable CryptoPanic (not needed for testnet)
+        if hasattr(engine, 'fundamental_analyzer'):
+            engine.fundamental_analyzer.use_cryptopanic = False
+            print("   ✅ CryptoPanic disabled (not needed for testnet)")
+
+        print("   ℹ️  Bot will rely on technical analysis only")
+
     print("\n" + "=" * 80)
     print("💰 PHASE 1 CAPITAL ALLOCATION")
     print("=" * 80)
