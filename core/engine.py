@@ -5,7 +5,8 @@ from decimal import Decimal
 import pandas as pd
 from datetime import datetime, timedelta
 from .exchange import ExchangeInterface
-from .exchange_unified import UnifiedExchange
+# from .exchange_unified import UnifiedExchange # DEPRECATED
+from .exchanges.exchange_factory import ExchangeFactory
 from .logger import TradeLogger
 from .risk_module import RiskManager, setup_safe_trading_bot
 
@@ -35,15 +36,14 @@ class TradingEngine:
         self.exchange_name = exchange
         self.luno_exchange = None # Cache for Pillar A monitor
         
-        # Use unified exchange for all trades
-        from .exchange_unified import UnifiedExchange
-        self.exchange = UnifiedExchange(exchange_name=exchange, mode=mode)
+        # Use Factory to get specific adapter
+        self.exchange = ExchangeFactory.create_adapter(self.exchange_name, mode=mode)
         
         # Initialize logger with db_path if provided, otherwise use default
         if db_path:
-            self.logger = TradeLogger(db_path=db_path)
+            self.logger = TradeLogger(db_path=db_path, mode=mode, exchange_name=self.exchange_name)
         else:
-            self.logger = TradeLogger()
+            self.logger = TradeLogger(mode=mode, exchange_name=self.exchange_name)
         
         # Initialize Safety Managers
         self.risk_manager = risk_manager or setup_safe_trading_bot('moderate')
@@ -284,6 +284,17 @@ class TradingEngine:
 
     def run_cycle(self):
         """Execute one full pass of the trading logic and safety checks"""
+        
+        # --- HEALTH CHECK (KILL SWITCH) ---
+        if hasattr(self.exchange, 'check_health'):
+            health = self.exchange.check_health()
+            if health.get('status') == 'OFFLINE':
+                print(f"🛑 EXCHANGE OFFLINE: {health.get('error', 'Unknown Error')}")
+                return
+            elif health.get('status') == 'CRITICAL':
+                print(f"🛑 KILL SWITCH: Latency too high ({health.get('latency_ms')}ms)")
+                return
+
         # Observability Snapshot (Safety Heartbeat)
         try:
             self.system_monitor.snapshot()
