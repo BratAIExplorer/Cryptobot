@@ -51,7 +51,7 @@ class LiveTradingNotifier(TelegramNotifier):
             msg += f"\n\n💰 **REAL MONEY EXECUTED**"
 
         # Don't call parent's notify_trade, use send_message directly
-        super(TelegramNotifier, self).send_message(msg)
+        TelegramNotifier.send_message(self, msg)
 
     def notify_startup(self, mode, active_bots):
         """Enhanced startup notification with balance info"""
@@ -79,7 +79,7 @@ class LiveTradingNotifier(TelegramNotifier):
 
         msg += f"✅ Systems Check: OK"
 
-        super(TelegramNotifier, self).send_message(msg)
+        TelegramNotifier.send_message(self, msg)
 
     def alert_bot_launched(self, bot_name, symbol, allocation):
         """Alert when individual bot launches"""
