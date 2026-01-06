@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from .exchange import ExchangeInterface
 # from .exchange_unified import UnifiedExchange # DEPRECATED
 from .exchanges.exchange_factory import ExchangeFactory
+from .exchange_manager import ExchangeManager
 from .logger import TradeLogger
 from .risk_module import RiskManager, setup_safe_trading_bot
 
@@ -18,7 +19,8 @@ from .execution import OrderExecutionManager
 from .observability import SystemMonitor
 from .notifier import TelegramNotifier
 from utils.indicators import calculate_rsi, calculate_sma
-from strategies.grid_strategy_v2 import DynamicGridStrategy
+from strategies.grid_strategy_v3 import GridStrategyV3
+from strategies.dip_strategy_v3 import DipStrategyV3
 from .veto import VetoManager
 from .fundamental_analyzer import FundamentalAnalyzer
 from .regime_detector import RegimeDetector, RegimeState
@@ -33,11 +35,28 @@ class TradingEngine:
                  risk_manager=None, resilience_manager=None, regime_detector=None, 
                  veto_manager=None, fundamental_analyzer=None):
         self.mode = mode
-        self.exchange_name = exchange
-        self.luno_exchange = None # Cache for Pillar A monitor
+        self.exchange_name = 'MULTI' # Engine is now multi-exchange capable
+        self.luno_exchange = None 
         
-        # Use Factory to get specific adapter
-        self.exchange = ExchangeFactory.create_adapter(self.exchange_name, mode=mode)
+        # Initialize Exchange Manager
+        # If 'exchange' arg was passed as single string, treat as [exchange]
+        # If 'exchange' was 'MEXC' (legacy), we might want to default to ['BINANCE'] per new direction
+        # But let's respect the arg if it's explicit.
+        if isinstance(exchange, str):
+            enabled = [exchange]
+        elif isinstance(exchange, list):
+            enabled = exchange
+        else:
+            enabled = ['BINANCE']
+
+        self.exchange_manager = ExchangeManager(mode=mode, enabled_exchanges=enabled)
+        
+        # PRIMARY ADAPTER (For fallback/global tasks like Regime functionality)
+        # We default to the first enabled exchange
+        primary_name = enabled[0] if enabled else 'BINANCE'
+        self.exchange = self.exchange_manager.get_adapter(primary_name)
+        if not self.exchange:
+             raise ValueError(f"Primary exchange {primary_name} failed to initialize")
         
         # Initialize logger with db_path if provided, otherwise use default
         if db_path:
@@ -107,6 +126,14 @@ class TradingEngine:
         """Add a bot configuration"""
         self.active_bots.append(strategy_config)
         
+        # V4: Multi-Exchange Routing
+        target_exchange = strategy_config.get('exchange', 'BINANCE').upper() # Default to Binance
+        adapter = self.exchange_manager.get_adapter(target_exchange)
+        
+        if not adapter:
+             print(f"❌ Error adding bot {strategy_config['name']}: Exchange {target_exchange} not initialized.")
+             return
+
         # Initialize strategy instance if needed
         if strategy_config['type'] == 'Grid':
             # Create a unique key for the strategy instance
@@ -116,7 +143,26 @@ class TradingEngine:
                 # Pass the full config, ensure symbol is set
                 config = strategy_config.copy()
                 config['symbol'] = symbol
-                self.strategies[strategy_config['name']] = DynamicGridStrategy(config)
+                # V3: Inject Adapter (self.exchange)
+                # self.exchange is now an instance of BaseExchangeAdapter (e.g. BinanceAdapter)
+                self.strategies[strategy_config['name']] = GridStrategyV3(
+                    strategy_config['name'], 
+                    adapter, 
+                    config
+                )
+        elif strategy_config['type'] == 'Buy-the-Dip': # Or 'Buy-the-Dip Strategy'
+             for symbol in strategy_config.get('symbols', []):
+                 # Create instance per symbol or shared? V3 prefers specific instances usually
+                 # But engine logic iterates symbols.
+                 # For V3 port, let's create a shared strategy instance if logical, 
+                 # OR loop here. Legacy engine stores ONE strategy instance per BOT NAME.
+                 # So we instantiate once.
+                 self.strategies[strategy_config['name']] = DipStrategyV3(
+                     strategy_config['name'],
+                     adapter,
+                     strategy_config,
+                     regime_detector=self.regime_detector
+                 )
                 
         print(f"Bot added: {strategy_config['name']}")
 

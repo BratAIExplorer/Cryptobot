@@ -129,3 +129,13 @@ class BinanceAdapter(BaseExchangeAdapter):
 
     def shutdown(self):
         pass
+
+    # --- Legacy Support for NewCoinDetector ---
+    def fetch_markets(self):
+        """Pass-through to CCXT"""
+        return self.exchange.fetch_markets()
+
+    def fetch_ticker(self, symbol: str):
+        """Pass-through to CCXT"""
+        return self.exchange.fetch_ticker(symbol)
+

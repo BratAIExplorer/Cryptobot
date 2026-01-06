@@ -53,44 +53,50 @@ def main():
         print("⚠️  Telegram notifications disabled")
     
     # Initialize engine
+    # V4: Multi-Exchange Support (Binance Only for now, Luno reserved for Intelligence)
     engine = TradingEngine(
         mode=TRADING_MODE,
         telegram_config=telegram_config,
-        exchange='BINANCE'
+        exchange=['BINANCE']
     )
     
     # ==========================================
-    # 🏆 PRIORITY 1: GRID BOTS (SCALE UP!)
-    # Proven winners: +$4,800 in 2 weeks with $2K
-    # Scaling to $6K total for ~$14K/month potential
+    # 🏆 PRIORITY 1: GRID BOTS ($250 each)
     # ==========================================
     
     engine.add_bot({
         'name': 'Grid Bot BTC',
         'type': 'Grid',
         'symbols': ['BTC/USDT'],
-        'amount': 150,          # Increased from $50
-        'grid_levels': 20,
+        # PROFITABILITY ANALYSIS:
+        # Investment Budget: $250 (Small Start)
+        # Price Range: $85,000 - $110,000 (Covers $25k price movement)
+        # Grid Step: ~$1,250 price change per line (1.47% spread)
+        # Net Profit: ~1.27% per successful trade.
+        # Trade Size: $25 (allows ~10 active positions max with $250)
+        'amount': 25,           # Trade size per grid line
+        'grid_levels': 20,      # Total lines (not all active at once)
         'atr_multiplier': 2.0,
         'atr_period': 14,
         'lower_limit': 85000,
         'upper_limit': 110000,
-        'initial_balance': 3000,  # Scaled from $1K to $3K
-        'max_exposure_per_coin': 3000
+        'initial_balance': 250, 
+        'max_exposure_per_coin': 250
     })
     
     engine.add_bot({
         'name': 'Grid Bot ETH',
         'type': 'Grid',
         'symbols': ['ETH/USDT'],
-        'amount': 100,          # Increased from $30
+        # Budget: $250
+        'amount': 25,           
         'grid_levels': 30,
         'atr_multiplier': 2.5,
         'atr_period': 14,
         'lower_limit': 2800,
-        'upper_limit': 3600,
-        'initial_balance': 3000,  # Scaled from $1K to $3K
-        'max_exposure_per_coin': 3000
+        'upper_limit': 4200,
+        'initial_balance': 250,  
+        'max_exposure_per_coin': 250
     })
     
     # ==========================================
@@ -139,55 +145,41 @@ def main():
     # Dynamic Time-Weighted TP + Trailing Stops + Quality Floors
     # ==========================================
 
+    # ==========================================
+    # 💎 BUY-THE-DIP V3 (Top 10 Coins - $1000 Total)
+    # ==========================================
+    top_10 = [
+        'BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'BNB/USDT', 'XRP/USDT', 
+        'ADA/USDT', 'DOGE/USDT', 'TRX/USDT', 'DOT/USDT', 'LINK/USDT'
+    ]
+
     engine.add_bot({
         'name': 'Buy-the-Dip Strategy',
         'type': 'Buy-the-Dip',
-        'symbols': [
-            'BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'BNB/USDT',
-            'XRP/USDT', 'DOGE/USDT', 'ADA/USDT', 'TRX/USDT',
-            'AVAX/USDT', 'DOT/USDT', 'LINK/USDT', 'UNI/USDT'
-        ],
+        'symbols': top_10,
+        
+        # Budget: $1000 Total ($100 per coin)
+        'amount': 15,                 # $15 per buy
+        'initial_balance': 1000,
+        'max_exposure_per_coin': 100, # Cap at $100 per coin
 
-        # Position Sizing
-        'amount': 25,                 # Start at $25 per position
-        'initial_balance': 3000,
-        'max_exposure_per_coin': 200,
-
-        # Entry Conditions
-        'dip_percentage': 0.05,       # 5% dip to trigger buy
-        'min_confluence': 65,         # Confluence score threshold
-
-        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        # EXIT STRATEGY: HYBRID V2.0 (risk_module.py)
-        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        # Dynamic TP: 0-60d:5%, 60-120d:8%, 120-180d:12%, 180+d:15%
-        # Trailing: 8-10% for 120+ day holds
-        # Floors: BTC/ETH:-70%, Top20:-50%, Others:-40%
-        # Regime: Pauses in CRISIS, safe coins only in BEAR
-
-        # Legacy params (overridden by Hybrid v2.0)
-        'take_profit_pct': 0.05,      # Base (dynamic in practice)
-        'stop_loss_pct': None,        # No fixed SL
-        'stop_loss_enabled': False,   # Hybrid v2.0 handles exits
-        'max_hold_hours': None,       # Hold until profitable
-
-        # Trend Filters
-        'sma_fast': 7,
-        'sma_slow': 21,
-        'require_above_both': True,
-
-        # Smart Cooldown
-        'cooldown_after_profit': 6,   # 6h after profit
-        'cooldown_after_loss': 0,     # N/A (no auto-loss sells)
-        'cooldown_same_day': 12,      # 12h between buys
-        'max_positions_per_coin': 2,
-
-        # Safety Limits
+        # Entry Conditions (V3)
+        'dip_threshold': 0.03,       # 3% dip
+        'rsi_limit': 35,             # V3 param
+        'cooldown_minutes': 60,
+        
+        # Legacy/Hybrid Fallbacks
+        'dip_percentage': 0.03,
+        'min_confluence': 65,
+        
+        # PROFIT RULES (User Request: 5-10% Profit, NO Losses)
+        'take_profit_pct': 0.08,      # Target 8% Profit
+        'stop_loss_pct': None,        # DISABLING STOP LOSS (Hold until profit)
+        'stop_loss_enabled': False,   
+        
         'max_daily_trades': 3,
-
-        # Circuit Breaker
-        'circuit_breaker_daily': -500,
-        'circuit_breaker_weekly': -1000
+        'circuit_breaker_daily': -100,
+        'circuit_breaker_weekly': -300
     })
     
     # ==========================================

@@ -36,25 +36,36 @@ Databases are no longer shared. Data is isolated by exchange to prevent cross-co
 *   [x] Implement `ExchangeHealthMonitor` (Priority 1 Enhancement).
 *   [x] Establish Git Strategy (Main Branch Swap).
 
-### 🚧 Milestone 2: Grid Bot Integration (Week 2 - Current)
-*   [ ] **Port Grid Strategy**: Move logic from `engine.py` to `strategies/grid_strategy.py`.
-*   [ ] **Enhance Strategy Base**: Ensure `BaseStrategyEnhanced` handles all safety checks.
-*   [ ] **Testing**: Verify Grid Bot works on Binance (Paper Mode).
-*   [ ] **Cleanup**: Remove legacy grid logic from `engine.py`.
+### ✅ Milestone 2: Grid Bot Integration (Week 2 - COMPLETED)
+*   [x] **Port Grid Strategy**: Move logic from `engine.py` to `strategies/grid_strategy.py`.
+*   [x] **Enhance Strategy Base**: Ensure `BaseStrategyEnhanced` handles all safety checks.
+*   [x] **Testing**: Verify Grid Bot works on Binance (Paper Mode).
+*   [x] **Cleanup**: Remove legacy grid logic from `engine.py`.
 
-### 📅 Milestone 3: Buy-the-Dip Migration (Week 3)
-*   [ ] **Port Dip Strategy**: Move logic to `strategies/dip_strategy.py`.
-*   [ ] **Integrate Confluence**: connect V2 Confluence Engine to new Strategy class.
-*   [ ] **Testing**: Verify Dip Bot on multiple pairs.
+### ✅ Milestone 3: Buy-the-Dip Migration (Week 3 - COMPLETED)
+*   [x] **Port Dip Strategy**: Move logic to `strategies/dip_strategy_v3.py`.
+*   [x] **Integrate Confluence**: connect V2 Confluence Engine to new Strategy class.
+*   [x] **Testing**: Verify Dip Bot on multiple pairs.
 
-### 📅 Milestone 4: Multi-Exchange Support (Week 4)
-*   [ ] **Multi-Adapter Engine**: Update Engine to hold multiple adapters simultaneously.
-*   [ ] **Routing Logic**: Strategy-to-Exchange routing (e.g., Grid on Binance, Dip on Luno).
+### ✅ Milestone 4: Multi-Exchange Support (Week 4 - COMPLETED)
+*   [x] **Multi-Adapter Engine**: Update Engine to hold multiple adapters simultaneously (via `ExchangeManager`).
+*   [x] **Routing Logic**: Strategy-to-Exchange routing (e.g., Grid on Binance, Dip on Luno).
 
-### 📅 Milestone 5: Production Hardening (Week 5)
+### 🏃 Milestone 5: Production Hardening (Week 5 - IN PROGRESS)
+*   [x] **Profit Logic**: Net Profit verification (Exit Price > Entry + Fees + 8%).
+*   [x] **Data Logging**: Capture RSI and Reasons in Trade Logs.
 *   [ ] **Go/No-Go Validator**: Deployment pre-flight checks.
 *   [ ] **Security Audit**: API key handling review.
 *   [ ] **Drift Protection**: Capital erosion monitoring.
+
+---
+
+## 🌟 Future & "Good to Have" Features
+*   **Dashboard V3**: Multi-tab view for different exchanges (Binance vs Luno).
+*   **Telegram V2**: Interactive commands (e.g., `/status binance`, `/stop luno`).
+*   **ML Regime V2**: Random Forest classifier for better market state detection.
+*   **Backtesting Engine**: Fast, local backtesting using stored DB data.
+
 
 ---
 

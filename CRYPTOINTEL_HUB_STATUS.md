@@ -140,17 +140,11 @@ vs Confluence V2: 1.8/100 → AVOID ❌
 
 ## 🚀 Roadmap: Next Steps
 
-### Week 1-2: Intelligence Validation
+### Week 1-2: Intelligence Validation (CURRENT)
+- [ ] Check Dashboard Tab: "🧠 Intelligence"
 - [ ] Use regulatory scorer for XRP $10K investment decision
 - [ ] Run daily XRP scoring, track changes
 - [ ] Score ADA, SOL, MATIC for comparison
-- [ ] Document scoring vs price action correlation
-
-### Week 3-4: Data Integration
-- [ ] Implement GitHub API collector (developer activity)
-- [ ] Build ETF flow scraper (SoSo Value)
-- [ ] Integrate CryptoPanic API (news sentiment)
-- [ ] Backtest regulatory scores on historical XRP rally
 
 ### Month 2: Bot Integration
 - [ ] Add regulatory filter to Hidden Gem Monitor (score >70)

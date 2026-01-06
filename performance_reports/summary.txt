@@ -1,0 +1,41 @@
+Crypto Bot Performance Summary
+Generated: 2025-12-29 15:00:51 UTC
+Database: data/trades_v3.db
+============================================================
+
+PORTFOLIO OVERVIEW
+------------------------------------------------------------
+Open Positions:      26
+Total Position Value: $14,310.00
+Unrealized P&L:      $0.00
+Realized P&L (30d):  $-14,537.32
+
+OPEN POSITIONS
+------------------------------------------------------------
+ICP/USDT     | Entry: $    3.79 | P&L: $    0.00 | Days:  26
+ADA/USDT     | Entry: $    0.43 | P&L: $    0.00 | Days:  26
+NEAR/USDT    | Entry: $    1.77 | P&L: $    0.00 | Days:  26
+UNI/USDT     | Entry: $    5.93 | P&L: $    0.00 | Days:  26
+SHIB/USDT    | Entry: $    0.00 | P&L: $    0.00 | Days:  25
+BCH/USDT     | Entry: $  582.40 | P&L: $    0.00 | Days:  25
+XRP/USDT     | Entry: $    2.13 | P&L: $    0.00 | Days:  25
+LINK/USDT    | Entry: $   14.27 | P&L: $    0.00 | Days:  25
+SOL/USDT     | Entry: $  139.72 | P&L: $    0.00 | Days:  24
+APT/USDT     | Entry: $    1.95 | P&L: $    0.00 | Days:  24
+PEPE/USDT    | Entry: $    0.00 | P&L: $    0.00 | Days:  24
+DOT/USDT     | Entry: $    2.26 | P&L: $    0.00 | Days:  24
+AVAX/USDT    | Entry: $   14.26 | P&L: $    0.00 | Days:  24
+DOGE/USDT    | Entry: $    0.14 | P&L: $    0.00 | Days:  24
+ETC/USDT     | Entry: $   13.42 | P&L: $    0.00 | Days:  24
+LTC/USDT     | Entry: $   80.68 | P&L: $    0.00 | Days:  23
+EOS/USDT     | Entry: $    0.78 | P&L: $    0.00 | Days:  21
+ETH/USDT     | Entry: $ 3163.52 | P&L: $    0.00 | Days:  21
+ATOM/USDT    | Entry: $    2.24 | P&L: $    0.00 | Days:  21
+BTC/USDT     | Entry: $91362.45 | P&L: $    0.00 | Days:  21
+ETH/USDT     | Entry: $ 3141.24 | P&L: $    0.00 | Days:  21
+LINK/USDT    | Entry: $   13.70 | P&L: $    0.00 | Days:  20
+ICP/USDT     | Entry: $    3.42 | P&L: $    0.00 | Days:  20
+AAVE/USDT    | Entry: $  192.03 | P&L: $    0.00 | Days:  20
+MANA/USDT    | Entry: $    0.15 | P&L: $    0.00 | Days:  20
+UNI/USDT     | Entry: $    5.53 | P&L: $    0.00 | Days:  20
+

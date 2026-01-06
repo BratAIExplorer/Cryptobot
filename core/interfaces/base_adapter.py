@@ -2,21 +2,20 @@ from abc import ABC, abstractmethod
 from decimal import Decimal
 import pandas as pd
 from typing import Dict, Any, Optional, List
+from ..health_monitor import ExchangeHealthMonitor
 
 class BaseExchangeAdapter(ABC):
     """
     Abstract Base Class for all Exchange Adapters.
-    Enforces a strict interface for:
-    - Order Execution
-    - Data Fetching
-    - Balance Checking
-    - Lifecycle Management (Kill Switch)
     """
 
     def __init__(self, mode: str = 'paper'):
         self.mode = mode.lower()
         self.kill_switch_active = False
         self.exchange_name = "BASE"
+        # Initialize Health Monitor (Lazy init or explicit start required later)
+        self.health_monitor = ExchangeHealthMonitor(self)
+        self.health_monitor.start()
 
     @abstractmethod
     def get_current_price(self, symbol: str) -> Optional[float]:
@@ -51,9 +50,12 @@ class BaseExchangeAdapter(ABC):
     def check_health(self) -> Dict[str, Any]:
         """
         Check connectivity and latency.
-        Returns: {'status': 'ONLINE'|'DEGRADED'|'OFFLINE', 'latency_ms': int}
+        Delegate to health monitor if active.
         """
-        pass
+        if self.health_monitor.is_running:
+            return self.health_monitor.get_stats()
+        # Fallback for manual check if monitor not started
+        return {'status': 'UNKNOWN', 'warning': 'Monitor not started'}
 
     def trigger_kill_switch(self, reason: str):
         """Active the Kill Switch to block all new orders"""
@@ -67,4 +69,5 @@ class BaseExchangeAdapter(ABC):
 
     def shutdown(self):
         """Graceful cleanup"""
-        pass
+        if self.health_monitor:
+            self.health_monitor.stop()

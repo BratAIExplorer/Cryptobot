@@ -35,8 +35,32 @@ ENV/
 # Project Specific
 *.db
 *.log
-*.csv
 .env
 data/trades.db
+data/*.db
 data/*.csv
+data/core/
+data/mexc_history/
 backups_*/
+
+# ALLOW performance reports (for Git tracking)
+!performance_reports/
+!performance_reports/*.json
+!performance_reports/*.txt
+
+# Exclude old/archived performance reports (keep only recent)
+performance_reports/performance_2024*.json
+performance_reports/performance_2025-01*.json
+performance_reports/performance_2025-02*.json
+performance_reports/performance_2025-03*.json
+performance_reports/performance_2025-04*.json
+performance_reports/performance_2025-05*.json
+performance_reports/performance_2025-06*.json
+performance_reports/performance_2025-07*.json
+performance_reports/performance_2025-08*.json
+performance_reports/performance_2025-09*.json
+performance_reports/performance_2025-10*.json
+performance_reports/performance_2025-11*.json
+
+# Allow CSV exports in reports folder only
+!performance_reports/*.csv
