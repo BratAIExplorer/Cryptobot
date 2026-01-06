@@ -52,7 +52,7 @@ class UnifiedExchange:
             
         elif self.exchange_name == 'BINANCE':
             api_key = os.getenv('BINANCE_API_KEY')
-            secret = os.getenv('BINANCE_SECRET_KEY')
+            secret = os.getenv('BINANCE_SECRET')
             self.exchange = ccxt.binance({
                 'apiKey': api_key,
                 'secret': secret,
@@ -60,6 +60,12 @@ class UnifiedExchange:
                 'rateLimit': 50,  # Binance: 50ms
                 'options': {'defaultType': 'spot'},
             })
+
+            # CRITICAL: Enable sandbox mode for paper trading BEFORE load_markets()
+            if mode == 'paper':
+                self.exchange.set_sandbox_mode(True)
+                logger.info("🔧 Binance sandbox mode enabled (testnet)")
+
             self.maker_fee = 0.001  # 0.1% maker
             self.taker_fee = 0.001  # 0.1% taker
             
