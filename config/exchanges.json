@@ -1,0 +1,52 @@
+{
+  "_comment": "Exchange adapter configuration - Override defaults here",
+  "_priority": "This file overrides defaults, env vars override this file",
+  "MEXC": {
+    "maker_fee": 0.0,
+    "taker_fee": 0.0005,
+    "idle_timeout_seconds": 300,
+    "rate_limit": 100,
+    "connection_timeout_ms": 30000,
+    "heartbeat_interval": 60,
+    "max_retries": 3,
+    "retry_delay_seconds": 2,
+    "health_check_interval": 60,
+    "latency_warning_ms": 1000,
+    "latency_critical_ms": 2000,
+    "min_order_size_usdt": 10,
+    "precision_price": 8,
+    "precision_amount": 8
+  },
+  "BINANCE": {
+    "maker_fee": 0.001,
+    "taker_fee": 0.001,
+    "idle_timeout_seconds": 300,
+    "rate_limit": 50,
+    "connection_timeout_ms": 30000,
+    "heartbeat_interval": 60,
+    "max_retries": 3,
+    "retry_delay_seconds": 2,
+    "health_check_interval": 60,
+    "latency_warning_ms": 1000,
+    "latency_critical_ms": 2000,
+    "min_order_size_usdt": 10,
+    "precision_price": 8,
+    "precision_amount": 8
+  },
+  "LUNO": {
+    "maker_fee": 0.001,
+    "taker_fee": 0.001,
+    "idle_timeout_seconds": 300,
+    "rate_limit": 60,
+    "connection_timeout_ms": 30000,
+    "heartbeat_interval": 60,
+    "max_retries": 3,
+    "retry_delay_seconds": 2,
+    "health_check_interval": 60,
+    "latency_warning_ms": 1000,
+    "latency_critical_ms": 2000,
+    "min_order_size_usdt": 10,
+    "precision_price": 8,
+    "precision_amount": 8
+  }
+}

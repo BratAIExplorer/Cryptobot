@@ -8,21 +8,32 @@ import uuid
 from core.database import Database, Position, Trade, BotStatus, CircuitBreaker, SystemHealth, Decision, ConfluenceScore, PortfolioSnapshot
 
 class TradeLogger:
-    def __init__(self, db_path=None, mode='paper'):
+    def __init__(self, db_path=None, mode='paper', exchange_name=None):
         """
         Initialize TradeLogger with database connection.
         Args:
             db_path: Explicit path to DB file (optional)
             mode: 'live' or 'paper' to determine default DB filename
+            exchange_name: 'MEXC', 'Binance', etc. (Used for folder separation)
         """
         # Determine DB based on mode if path not explicit
         if db_path is None:
-            db_filename = 'trades_v3_live.db' if mode == 'live' else 'trades_v3_paper.db'
-            # We let the Database class construct the full path, but we need to pass the filename differently or path.
-            # Database class assumes full path or constructs 'trades_v3.db'.
-            # Let's construct full path here to be explicit.
+            db_filename = 'trades.db'
+            if mode == 'paper':
+                db_filename = 'trades_paper.db'
+            
             root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            db_path = os.path.join(root_dir, 'data', db_filename)
+            
+            # Default to shared if no exchange specified (backward compatibility)
+            if exchange_name:
+                exchange_folder = exchange_name.lower()
+                # Ensure folder exists
+                folder_path = os.path.join(root_dir, 'data', exchange_folder)
+                os.makedirs(folder_path, exist_ok=True)
+                db_path = os.path.join(folder_path, db_filename)
+            else:
+                # Legacy fallback
+                db_path = os.path.join(root_dir, 'data', db_filename)
 
         # Initialize V3 Database Manager
         self.db = Database(db_path)
