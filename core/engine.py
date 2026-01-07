@@ -596,7 +596,7 @@ class TradingEngine:
         #             if sym not in symbols:
         #                 symbols.append(sym)
         #             watchlist_symbols_map[sym] = w_coin['manual_allocation_usd']
-                    bot['max_exposure_per_coin'] = max(bot.get('max_exposure_per_coin', 2000), w_coin['manual_allocation_usd'] * 2)
+        #             bot['max_exposure_per_coin'] = max(bot.get('max_exposure_per_coin', 2000), w_coin['manual_allocation_usd'] * 2)
 
         for symbol in symbols:
             try:
