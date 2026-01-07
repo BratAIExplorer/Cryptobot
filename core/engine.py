@@ -1158,24 +1158,37 @@ class TradingEngine:
                 )
                 
                 # Update position and log trade
-                if side == 'BUY':
-                    pos_id = self.logger.open_position(symbol, bot['name'], price, amount, expected_price=price, entry_rsi=rsi, exchange=self.exchange_name)
-                    self.logger.log_trade(bot['name'], symbol, 'BUY', price, amount, expected_price=price, rsi=rsi, position_id=pos_id, exchange=self.exchange_name)
-                
+                # Skip simulation fail check for simple paper mode execution
                 if not exec_result.success:
                     print(f"[EXECUTION FAIL] {exec_result.message}")
                     return
 
+                # Determine correct exchange tag
+                target_exchange = bot.get('exchange', 'BINANCE').upper()
+
                 # Open position (FIFO) with entry RSI
-                position_id = self.logger.open_position(symbol, bot['name'], price, amount, expected_price=price, entry_rsi=rsi)
+                position_id = self.logger.open_position(
+                    symbol, bot['name'], price, amount, 
+                    expected_price=price, 
+                    entry_rsi=rsi, 
+                    exchange=target_exchange
+                )
                 
                 # Calculate fee (0.1% Binance standard)
                 fee = price * amount * 0.001
                 
                 # Log trade (with versioning and fee)
                 strategy_version = bot.get('version', '1.0')
-                self.logger.log_trade(bot['name'], symbol, side, price, amount, expected_price=price, fee=fee, rsi=rsi, 
-                                    position_id=position_id, engine_version='2.0', strategy_version=strategy_version)
+                self.logger.log_trade(
+                    bot['name'], symbol, side, price, amount, 
+                    expected_price=price, 
+                    fee=fee, 
+                    rsi=rsi, 
+                    position_id=position_id, 
+                    exchange=target_exchange,
+                    engine_version='2.0', 
+                    strategy_version=strategy_version
+                )
                 
                 
                 # Send Notification
@@ -1255,10 +1268,21 @@ class TradingEngine:
                 # Update last trade time for no-activity monitoring
                 self.last_trade_time = datetime.now()
                 
+                # Determine correct exchange tag
+                target_exchange = bot.get('exchange', 'BINANCE').upper()
+                
                 # Log trade (with versioning and fee)
                 strategy_version = bot.get('version', '1.0')
-                self.logger.log_trade(bot['name'], symbol, side, price, amount, expected_price=price, fee=fee, rsi=rsi, 
-                                    position_id=position_id, engine_version='2.0', strategy_version=strategy_version)
+                self.logger.log_trade(
+                    bot['name'], symbol, side, price, amount, 
+                    expected_price=price, 
+                    fee=fee, 
+                    rsi=rsi, 
+                    position_id=position_id, 
+                    exchange=target_exchange,
+                    engine_version='2.0', 
+                    strategy_version=strategy_version
+                )
                 
                 # Send Specific Notification based on exit reason
                 buy_price = position['buy_price']

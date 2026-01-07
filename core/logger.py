@@ -59,7 +59,7 @@ class TradeLogger:
 
     # --- TRADING METHODS ---
 
-    def log_trade(self, strategy, symbol, side, price, amount, expected_price=None, fee=0.0, rsi=None, market_condition="", position_id=None, exchange='MEXC', engine_version='2.0', strategy_version='1.0'):
+    def log_trade(self, strategy, symbol, side, price, amount, expected_price=None, fee=0.0, rsi=None, market_condition="", position_id=None, exchange='UNKNOWN', engine_version='2.0', strategy_version='1.0'):
         """Log a trade execution"""
         session = self.db.get_session()
         try:
@@ -95,7 +95,7 @@ class TradeLogger:
         finally:
             session.close()
 
-    def open_position(self, symbol, strategy, buy_price, amount, expected_price=None, entry_rsi=None, exchange='MEXC'):
+    def open_position(self, symbol, strategy, buy_price, amount, expected_price=None, entry_rsi=None, exchange='UNKNOWN'):
         """Open a new position"""
         session = self.db.get_session()
         new_id = str(uuid.uuid4())
