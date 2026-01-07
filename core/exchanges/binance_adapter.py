@@ -143,3 +143,13 @@ class BinanceAdapter(BaseExchangeAdapter):
         """Pass-through to CCXT"""
         return self.exchange.fetch_ticker(symbol)
 
+    def fetch_balance(self):
+        """Legacy Alias for engine.py"""
+        # Return dict structure expected by legacy code if needed, 
+        # or just allow get_balance logic if caller handles it.
+        # But 'fetch_balance' usually returns the full CCXT dict.
+        # Let's wrap calling the exchange directly safely.
+        if self.mode == 'paper':
+             return {'total': {'USDT': 50000.0}, 'free': {'USDT': 50000.0}, 'used': {'USDT': 0.0}}
+        return self.exchange.fetch_balance()
+

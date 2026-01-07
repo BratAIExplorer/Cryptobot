@@ -66,7 +66,7 @@ class TradingEngine:
         
         # Initialize Safety Managers
         self.risk_manager = risk_manager or setup_safe_trading_bot('moderate')
-        self.resilience_manager = resilience_manager or ExchangeResilienceManager("MEXC") 
+        self.resilience_manager = resilience_manager or ExchangeResilienceManager("BINANCE") # Changed from MEXC 
         self.execution_manager = None # Initialized per trade
         self.regime_detector = regime_detector or RegimeDetector(db_path)
         self.veto_manager = veto_manager or VetoManager(self.exchange, self.logger)
@@ -393,20 +393,20 @@ class TradingEngine:
         self.check_no_activity()
         
         # --- PILLAR A (LUNO) ALERTS ---
-        self._check_luno_confluence_alerts()
+        # self._check_luno_confluence_alerts() # Disabled for VPS V3
         
         # --- MARKET MONITOR (New Listings) ---
-        self._run_market_monitor()
+        # self._run_market_monitor() # Disabled for VPS V3
         
         # --- WATCHLIST PERFORMANCE PULSE (Every 24h) ---
         now = datetime.utcnow()
         if not self.last_performance_pulse or (now - self.last_performance_pulse).total_seconds() >= 86400:
-            print("💓 [WATCHLIST] Running daily performance pulse...")
-            self.watchlist_tracker.update_watchlist_performance()
+            # print("💓 [WATCHLIST] Running daily performance pulse...")
+            # self.watchlist_tracker.update_watchlist_performance() # Disabled
             self.last_performance_pulse = now
 
         # --- DISCOVERY SCAN (Every 4 hours or manually triggered) ---
-        self._run_discovery_scan()
+        # self._run_discovery_scan() # Disabled
 
         # --- PERIODIC PERFORMANCE SUMMARY (Every 4h) ---
         if self.notifier and self.notifier.can_send_throttled_msg("periodic_performance_summary", hours=4):
@@ -585,19 +585,17 @@ class TradingEngine:
         strategy_type = bot['type']
         
         # --- PILLAR C INTEGRATION: Add active watchlist coins to Buy-the-Dip ---
-        watchlist_symbols_map = {} # To store manual allocation
-        if bot['name'] == 'Buy-the-Dip Strategy':
-            active_watchlist = self.logger.get_new_coin_watchlist()
-            # Filter for active only (since get_new_coin_watchlist doesn't filter is_active in current implementation)
-            if not active_watchlist.empty and 'is_active' in active_watchlist.columns:
-                active_list = active_watchlist[active_watchlist['is_active'] == True]
-                for _, w_coin in active_list.iterrows():
-                    sym = w_coin['symbol']
-                    if sym not in symbols:
-                        symbols.append(sym)
-                    watchlist_symbols_map[sym] = w_coin['manual_allocation_usd']
-                    # Increase max exposure for this specific coin to match manual allocation
-                    # so execute_trade doesn't reject it
+        # DISABLED FOR VPS V3 SAFETY - Only trade explicit Top 10 list
+        watchlist_symbols_map = {} 
+        # if bot['name'] == 'Buy-the-Dip Strategy':
+        #     active_watchlist = self.logger.get_new_coin_watchlist()
+        #     if not active_watchlist.empty and 'is_active' in active_watchlist.columns:
+        #         active_list = active_watchlist[active_watchlist['is_active'] == True]
+        #         for _, w_coin in active_list.iterrows():
+        #             sym = w_coin['symbol']
+        #             if sym not in symbols:
+        #                 symbols.append(sym)
+        #             watchlist_symbols_map[sym] = w_coin['manual_allocation_usd']
                     bot['max_exposure_per_coin'] = max(bot.get('max_exposure_per_coin', 2000), w_coin['manual_allocation_usd'] * 2)
 
         for symbol in symbols:
