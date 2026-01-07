@@ -15,6 +15,10 @@ class BinanceAdapter(BaseExchangeAdapter):
     """
     
     def __init__(self, mode: str = 'paper'):
+        # CRITICAL: Initialize self.exchange BEFORE super().__init__()
+        # to prevent AttributeError if base class tries to access it
+        self.exchange = None
+        
         super().__init__(mode)
         self.exchange_name = "BINANCE"
         
@@ -27,7 +31,7 @@ class BinanceAdapter(BaseExchangeAdapter):
         self._initialize_exchange()
 
     def _initialize_exchange(self):
-        self.exchange = None # Safety init
+        # self.exchange already initialized to None in __init__
         config = {
             'enableRateLimit': True,
             'rateLimit': 50,

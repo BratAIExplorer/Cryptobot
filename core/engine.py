@@ -258,25 +258,26 @@ class TradingEngine:
             print(f"❌ Regime Warm-up Failed: {e}")
 
         # Hybrid v2.0: Build correlation matrix for Buy-the-Dip strategy
-        print("🔗 Building correlation matrix for portfolio diversification...")
-        try:
-            # Collect all symbols from all bots
-            all_symbols = set()
-            for bot in self.active_bots:
-                symbols = bot.get('symbols', [bot.get('symbol')])
-                all_symbols.update(symbols)
+        # DISABLED FOR VPS V3: Wasteful for small setup, blocking Grid trades
+        # print("🔗 Building correlation matrix for portfolio diversification...")
+        # try:
+        #     # Collect all symbols from all bots
+        #     all_symbols = set()
+        #     for bot in self.active_bots:
+        #         symbols = bot.get('symbols', [bot.get('symbol')])
+        #         all_symbols.update(symbols)
 
-            # Build correlation matrix (30-day rolling)
-            correlation_matrix = self.correlation_manager.build_correlation_matrix(
-                list(all_symbols),
-                lambda sym, **kwargs: self.exchange.fetch_ohlcv(sym, **kwargs)
-            )
+        #     # Build correlation matrix (30-day rolling)
+        #     correlation_matrix = self.correlation_manager.build_correlation_matrix(
+        #         list(all_symbols),
+        #         lambda sym, **kwargs: self.exchange.fetch_ohlcv(sym, **kwargs)
+        #     )
 
-            self.correlation_matrix_last_update = datetime.now()
-            print(f"✅ Correlation Matrix Built: {len(correlation_matrix)} pairs analyzed")
-        except Exception as e:
-            print(f"⚠️  Warning: Could not build correlation matrix: {e}")
-            print("   (Correlation filtering will be disabled)")
+        #     self.correlation_matrix_last_update = datetime.now()
+        #     print(f"✅ Correlation Matrix Built: {len(correlation_matrix)} pairs analyzed")
+        # except Exception as e:
+        #     print(f"⚠️  Warning: Could not build correlation matrix: {e}")
+        #     print("   (Correlation filtering will be disabled)")
 
         # Update bot status on start for ALL bots
         all_trades = self.logger.get_trades()
