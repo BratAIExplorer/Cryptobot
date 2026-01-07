@@ -13,9 +13,9 @@ class BaseExchangeAdapter(ABC):
         self.mode = mode.lower()
         self.kill_switch_active = False
         self.exchange_name = "BASE"
-        # Initialize Health Monitor (Lazy init or explicit start required later)
-        self.health_monitor = ExchangeHealthMonitor(self)
-        self.health_monitor.start()
+        # Initialize Health Monitor but DON'T start it yet
+        # Child class must call self.health_monitor.start() AFTER initializing self.exchange
+        self.health_monitor = None  # Will be initialized by child
 
     @abstractmethod
     def get_current_price(self, symbol: str) -> Optional[float]:

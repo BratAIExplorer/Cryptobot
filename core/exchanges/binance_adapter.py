@@ -29,6 +29,13 @@ class BinanceAdapter(BaseExchangeAdapter):
         self.taker_fee = 0.001
         
         self._initialize_exchange()
+        
+        # Now that self.exchange is initialized, start health monitor
+        from ..health_monitor import ExchangeHealthMonitor
+        self.health_monitor = ExchangeHealthMonitor(self)
+        # Don't auto-start for paper mode to reduce noise
+        if self.mode != 'paper':
+            self.health_monitor.start()
 
     def _initialize_exchange(self):
         # self.exchange already initialized to None in __init__
