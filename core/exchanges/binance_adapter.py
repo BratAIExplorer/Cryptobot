@@ -27,6 +27,7 @@ class BinanceAdapter(BaseExchangeAdapter):
         self._initialize_exchange()
 
     def _initialize_exchange(self):
+        self.exchange = None # Safety init
         config = {
             'enableRateLimit': True,
             'rateLimit': 50,
@@ -112,6 +113,9 @@ class BinanceAdapter(BaseExchangeAdapter):
 
     def check_health(self) -> Dict[str, Any]:
         try:
+            if not self.exchange:
+                 return {'status': 'OFFLINE', 'error': 'Exchange not initialized'}
+            
             start = time.time()
             self.exchange.fetch_time()
             latency = int((time.time() - start) * 1000)

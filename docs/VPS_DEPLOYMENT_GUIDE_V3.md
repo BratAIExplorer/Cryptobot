@@ -25,17 +25,26 @@
 
 ---
 
-## 📤 Step 2: Upload Code (From Local Windows)
+## 📤 Step 2: Upload Code (Git Method - Preferred)
 
-Run this PowerShell command to upload the code to the new directory. 
-*(Replace `user` and `your_vps_ip` with your actual details)*
+Instead of SCP, we will use Git.
 
+### 2a. Local Machine (Windows)
+Push the code you just committed:
 ```powershell
-# 1. Create the new directory on VPS
-ssh user@your_vps_ip "mkdir -p ~/cryptobot_v3"
+git push origin main
+```
 
-# 2. Upload files (excluding data/env to prevent overwrite/leak)
-scp -r core strategies utils scripts docs *.py requirements.txt user@your_vps_ip:~/cryptobot_v3/
+### 2b. VPS Machine
+Connect to your VPS:
+```bash
+ssh user@your_vps_ip
+# If this is the FIRST time:
+git clone https://github.com/your-repo/crypto-bot.git ~/cryptobot_v3
+
+# If you already have the folder:
+cd ~/cryptobot_v3
+git pull origin main
 ```
 
 ---

@@ -111,34 +111,26 @@ def main():
     #
     # Expected: Win rate 30% → 45%, Monthly $1K → $2.5K
 
-    engine.add_bot({
-        'name': 'SMA Trend Bot V2',
-        'type': 'SMA',
-        'symbols': ['BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'BNB/USDT', 'DOGE/USDT'],
-
-        # Position Management
-        'amount': 300,
-        'initial_balance': 4000,
-        'max_exposure_per_coin': 900,  # Max 3 positions
-
-        # V2 SMA Parameters
-        'sma_fast': 20,
-        'sma_slow': 50,
-        'use_crossover': True,        # NEW: True crossover detection
-        'adx_threshold': 25,           # NEW: Only trade when ADX > 25 (strong trend)
-
-        # Exit Rules (IMPROVED)
-        'take_profit_pct': 0.10,       # 10% TP
-        'stop_loss_pct': 0.05,         # 5% SL (was 3% - too tight!)
-        'trailing_stop': True,
-        'trailing_stop_pct': 0.04,     # 4% trail
-        'trailing_activates_at': 0.06,  # Start trailing after +6%
-
-        # Safety
-        'max_hold_hours': 504,         # 21 days max
-        'circuit_breaker_daily': -100,
-        'circuit_breaker_weekly': -300
-    })
+    # engine.add_bot({
+    #     'name': 'SMA Trend Bot V2',
+    #     'type': 'SMA',
+    #     'symbols': ['BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'BNB/USDT', 'DOGE/USDT'],
+    #     'amount': 300,
+    #     'initial_balance': 4000,
+    #     'max_exposure_per_coin': 900,
+    #     'sma_fast': 20,
+    #     'sma_slow': 50,
+    #     'use_crossover': True,
+    #     'adx_threshold': 25,
+    #     'take_profit_pct': 0.10,
+    #     'stop_loss_pct': 0.05,
+    #     'trailing_stop': True,
+    #     'trailing_stop_pct': 0.04,
+    #     'trailing_activates_at': 0.06,
+    #     'max_hold_hours': 504,
+    #     'circuit_breaker_daily': -100,
+    #     'circuit_breaker_weekly': -300
+    # })
     
     # ==========================================
     # 🚀 PRIORITY 3: BUY-THE-DIP (HYBRID V2.0)
@@ -190,32 +182,24 @@ def main():
     # ACTION NEEDED: Backtest first, then decide fix or kill
     # Expected backtest time: 2 hours
 
-    engine.add_bot({
-        'name': 'Momentum Swing Bot',
-        'type': 'Momentum',  # WARNING: Not implemented! Falls back to DCA
-        'symbols': ['BTC/USDT', 'ETH/USDT'],
-
-        # PAUSED: Reduced allocation for testing only
-        'amount': 75,                # Reduced from $150
-        'initial_balance': 500,      # Reduced from $1000
-        'max_positions': 2,
-        
-        # Entry Criteria
-        'min_24h_move': 0.05,         # 5% move in 24h to trigger
-        'must_be_above_sma20': True,  # Trend confirmation
-        'min_volume_ratio': 1.3,      # 30% above average volume
-        'min_confluence': 70,
-        
-       # Exit Rules
-        'take_profit_pct': 0.10,      # 10% target (let momentum run)
-        'stop_loss_pct': 0.04,        # -4% stop (wider than scalping)
-        'trailing_stop_pct': 0.06,    # 6% trail once +8%
-        'max_hold_hours': 288,        # 12 days max (momentum swing timeframe)
-        
-        # Safety
-        'circuit_breaker_daily': -60,
-        'circuit_breaker_weekly': -150
-    })
+    # engine.add_bot({
+    #     'name': 'Momentum Swing Bot',
+    #     'type': 'Momentum',  # WARNING: Not implemented! Falls back to DCA
+    #     'symbols': ['BTC/USDT', 'ETH/USDT'],
+    #     'amount': 75,
+    #     'initial_balance': 500,
+    #     'max_positions': 2,
+    #     'min_24h_move': 0.05,
+    #     'must_be_above_sma20': True,
+    #     'min_volume_ratio': 1.3,
+    #     'min_confluence': 70,
+    #     'take_profit_pct': 0.10,
+    #     'stop_loss_pct': 0.04,
+    #     'trailing_stop_pct': 0.06,
+    #     'max_hold_hours': 288,
+    #     'circuit_breaker_daily': -60,
+    #     'circuit_breaker_weekly': -150
+    # })
     
     # ==========================================
     # 💎 HIDDEN GEM MONITOR V2 (UPGRADED!)
@@ -284,12 +268,10 @@ def main():
     
     print("=" * 80)
     print(f"🚀 Bot Running - {TRADING_MODE.upper()} Mode")
-    print("   Portfolio Allocation:")
-    print("   - Grid Bots:      $6,000 (43%) ← SCALED UP!")
-    print("   - SMA Trend:      $4,000 (29%)")
-    print("   - Buy-the-Dip:    $3,000 (21%) ← Clean slate test")
-    print("   - Momentum Swing: $1,000 (7%)  ← New strategy")
-    print("   Expected Monthly: +$7,730 (55% return)")
+    print("   Portfolio Allocation (VPS Config):")
+    print("   - Grid Bots:      $500 ($250 BTC + $250 ETH)")
+    print("   - Buy-the-Dip:    $1,000 (Top 10 Coins)")
+    print("   - Total Capital:  $1,500")
     print("=" * 80)
     print("Press Ctrl+C to stop.")
     print()
