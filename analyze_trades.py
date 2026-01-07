@@ -5,7 +5,15 @@ import sqlite3
 import pandas as pd
 
 # Connect to database
-conn = sqlite3.connect('data/trades.db')
+# Connect to database (defaulting to paper DB for V3)
+import os
+db_path = 'data/trades_paper.db' 
+if not os.path.exists(db_path):
+    # Fallback to older default if not found
+    db_path = 'data/trades.db'
+    
+print(f"📊 Reading Database: {db_path}")
+conn = sqlite3.connect(db_path)
 
 # 1. Strategy Summary
 print("=" * 100)
