@@ -43,24 +43,19 @@ def get_binance_grid_stats(db_path):
         columns = [col[1] for col in cursor.fetchall()]
         has_exchange = 'exchange' in columns
         
-        # Build strict Binance filter
+        # Show ALL Grid bots but label their exchange
         where_clause = "WHERE strategy LIKE 'Grid Bot%'"
-        if has_exchange:
-            where_clause += " AND UPPER(exchange) LIKE '%BINANCE%'"
-        else:
-            # If no exchange column, we check if the db path suggests it's a binance db
-            if 'binance' not in str(db_path).lower() and 'trades.db' not in str(db_path).lower():
-                return None
 
         # 1. First trade to calculate duration
         duration_query = f"""
         SELECT 
             strategy,
             MIN(timestamp) as first_trade,
-            COUNT(*) as grand_total
+            COUNT(*) as grand_total,
+            {"exchange" if has_exchange else "'Unknown'"} as exchange
         FROM trades
         {where_clause}
-        GROUP BY strategy
+        GROUP BY strategy, {"exchange" if has_exchange else "'Unknown'"}
         """
         
         # 2. Trades in last 48 hours
@@ -108,7 +103,7 @@ def main():
     data_dir = Path('./data')
     dbs = list(data_dir.rglob('*.db'))
     
-    header = f"{'Database':<25} {'Strategy':<18} {'First Trade':<20} {'Runtime':<12} {'48h Trades':<10}"
+    header = f"{'Database':<25} {'Strategy':<18} {'Exch':<10} {'First Trade':<20} {'Runtime':<12} {'48h'}"
     print(f"{Colors.BOLD}{header}{Colors.RESET}")
     print("─" * 100)
     
@@ -120,14 +115,17 @@ def main():
         if stats:
             for bot in stats['durations']:
                 strategy = bot['strategy']
+                exchange = str(bot['exchange']).strip()
                 first = bot['first_trade']
                 runtime = format_runtime(first)
                 recent = stats['recents'].get(strategy, 0)
                 
-                # Highlight active bots
+                # Highlight Binance and active
+                is_binance = "BINANCE" in exchange.upper()
+                exch_color = Colors.GREEN if is_binance else Colors.YELLOW
                 count_color = Colors.GREEN if recent > 0 else Colors.RESET
                 
-                print(f"{db_name:<25} {strategy:<18} {first[:19]:<20} {runtime:<12} {count_color}{recent:<10}{Colors.RESET}")
+                print(f"{db_name:<25} {strategy:<18} {exch_color}{exchange:<10}{Colors.RESET} {first[:19]:<20} {runtime:<12} {count_color}{recent:<10}{Colors.RESET}")
                 found = True
                 
     if not found:
