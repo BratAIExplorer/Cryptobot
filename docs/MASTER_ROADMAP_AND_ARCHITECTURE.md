@@ -61,10 +61,19 @@ Databases are no longer shared. Data is isolated by exchange to prevent cross-co
     *   Disabled experimental SMA/Momentum/Gem bots.
 
 ### 🔭 Milestone 6: Monitoring & Live Transition (Next Steps)
-*   [ ] **Monitor Paper Trading** (24h period).
+*   [ ] **Monitor Paper Trading** (24-48h period - IN PROGRESS).
 *   [ ] **Analyze Log Data**: Verify profits and strategy execution.
-*   [ ] **Switch to Live**: Change `--mode paper` to `--mode live`.
-*   [ ] **Capital Drift**: Implement equity erosion protection.
+*   [ ] **Go/No-Go Decision**: Evaluate if bots are profitable.
+*   [ ] **Switch to Live**: Change `--mode paper` to `--mode live` (if profitable).
+
+### 🎨 Milestone 7: Unified Intelligence Dashboard (Proposed)
+*   [ ] Create `dashboard_v4/` multi-page Streamlit app
+*   [ ] Merge Bot Dashboard → Page 1
+*   [ ] Merge Intelligence Dashboard → Page 2
+*   [ ] Migrate Luno Monitor → Page 3
+*   [ ] Implement Context Manager (mode/exchange routing)
+*   [ ] Connect Regulatory Scorer to Luno holdings
+*   [ ] Add "Long-Term Buy Recommendations" panel
 
 ---
 
@@ -72,17 +81,31 @@ Databases are no longer shared. Data is isolated by exchange to prevent cross-co
 
 | Issue | Root Cause | Fix Applied |
 | :--- | :--- | :--- |
-| **"BinanceAdapter has no attribute exchange"** | Race condition in `__init__`. Base class called before specific init. | Reordered initialization: `self.exchange=None` before `super().__init__`. |
-| **"Luno/MEXC warnings"** | Legacy code in `engine.py` checked all adapters. | Disabled `_check_luno` and changed default Resilience target to `'BINANCE'`. |
-| **"90 Pairs Analyzed"** | Pillar C legacy watchlist injected extra pairs. | Disabled Component C for VPS V3 safety. |
-| **"apt_pkg not found"** | User ran `analyze_trades.py` without `python3`. | Updated instructions to always use `python3 <script>`. |
+| **"BinanceAdapter has no attribute exchange"** | Race condition: `ExchangeHealthMonitor(self)` called before `self.exchange` initialized in child class | Moved `self.exchange = None` before `super().__init__()` AND delayed health monitor init to after exchange ready |
+| **"Luno/MEXC warnings"** | Legacy code in `engine.py` auto-checked all exchanges | Disabled `_check_luno_confluence_alerts()` and changed `ExchangeResilienceManager` default from "MEXC" to "BINANCE" |
+| **"90 Pairs Analyzed"** | Pillar C watchlist injected legacy pairs into correlation matrix | Disabled correlation matrix build and Pillar C integration for VPS V3 |
+| **"apt_pkg not found"** | User ran scripts without `python3`, triggering broken system handler | Updated all instructions to explicitly use `python3 <script>` |
+| **Indentation Error (line 599)** | Orphaned line after commenting out Pillar C code | Properly commented the entire watchlist integration block |
+| **Portfolio print mismatch** | Hardcoded display text showed $6000 instead of actual $250 config | Updated startup print summary to match VPS reality ($250 Grid, $1000 Dip) |
 
 ---
 
 ## 🌟 Future Features
-*   **Dashboard V3**: Multi-tab view for different exchanges.
-*   **Telegram V2**: Interactive commands.
-*   **Backtesting Engine**: Fast, local backtesting using stored DB data.
+
+### High Priority:
+*   **Unified Dashboard** (Merge 3 dashboards → 1 command center)
+*   **Luno Intelligence** (Connect Regulatory Scorer to long-term holdings)
+*   **Mobile Optimization** (Responsive layouts for on-the-go monitoring)
+
+### Medium Priority:
+*   **Alert System Unification** (Single Telegram bot for all 3 domains)
+*   **Backtesting Overlay** ("What if I bought 90 days ago?")
+*   **Capital Drift Protection** (Equity erosion monitoring)
+
+### Low Priority:
+*   **Multi-User Support** (Each user has own portfolio)
+*   **AI Chat Assistant** (Natural language queries)
+*   **Advanced Charting** (TradingView integration)
 
 ---
 
@@ -90,24 +113,99 @@ Databases are no longer shared. Data is isolated by exchange to prevent cross-co
 
 | Strategy | Status | Budget | Config |
 | :--- | :--- | :--- | :--- |
-| **Grid Bot (BTC)** | ✅ 100% Active | $250 | $25 Grids, Market Neutral |
-| **Grid Bot (ETH)** | ✅ 100% Active | $250 | $25 Grids, Market Neutral |
-| **Buy-the-Dip** | ✅ 100% Active | $1000 | Top 10 Coins, No Stop Loss |
-| **SMA Trend** | 🛑 Disabled | - | Logic V2.0 (Pending) |
-| **Momentum** | 🛑 Disabled | - | Logic V1.0 (Review) |
-| **Hidden Gems** | 🛑 Disabled | - | High Risk (Disabled) |
+| **Grid Bot (BTC)** | ✅ Active | $250 | $25 Grids, Market Neutral |
+| **Grid Bot (ETH)** | ✅ Active | $250 | $25 Grids, Market Neutral |
+| **Buy-the-Dip** | ✅ Active | $1000 | Top 10 Coins, No Stop Loss, 8% Net Target |
+| **SMA Trend** | 🛑 Disabled | - | Pending V2.0 validation |
+| **Momentum** | 🛑 Disabled | - | Pending backtest |
+| **Hidden Gems** | 🛑 Disabled | - | High risk, disabled for safety |
 
 ---
 
 ## 📝 Change Log
 
-### [2026-01-07] - V3.1.0 VPS Hardening
-*   **Fix**: Critical race condition in Adapter base class.
-*   **Fix**: Removed legacy exchange dependencies from Engine.
-*   **Config**: Finalized VPS Budget ($1500 Total).
-*   **Docs**: Updated Master Roadmap.
+### [2026-01-07] - V3.1.0 VPS Hardening & Strategic Planning
+*   **Fix**: Critical initialization race in `BaseExchangeAdapter` (health monitor)
+*   **Fix**: Removed legacy Luno/MEXC dependencies from engine startup
+*   **Fix**: Disabled wasteful correlation matrix for small VPS setup
+*   **Config**: Finalized VPS Budget ($1500 Total: $500 Grid + $1000 Dip)
+*   **Docs**: Created Strategic Product Review (Milestone 7 proposal)
+*   **Status**: VPS deployment successful, monitoring phase initiated
 
 ### [2026-01-06] - V3.0.0 Architecture Shift
 *   **Refactor**: Replaced `UnifiedExchange` with `ExchangeFactory` + Adapters.
 *   **Feat**: Added `ExchangeHealthMonitor`.
+
+---
+
+## 📋 Technical Backlog (Prioritized)
+
+### 🔥 **CRITICAL** (Current Sprint)
+- [x] VPS Deployment (Completed 2026-01-07)
+- [ ] Monitor bots for 48h (Deadline: 2026-01-09)
+- [ ] Validate first profitable trade
+- [ ] Document actual win rate vs expected
+
+### 🎯 **NEXT** (Post-Validation)
+- [ ] Create Unified Dashboard prototype (`dashboard_v4/`)
+- [ ] Design Context Manager architecture
+- [ ] Plan Luno + Regulatory Scorer integration
+- [ ] Sketch UI mockups for 3-tab layout
+
+### 📊 **BACKLOG** (Future Sprints)
+**Dashboard Unification:**
+- [ ] Migrate Bot Dashboard to multi-page Streamlit
+- [ ] Merge Intelligence Dashboard (Page 2)
+- [ ] Convert Luno Monitor Flask → Streamlit (Page 3)
+- [ ] Implement mode switcher (Paper/Live) with deep routing
+- [ ] Add cross-dashboard navigation ("View XRP Intelligence")
+
+**Luno Intelligence:**
+- [ ] Connect Regulatory Scorer to Luno tab
+- [ ] Build "Buy More?" recommendation panel
+- [ ] Add Luno watchlist feature
+- [ ] Implement RM price alerts
+
+**Observability:**
+- [ ] Unified Telegram alert system
+- [ ] Health dashboard for all 3 domains
+- [ ] Performance metrics (latency, uptime)
+
+**Advanced Features:**
+- [ ] Mobile-responsive layouts
+- [ ] Backtesting UI overlay
+- [ ] Capital drift protection alerts
+- [ ] Tax report automation
+
+---
+
+## 🎬 Current Status & Next Step
+
+**Where We Are:**
+✅ VPS bots deployed successfully (Grid BTC, Grid ETH, Dip Strategy)  
+✅ All critical bugs fixed (initialization, legacy cleanup, correlation noise)  
+✅ Documentation fully updated (Master Roadmap, Product Strategy)  
+⏳ **Bot monitoring in progress** (0 trades in first hour - normal)
+
+**Very Next Technical Step:**
+1. **Let bots run** (no action required)
+2. **Check `analyze_trades.py`** 3x daily on VPS
+3. **Validate first trade** (expected within 24h)
+4. **Thursday Go/No-Go**: Decide if ready for Milestone 7
+
+**If Profitable → Start:**
+- Create `dashboard_v4/app.py` (multi-page prototype)
+- Design `config/dashboard_context.py` (mode router)
+- Sketch Luno intelligence tab mockup
+
+**Session End:** All changes committed. Ready for monitoring phase.
+
+---
+
+## 📞 Contact & Support
+- **VPS**: `ssh root@72.60.40.29`
+- **Bot Status**: `python3 run_bot.py --mode paper`
+- **Analysis**: `python3 analyze_trades.py`
+- **Logs**: Terminal output (running in screen/tmux recommended)
+
 
