@@ -73,31 +73,31 @@ def main():
     print(f"✅ Engine initialized - Adapter: {engine.exchange.__class__.__name__}", flush=True)
     print(f"✅ Kill Switch Status: {'ACTIVE' if engine.exchange.kill_switch_active else 'INACTIVE'}", flush=True)
 
-    # Add ONE bot for testing - Grid Bot BTC (proven strategy)
-    print("\n🤖 Adding Grid Bot BTC (proven parameters)...", flush=True)
+    # Add ONE bot for testing - Grid Bot BTC (adjusted for $500 budget)
+    print("\n🤖 Adding Grid Bot BTC ($500 realistic budget)...", flush=True)
     engine.add_bot({
         'name': 'Test Grid Bot BTC',
         'type': 'Grid',
         'symbols': ['BTC/USDT'],
-        'amount': 150,          # Proven amount
+        'amount': 25,           # $25 per trade ($500/20 levels)
         'grid_levels': 20,      # Proven levels
         'atr_multiplier': 2.0,
         'atr_period': 14,
         'lower_limit': 85000,   # Proven range
         'upper_limit': 110000,
-        'initial_balance': 3000,
-        'max_exposure_per_coin': 3000
+        'initial_balance': 500, # Realistic starting capital
+        'max_exposure_per_coin': 500
     })
 
     print("✅ Grid Bot BTC configured", flush=True)
     print("\n" + "=" * 80, flush=True)
     print("🚀 STARTING ADAPTER TEST - Paper Trading Only", flush=True)
     print("=" * 80, flush=True)
-    print("\n📊 Expected Performance (based on proven parameters):", flush=True)
+    print("\n📊 Expected Performance (based on $500 budget):", flush=True)
     print("   - Trades per day: ~5-10 grid fills", flush=True)
-    print("   - Profit per trade: ~$1.20-$1.50 (after Binance fees)", flush=True)
+    print("   - Profit per trade: ~$0.20-$0.30 (after Binance fees)", flush=True)
     print("   - Grid range: $85,000 - $110,000", flush=True)
-    print("   - Capital deployed: $3,000", flush=True)
+    print("   - Capital deployed: $500 (realistic starting amount)", flush=True)
     print("\n⚠️  This is a TEST - Monitoring adapter pattern core only", flush=True)
     print("⚠️  Priority 1 enhancements NOT active (health monitor, config manager)", flush=True)
     print("\n💡 To stop: Create a file named 'STOP_SIGNAL' or press Ctrl+C\n", flush=True)
