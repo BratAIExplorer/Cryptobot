@@ -47,7 +47,7 @@ class TradingEngine:
         
         # Initialize Safety Managers
         self.risk_manager = risk_manager or setup_safe_trading_bot('moderate')
-        self.resilience_manager = resilience_manager or ExchangeResilienceManager("MEXC") 
+        self.resilience_manager = resilience_manager or ExchangeResilienceManager(self.exchange_name) 
         self.execution_manager = None # Initialized per trade
         self.regime_detector = regime_detector or RegimeDetector(db_path)
         self.veto_manager = veto_manager or VetoManager(self.exchange, self.logger)
@@ -65,7 +65,7 @@ class TradingEngine:
         self.watchlist_tracker = WatchlistTracker(self.exchange, self.logger, self.notifier)
         self.last_watchlist_scan = None
         self.last_performance_pulse = None # For daily tracker run
-        self.known_symbols_path = os.path.join(root_dir, 'data', 'known_symbols_mexc.json')
+        self.known_symbols_path = os.path.join(root_dir, 'data', f'known_symbols_{self.exchange_name.lower()}.json')
 
         # Hybrid v2.0: Correlation Manager (prevents over-concentration in correlated assets)
         self.correlation_manager = CorrelationManager(
@@ -345,10 +345,11 @@ class TradingEngine:
         
         # Check for no-activity (6 hour silence)
         self.check_no_activity()
-        
+
         # --- PILLAR A (LUNO) ALERTS ---
-        self._check_luno_confluence_alerts()
-        
+        # DISABLED: Only run if explicitly using LUNO exchange
+        # self._check_luno_confluence_alerts()
+
         # --- MARKET MONITOR (New Listings) ---
         self._run_market_monitor()
         
