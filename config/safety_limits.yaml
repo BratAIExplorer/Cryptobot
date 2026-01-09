@@ -1,0 +1,206 @@
+# Safety Systems Configuration - 100% Customizable
+# Modify this file to adjust safety limits WITHOUT code changes
+# Supports per-exchange, per-mode, and per-strategy customization
+
+# Global defaults (fallback if not specified below)
+defaults:
+  kill_switch:
+    max_daily_loss_usd: 50.0
+    max_weekly_loss_usd: 150.0
+
+  capital_limits:
+    max_position_size_usd: 250.0
+    max_open_positions: 4
+    max_total_exposure_usd: 1000.0
+    max_daily_trades: 20
+    min_account_balance_usd: 100.0
+
+  reconciliation:
+    tolerance_usd: 1.0
+    check_interval_seconds: 300
+
+  slippage_protection:
+    max_slippage_percent: 0.2
+    order_timeout_seconds: 30
+    enable_protection: true
+
+# Exchange-specific overrides
+exchanges:
+  BINANCE:
+    # Paper mode - more tolerant for testing
+    paper:
+      kill_switch:
+        max_daily_loss_usd: 100.0  # More tolerant
+        max_weekly_loss_usd: 300.0
+
+      capital_limits:
+        max_position_size_usd: 500.0  # Larger positions OK in paper
+        max_open_positions: 8
+        max_total_exposure_usd: 2000.0
+        max_daily_trades: 50
+
+      slippage_protection:
+        max_slippage_percent: 0.5  # More tolerant in paper
+
+    # Live mode - strict limits for real money
+    live:
+      kill_switch:
+        max_daily_loss_usd: 50.0   # Strict
+        max_weekly_loss_usd: 150.0
+
+      capital_limits:
+        max_position_size_usd: 250.0  # Conservative
+        max_open_positions: 4
+        max_total_exposure_usd: 1000.0
+        max_daily_trades: 20
+        min_account_balance_usd: 100.0
+
+      slippage_protection:
+        max_slippage_percent: 0.2  # Very tight
+        enable_protection: true    # NEVER disable in live
+
+      reconciliation:
+        tolerance_usd: 1.0
+        check_interval_seconds: 300  # Every 5 minutes
+
+  LUNO:
+    # Monitor mode only - no trading
+    monitor:
+      kill_switch:
+        max_daily_loss_usd: 0.0  # No losses expected (monitoring only)
+        max_weekly_loss_usd: 0.0
+
+      capital_limits:
+        max_position_size_usd: 0.0  # No trading allowed
+        max_open_positions: 0
+        max_total_exposure_usd: 0.0
+        max_daily_trades: 0
+
+      reconciliation:
+        tolerance_usd: 10.0  # More tolerant (long-term holding)
+        check_interval_seconds: 3600  # Every hour (not critical)
+
+  MEXC:
+    # Optional exchange - paper mode only initially
+    paper:
+      kill_switch:
+        max_daily_loss_usd: 100.0
+        max_weekly_loss_usd: 300.0
+
+      capital_limits:
+        max_position_size_usd: 500.0
+        max_open_positions: 8
+        max_total_exposure_usd: 2000.0
+        max_daily_trades: 50
+
+      slippage_protection:
+        max_slippage_percent: 0.3  # MEXC has higher spreads
+        order_timeout_seconds: 60  # Slower fills
+
+# Strategy-specific overrides (optional)
+strategies:
+  GridBot:
+    capital_limits:
+      max_position_size_usd: 200.0  # Grid bots use smaller positions
+      max_open_positions: 6         # Multiple grid levels
+
+  MomentumBot:
+    capital_limits:
+      max_position_size_usd: 300.0  # Larger positions
+      max_open_positions: 3         # Fewer concurrent trades
+
+    slippage_protection:
+      max_slippage_percent: 0.3     # Fast execution more important
+
+  ScalpingBot:
+    capital_limits:
+      max_position_size_usd: 150.0  # Small positions
+      max_daily_trades: 50          # High frequency
+
+    slippage_protection:
+      max_slippage_percent: 0.1     # Very tight (scalping margins)
+
+# Scaling presets - use as account grows
+scaling_presets:
+  micro:  # $100 starting capital
+    capital_limits:
+      max_position_size_usd: 25.0
+      max_open_positions: 3
+      max_total_exposure_usd: 75.0
+    kill_switch:
+      max_daily_loss_usd: 10.0
+      max_weekly_loss_usd: 30.0
+
+  small:  # $500 starting capital
+    capital_limits:
+      max_position_size_usd: 125.0
+      max_open_positions: 4
+      max_total_exposure_usd: 500.0
+    kill_switch:
+      max_daily_loss_usd: 50.0
+      max_weekly_loss_usd: 150.0
+
+  medium:  # $2,000 starting capital
+    capital_limits:
+      max_position_size_usd: 500.0
+      max_open_positions: 6
+      max_total_exposure_usd: 2000.0
+    kill_switch:
+      max_daily_loss_usd: 100.0
+      max_weekly_loss_usd: 300.0
+
+  large:  # $10,000 starting capital
+    capital_limits:
+      max_position_size_usd: 2500.0
+      max_open_positions: 8
+      max_total_exposure_usd: 10000.0
+    kill_switch:
+      max_daily_loss_usd: 500.0
+      max_weekly_loss_usd: 1500.0
+
+# Emergency overrides (highest priority)
+emergency:
+  # Set to true to HALT ALL trading immediately
+  global_halt: false
+
+  # Temporary overrides (use for special market conditions)
+  temporary_limits:
+    enabled: false
+    max_daily_loss_override: null
+    max_position_size_override: null
+    disable_new_positions: false
+
+# Authorization codes
+authorization:
+  kill_switch_resume_code: "RESUME_TRADING_2026"  # Change in production
+  emergency_override_code: "EMERGENCY_OVERRIDE_2026"
+
+# Notification settings
+notifications:
+  telegram:
+    enabled: false  # Enable when Telegram integration ready
+    alert_on_kill_switch: true
+    alert_on_reconciliation_fail: true
+    alert_on_limit_violation: false  # Too noisy
+
+  email:
+    enabled: false
+    alert_on_kill_switch: true
+
+# Logging configuration
+logging:
+  safety_events_file: "logs/safety_events.log"
+  log_level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  log_all_trades: true
+  log_rejected_trades: true
+
+# Performance settings
+performance:
+  reconciliation:
+    max_api_calls_per_minute: 12  # Rate limiting
+    retry_on_failure: true
+    max_retries: 3
+
+  kill_switch:
+    save_state_on_every_trade: false  # Save only on changes
+    cache_status_seconds: 1  # Cache for performance

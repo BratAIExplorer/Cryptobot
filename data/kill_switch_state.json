@@ -1,0 +1,6 @@
+{
+  "active": true,
+  "reason": "Daily loss limit exceeded: $55.00 >= $50.00",
+  "triggered_at": "2026-01-09T01:19:38.493656",
+  "manual_override": false
+}
