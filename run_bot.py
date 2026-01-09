@@ -56,7 +56,7 @@ def main():
     engine = TradingEngine(
         mode=TRADING_MODE,
         telegram_config=telegram_config,
-        exchange='MEXC',
+        exchange='BINANCE',  # FOCUS: BINANCE only (MEXC on hold)
         db_path='data/trades_v3_paper.db'
     )
     
