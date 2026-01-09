@@ -34,9 +34,9 @@ def check_stop_signal():
 # ==========================================
 # ⚙️ TEST CONFIGURATION
 # ==========================================
-VERSION_ID = "2026.01.09-ADAPTER-TEST"
+VERSION_ID = "2026.01.09-ADAPTER-TEST-BINANCE"
 TRADING_MODE = 'paper'
-EXCHANGE = 'MEXC'  # Start with MEXC (most tested)
+EXCHANGE = 'BINANCE'  # User requested Binance only
 # ==========================================
 
 def main():
@@ -95,7 +95,7 @@ def main():
     print("=" * 80, flush=True)
     print("\n📊 Expected Performance (based on proven parameters):", flush=True)
     print("   - Trades per day: ~5-10 grid fills", flush=True)
-    print("   - Profit per trade: ~$1.50 (after 0.05% MEXC fees)", flush=True)
+    print("   - Profit per trade: ~$1.20-$1.50 (after Binance fees)", flush=True)
     print("   - Grid range: $85,000 - $110,000", flush=True)
     print("   - Capital deployed: $3,000", flush=True)
     print("\n⚠️  This is a TEST - Monitoring adapter pattern core only", flush=True)
