@@ -26,6 +26,16 @@ from .coin_classifier import CoinClassifier
 from .watchlist_tracker import WatchlistTracker
 from .correlation_manager import CorrelationManager
 
+# Phase 1 Safety Systems (2026-01-09)
+from .safety import (
+    EmergencyKillSwitch,
+    CapitalLimits,
+    PositionReconciler,
+    SlippageProtection,
+    get_safety_config
+)
+import threading
+
 
 class TradingEngine:
     def __init__(self, mode='paper', telegram_config=None, exchange='MEXC', db_path=None, 
@@ -76,7 +86,77 @@ class TradingEngine:
 
         # Initialize Observability (Pass risk manager)
         self.system_monitor = SystemMonitor(self.logger, self.risk_manager, self.resilience_manager)
-        
+
+        # ========================================================================
+        # PHASE 1 SAFETY SYSTEMS (2026-01-09)
+        # 100% customizable, scalable, robust production safety
+        # ========================================================================
+
+        # Load safety configuration
+        self.safety_config = get_safety_config('config/safety_limits.yaml')
+
+        # Determine strategy and scaling preset (can be overridden later per bot)
+        strategy = None  # Will be set per bot execution
+        scaling_preset = None  # Set via environment or config
+
+        # Get all safety configs for this engine instance
+        configs = self.safety_config.get_all_configs(
+            exchange=exchange,
+            mode=mode,
+            strategy=strategy,
+            scaling_preset=scaling_preset
+        )
+
+        # 1. Emergency Kill Switch
+        self.kill_switch = EmergencyKillSwitch(
+            max_daily_loss_usd=configs['kill_switch']['max_daily_loss_usd'],
+            max_weekly_loss_usd=configs['kill_switch']['max_weekly_loss_usd'],
+            state_file=configs['state_files']['kill_switch']
+        )
+
+        # 2. Capital Limits
+        capital_config = configs['capital_limits']
+        self.capital_limits = CapitalLimits(
+            max_position_size_usd=capital_config['max_position_size_usd'],
+            max_open_positions=capital_config['max_open_positions'],
+            max_total_exposure_usd=capital_config['max_total_exposure_usd'],
+            max_daily_trades=capital_config['max_daily_trades'],
+            min_account_balance_usd=capital_config['min_account_balance_usd']
+        )
+
+        # 3. Position Reconciler
+        recon_config = configs['reconciliation']
+        self.position_reconciler = PositionReconciler(
+            exchange_adapter=self.exchange,
+            logger_instance=self.logger,
+            tolerance_usd=recon_config['tolerance_usd'],
+            check_interval_seconds=recon_config['check_interval_seconds']
+        )
+
+        # 4. Slippage Protection
+        slippage_config = configs['slippage_protection']
+        self.slippage_protection = SlippageProtection(
+            max_slippage_percent=slippage_config['max_slippage_percent'],
+            order_timeout_seconds=slippage_config['order_timeout_seconds'],
+            enable_protection=slippage_config['enable_protection']
+        )
+
+        # Background reconciliation thread
+        self.reconciliation_thread = None
+        self.reconciliation_stop_event = threading.Event()
+
+        # Bot tracking (name, exchange, uptime)
+        self.bot_start_time = datetime.now()
+        self.bot_name = f"{exchange}-{mode}"  # Will be enhanced per bot
+
+        print(f"✅ Phase 1 Safety Systems Initialized:")
+        print(f"   Kill Switch: Daily ${configs['kill_switch']['max_daily_loss_usd']} / Weekly ${configs['kill_switch']['max_weekly_loss_usd']}")
+        print(f"   Capital Limits: ${capital_config['max_position_size_usd']} max position, {capital_config['max_open_positions']} max positions")
+        print(f"   Reconciliation: Every {recon_config['check_interval_seconds']}s, ${recon_config['tolerance_usd']} tolerance")
+        print(f"   Slippage Guard: {slippage_config['max_slippage_percent']}% max")
+
+        # ========================================================================
+
         self.active_bots = []
         self.is_running = False
         
@@ -190,7 +270,21 @@ class TradingEngine:
         """Start the main loop"""
         self.is_running = True
         print(f"Engine started in {self.mode} mode")
-        
+
+        # ========================================================================
+        # PHASE 1: Start Background Reconciliation Thread
+        # ========================================================================
+        print(f"🔄 Starting background reconciliation thread...")
+        self.reconciliation_thread = threading.Thread(
+            target=self._background_reconciliation_loop,
+            daemon=True,
+            name=f"Reconciliation-{self.exchange_name}-{self.mode}"
+        )
+        self.reconciliation_thread.start()
+        print(f"✅ Background reconciliation started")
+
+        # ========================================================================
+
         # Send startup notification
         # Warm up Regime Detector
         print("🌡️ Warming up Market Regime Detector...")
@@ -402,7 +496,82 @@ class TradingEngine:
     def stop(self):
         self.is_running = False
         print("Engine stopped")
-    
+
+        # ========================================================================
+        # PHASE 1: Clean shutdown of background threads
+        # ========================================================================
+        print("🛑 Stopping background reconciliation thread...")
+        self.reconciliation_stop_event.set()
+
+        if self.reconciliation_thread and self.reconciliation_thread.is_alive():
+            self.reconciliation_thread.join(timeout=5)
+            if self.reconciliation_thread.is_alive():
+                print("⚠️ Reconciliation thread did not stop cleanly")
+            else:
+                print("✅ Reconciliation thread stopped")
+
+        # Print final safety status
+        print("\n" + "=" * 70)
+        print("FINAL SAFETY STATUS")
+        print("=" * 70)
+        status = self.kill_switch.get_status()
+        print(f"Kill Switch: {'🔴 ACTIVE' if status['active'] else '🟢 INACTIVE'}")
+        print(f"Daily Loss: ${status['daily_loss']:.2f} / ${status['daily_limit']:.2f}")
+        print(f"Weekly Loss: ${status['weekly_loss']:.2f} / ${status['weekly_limit']:.2f}")
+
+        limits_status = self.capital_limits.get_limits_status(
+            current_open_positions=len(self.logger.get_open_positions()),
+            current_total_exposure_usd=float(self.logger.get_total_exposure()),
+            current_balance_usd=1000.0  # Approximate
+        )
+        print(f"\nDaily Trades: {limits_status['daily_trades']['current']} / {limits_status['daily_trades']['max']}")
+        print(f"Open Positions: {limits_status['open_positions']['current']} / {limits_status['open_positions']['max']}")
+        print("=" * 70)
+
+    def get_bot_status(self):
+        """
+        Get comprehensive bot status for monitoring dashboard
+
+        Returns dict with bot name, exchange, uptime, safety status
+        """
+        uptime = datetime.now() - self.bot_start_time
+        uptime_str = f"{uptime.days}d {uptime.seconds//3600}h {(uptime.seconds//60)%60}m"
+
+        kill_switch_status = self.kill_switch.get_status()
+
+        open_positions = self.logger.get_open_positions()
+        total_exposure = float(self.logger.get_total_exposure())
+
+        limits_status = self.capital_limits.get_limits_status(
+            current_open_positions=len(open_positions),
+            current_total_exposure_usd=total_exposure,
+            current_balance_usd=1000.0  # Approximate
+        )
+
+        return {
+            'bot_name': self.bot_name,
+            'exchange': self.exchange_name,
+            'mode': self.mode,
+            'uptime': uptime_str,
+            'uptime_seconds': uptime.total_seconds(),
+            'is_running': self.is_running,
+            'kill_switch': {
+                'active': kill_switch_status['active'],
+                'reason': kill_switch_status.get('reason'),
+                'daily_loss': kill_switch_status['daily_loss'],
+                'daily_limit': kill_switch_status['daily_limit'],
+                'daily_remaining': kill_switch_status['daily_remaining'],
+                'weekly_loss': kill_switch_status['weekly_loss'],
+                'weekly_limit': kill_switch_status['weekly_limit'],
+            },
+            'capital_limits': {
+                'daily_trades': limits_status['daily_trades'],
+                'open_positions': limits_status['open_positions'],
+                'total_exposure': limits_status['total_exposure'],
+            },
+            'trading_status': '🔴 HALTED' if kill_switch_status['active'] else '🟢 ACTIVE',
+        }
+
     def check_no_activity(self):
         """Alert if bot hasn't traded in 6 hours"""
         trades = self.logger.get_trades()
@@ -968,11 +1137,140 @@ class TradingEngine:
                 self.logger.increment_circuit_breaker_errors(message=f"[{bot['name']}] {symbol}: {str(e)}")
                 # Notification is handled by check_circuit_breaker() to prevent spam
 
+    def _background_reconciliation_loop(self):
+        """
+        Background thread: Reconcile database vs exchange every N seconds
+        Automatically halts trading on ANY mismatch (fail-safe)
+        """
+        import time
+        from .safety import ReconciliationError
+
+        print(f"[RECONCILER] Background thread started for {self.exchange_name}/{self.mode}")
+
+        while not self.reconciliation_stop_event.is_set():
+            try:
+                # Run reconciliation check
+                is_matched, details = self.position_reconciler.reconcile()
+
+                if is_matched:
+                    # Positions match - all good
+                    pass
+                else:
+                    # Should not reach here as reconcile() raises ReconciliationError
+                    print(f"[RECONCILER] ⚠️ Unexpected state: positions don't match but no error raised")
+
+            except ReconciliationError as e:
+                # CRITICAL: Position mismatch detected
+                print(f"[RECONCILER] 🚨 CRITICAL: {e}")
+                print(f"[RECONCILER] Activating emergency kill switch...")
+
+                # Trigger emergency halt
+                self.kill_switch.emergency_stop(f"Reconciliation failed: {e}")
+
+                # Send Telegram alert
+                if self.notifier:
+                    self.notifier.send_message(
+                        f"🚨 **CRITICAL: RECONCILIATION FAILURE** 🚨\n\n"
+                        f"**Exchange:** {self.exchange_name}\n"
+                        f"**Mode:** {self.mode}\n\n"
+                        f"**Error:** {e}\n\n"
+                        f"🛑 **TRADING HALTED**\n"
+                        f"Bot will not trade until reconciliation is fixed and kill switch is manually reset.\n\n"
+                        f"**Action Required:** Check positions on exchange vs database!"
+                    )
+
+            except Exception as e:
+                # Non-critical error (e.g., API timeout)
+                print(f"[RECONCILER] ⚠️ Check failed (non-critical): {e}")
+                # Don't halt trading for transient errors
+
+            # Sleep for configured interval
+            time.sleep(self.position_reconciler.check_interval)
+
+        print(f"[RECONCILER] Background thread stopped")
+
     def execute_trade(self, bot, symbol, side, price, rsi, position_id=None, reason=None, btc_df_macro=None):
         """Execute a trade with FIFO position management"""
+
+        # ========================================================================
+        # PHASE 1 PRE-FLIGHT SAFETY CHECKS (2026-01-09)
+        # ALL TRADES MUST PASS THESE CHECKS FIRST
+        # ========================================================================
+
+        # 1. KILL SWITCH CHECK (Highest Priority)
+        if self.kill_switch.is_active():
+            status = self.kill_switch.get_status()
+            print(f"🛑 [SAFETY] Kill switch ACTIVE - trade blocked")
+            print(f"   Reason: {status['reason']}")
+            print(f"   Daily loss: ${status['daily_loss']:.2f} / ${status['daily_limit']:.2f}")
+            print(f"   Weekly loss: ${status['weekly_loss']:.2f} / ${status['weekly_limit']:.2f}")
+
+            # Log blocked trade for auditing
+            self.logger.log_skipped_trade(
+                strategy=bot['name'],
+                symbol=symbol,
+                side=side,
+                price=price,
+                intended_amount=bot['amount'] / price if side == 'BUY' else 0,
+                skip_reason='KILL_SWITCH_ACTIVE',
+                details=status['reason']
+            )
+            return  # HALT: No trading when kill switch active
+
+        # 2. CAPITAL LIMITS CHECK (For BUY orders)
+        if side == 'BUY':
+            trade_amount_usd = bot['amount']
+
+            # Get current state
+            open_positions = self.logger.get_open_positions()
+            current_open_positions = len(open_positions)
+            current_total_exposure = float(self.logger.get_total_exposure())
+
+            # Get balance (try USDT first, fallback to default)
+            try:
+                balance = self.exchange.fetch_balance()
+                current_balance = balance.get('USDT', {}).get('free', 1000.0)
+                if isinstance(current_balance, dict):
+                    current_balance = 1000.0  # Fallback
+            except:
+                current_balance = 1000.0  # Fallback for paper mode
+
+            # Validate against capital limits
+            can_trade, limit_reason = self.capital_limits.can_trade(
+                proposed_size_usd=trade_amount_usd,
+                current_open_positions=current_open_positions,
+                current_total_exposure_usd=current_total_exposure,
+                current_balance_usd=current_balance
+            )
+
+            if not can_trade:
+                print(f"🛑 [SAFETY] Capital limit violation - trade blocked")
+                print(f"   Reason: {limit_reason}")
+
+                # Log blocked trade
+                self.logger.log_skipped_trade(
+                    strategy=bot['name'],
+                    symbol=symbol,
+                    side=side,
+                    price=price,
+                    intended_amount=trade_amount_usd / price,
+                    skip_reason='CAPITAL_LIMIT_VIOLATION',
+                    details=limit_reason,
+                    current_exposure=current_total_exposure,
+                    max_exposure=self.capital_limits.max_total_exposure
+                )
+                return  # HALT: Capital limits exceeded
+
+            # Record trade attempt for daily limit tracking
+            self.capital_limits.record_trade()
+
+        # ========================================================================
+        # END PHASE 1 SAFETY CHECKS
+        # ========================================================================
+
         max_exposure = bot.get('max_exposure_per_coin', 2000)
         trade_amount_usd = bot['amount']
-        
+
         if side == 'BUY':
             # Check current exposure (Issue #5 fix: per-strategy)
             current_exposure = self.logger.get_total_exposure(symbol, strategy=bot['name'])
@@ -1185,7 +1483,35 @@ class TradingEngine:
                 if profit is None:
                     # Position likely handled by another thread or process
                     return  # Exit early
-                
+
+                # ========================================================================
+                # PHASE 1: Record P&L for Kill Switch
+                # ========================================================================
+                self.kill_switch.record_pnl(profit)
+
+                # Check if kill switch triggered
+                if self.kill_switch.is_active():
+                    status = self.kill_switch.get_status()
+                    print(f"🚨 [SAFETY] KILL SWITCH ACTIVATED after trade close!")
+                    print(f"   Reason: {status['reason']}")
+                    print(f"   Daily loss: ${status['daily_loss']:.2f}")
+                    print(f"   Weekly loss: ${status['weekly_loss']:.2f}")
+
+                    # Send critical Telegram alert
+                    if self.notifier:
+                        self.notifier.send_message(
+                            f"🚨 **KILL SWITCH ACTIVATED** 🚨\n\n"
+                            f"**Exchange:** {self.exchange_name}\n"
+                            f"**Mode:** {self.mode}\n\n"
+                            f"**Reason:** {status['reason']}\n"
+                            f"**Daily Loss:** ${status['daily_loss']:.2f} / ${status['daily_limit']:.2f}\n"
+                            f"**Weekly Loss:** ${status['weekly_loss']:.2f} / ${status['weekly_limit']:.2f}\n\n"
+                            f"🛑 **ALL TRADING HALTED**\n\n"
+                            f"Bot will not place new trades until kill switch is manually reset.\n"
+                            f"Use authorization code to resume trading."
+                        )
+                # ========================================================================
+
                 # Calculate fee (0.1% Binance standard)
                 fee = price * amount * 0.001
                 
