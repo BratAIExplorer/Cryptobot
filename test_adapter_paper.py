@@ -73,31 +73,47 @@ def main():
     print(f"✅ Engine initialized - Adapter: {engine.exchange.__class__.__name__}", flush=True)
     print(f"✅ Kill Switch Status: {'ACTIVE' if engine.exchange.kill_switch_active else 'INACTIVE'}", flush=True)
 
-    # Add ONE bot for testing - Grid Bot BTC (adjusted for $500 budget)
-    print("\n🤖 Adding Grid Bot BTC ($500 realistic budget)...", flush=True)
+    # Add TWO grid bots - BTC and ETH (adjusted for $500 budget total)
+    print("\n🤖 Adding Grid Bot BTC ($300 budget)...", flush=True)
     engine.add_bot({
         'name': 'Test Grid Bot BTC',
         'type': 'Grid',
         'symbols': ['BTC/USDT'],
-        'amount': 25,           # $25 per trade ($500/20 levels)
+        'amount': 15,           # $15 per trade ($300/20 levels)
         'grid_levels': 20,      # Proven levels
         'atr_multiplier': 2.0,
         'atr_period': 14,
         'lower_limit': 85000,   # Proven range
         'upper_limit': 110000,
-        'initial_balance': 500, # Realistic starting capital
-        'max_exposure_per_coin': 500
+        'initial_balance': 300, # $300 for BTC
+        'max_exposure_per_coin': 300
     })
-
     print("✅ Grid Bot BTC configured", flush=True)
+
+    print("\n🤖 Adding Grid Bot ETH ($200 budget)...", flush=True)
+    engine.add_bot({
+        'name': 'Test Grid Bot ETH',
+        'type': 'Grid',
+        'symbols': ['ETH/USDT'],
+        'amount': 7,            # $7 per trade ($200/30 levels)
+        'grid_levels': 30,      # Proven levels (more levels for ETH)
+        'atr_multiplier': 2.5,
+        'atr_period': 14,
+        'lower_limit': 2800,    # Proven range
+        'upper_limit': 3600,
+        'initial_balance': 200, # $200 for ETH
+        'max_exposure_per_coin': 200
+    })
+    print("✅ Grid Bot ETH configured", flush=True)
     print("\n" + "=" * 80, flush=True)
     print("🚀 STARTING ADAPTER TEST - Paper Trading Only", flush=True)
     print("=" * 80, flush=True)
-    print("\n📊 Expected Performance (based on $500 budget):", flush=True)
-    print("   - Trades per day: ~5-10 grid fills", flush=True)
-    print("   - Profit per trade: ~$0.20-$0.30 (after Binance fees)", flush=True)
-    print("   - Grid range: $85,000 - $110,000", flush=True)
-    print("   - Capital deployed: $500 (realistic starting amount)", flush=True)
+    print("\n📊 Expected Performance (based on $500 budget - BTC+ETH):", flush=True)
+    print("   - BTC: 20 levels @ $15/level, range $85K-$110K", flush=True)
+    print("   - ETH: 30 levels @ $7/level, range $2.8K-$3.6K", flush=True)
+    print("   - Trades per day: ~10-15 grid fills (combined)", flush=True)
+    print("   - Profit per trade: ~$0.10-$0.30 (after Binance fees)", flush=True)
+    print("   - Total capital deployed: $500 ($300 BTC + $200 ETH)", flush=True)
     print("\n⚠️  This is a TEST - Monitoring adapter pattern core only", flush=True)
     print("⚠️  Priority 1 enhancements NOT active (health monitor, config manager)", flush=True)
     print("\n💡 To stop: Create a file named 'STOP_SIGNAL' or press Ctrl+C\n", flush=True)
