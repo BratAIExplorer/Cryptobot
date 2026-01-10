@@ -40,6 +40,9 @@ class TradeLogger:
         self.db.init_db()  # Ensures tables exist
         self.db_path = self.db.db_path # For compatibility if accessed directly
 
+        # Store exchange name for default parameter
+        self.exchange_name = exchange_name if exchange_name else 'UNKNOWN'
+
         # Ensure Circuit Breaker row exists
         self._init_circuit_breaker()
 
@@ -59,10 +62,14 @@ class TradeLogger:
 
     # --- TRADING METHODS ---
 
-    def log_trade(self, strategy, symbol, side, price, amount, expected_price=None, fee=0.0, rsi=None, market_condition="", position_id=None, exchange='MEXC', engine_version='2.0', strategy_version='1.0'):
+    def log_trade(self, strategy, symbol, side, price, amount, expected_price=None, fee=0.0, rsi=None, market_condition="", position_id=None, exchange=None, engine_version='2.0', strategy_version='1.0'):
         """Log a trade execution"""
         session = self.db.get_session()
         try:
+            # Use logger's exchange name if not explicitly provided
+            if exchange is None:
+                exchange = self.exchange_name
+
             slippage_pct = 0.0
             if expected_price and expected_price > 0:
                 slippage_pct = ((price - expected_price) / expected_price) * 100
@@ -95,11 +102,15 @@ class TradeLogger:
         finally:
             session.close()
 
-    def open_position(self, symbol, strategy, buy_price, amount, expected_price=None, entry_rsi=None, exchange='MEXC'):
+    def open_position(self, symbol, strategy, buy_price, amount, expected_price=None, entry_rsi=None, exchange=None):
         """Open a new position"""
         session = self.db.get_session()
         new_id = str(uuid.uuid4())
         try:
+            # Use logger's exchange name if not explicitly provided
+            if exchange is None:
+                exchange = self.exchange_name
+
             pos = Position(
                 id=new_id,
                 bot_id=strategy, # Mapping strategy name to bot_id for now
