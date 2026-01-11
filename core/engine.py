@@ -625,6 +625,14 @@ class TradingEngine:
                 print(f"[DEBUG] Evaluating {bot['name']} - Type: {strategy_type}")
                 if strategy_type == 'Grid':
                     strategy_instance = self.strategies.get(bot['name'])
+
+                    # DEBUG: Check if strategy instance exists
+                    if not strategy_instance:
+                        print(f"❌ [GRID ERROR] Strategy instance NOT FOUND for '{bot['name']}'!")
+                        print(f"   Available strategies: {list(self.strategies.keys())}")
+                        print(f"   Symbol: {symbol}")
+                        continue
+
                     if strategy_instance:
                         open_positions = self.logger.get_open_positions(symbol)
                         signal = strategy_instance.get_signal(current_price, open_positions, df=df)
