@@ -105,6 +105,16 @@ def main():
         'max_exposure_per_coin': 250
     })
     print("✅ Grid Bot ETH configured (PROVEN parameters)", flush=True)
+
+    # ⚠️ CRITICAL FIX: Update Risk Manager with actual starting capital
+    # Risk Manager defaults to $10,000, but our test has only $500
+    # Without this, it thinks we lost 95% and blocks all trading!
+    total_initial_balance = sum(bot.get('initial_balance', 0) for bot in engine.active_bots)
+    from decimal import Decimal
+    engine.risk_manager.update_portfolio_value(Decimal(str(total_initial_balance)))
+    engine.risk_manager.daily_start_value = Decimal(str(total_initial_balance))
+    print(f"✅ Risk Manager initialized with ${total_initial_balance} starting capital", flush=True)
+
     print("\n" + "=" * 80, flush=True)
     print("🚀 STARTING ADAPTER TEST - Paper Trading Only", flush=True)
     print("=" * 80, flush=True)
