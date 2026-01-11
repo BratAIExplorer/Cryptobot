@@ -6,15 +6,17 @@
 
 This is your complete reference containing:
 - ✅ Full project overview and architecture
+- ✅ **OLD BOTS reference** (PROVEN parameters - DO NOT MODIFY)
 - ✅ All file locations (local & VPS paths)
 - ✅ Every change made this session with before/after code
 - ✅ All issues encountered and their solutions
 - ✅ Configuration guides for all components
 - ✅ Testing and deployment procedures
+- ✅ **Comprehensive backlog** (13 tracked items, priorities, ETAs)
 - ✅ Complete command reference
 - ✅ Troubleshooting guide
 
-**Size**: 1,809 lines of comprehensive documentation
+**Size**: 2,284 lines of comprehensive documentation
 
 ---
 
