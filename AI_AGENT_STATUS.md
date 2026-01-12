@@ -115,7 +115,7 @@
 ### Issue #4: Database Schema / Zero Positions ✅ RESOLVED
 - Code updated to use V3 schema (`entry_date` instead of `buy_timestamp`)
 - Test script updated to avoid legacy column queries
-- Obsolete file `strategies/core/logger.py` removed
+- Obsolete file `strategies/core/logger.py` **MOVED** to `bak/strategies/core/logger_deprecated.py` (Safe Backup)
 
 ---
 
