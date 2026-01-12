@@ -107,6 +107,27 @@ class BinanceAdapter(BaseExchangeAdapter):
             logger.error(f"❌ Binance Balance Error: {e}")
             return 0.0
 
+    def fetch_balance(self) -> Dict[str, Any]:
+        """Fetch full balance dictionary (for engine portfolio snapshots)"""
+        if self.mode == 'paper':
+            return {'total': {'USDT': 50000.0}, 'free': {'USDT': 50000.0}}
+        try:
+            return self.exchange.fetch_balance()
+        except Exception as e:
+            logger.error(f"❌ Binance fetch_balance Error: {e}")
+            return {'total': {}, 'free': {}}
+
+    def fetch_markets(self):
+        """Fetch available markets (for detector and watchlist)"""
+        if self.mode == 'paper':
+            # Return empty for paper mode - detector doesn't need this
+            return []
+        try:
+            return self.exchange.fetch_markets()
+        except Exception as e:
+            logger.error(f"❌ Binance fetch_markets Error: {e}")
+            return []
+
     def get_fee_rate(self, symbol: str, order_type: str = 'taker') -> float:
         return self.taker_fee
 

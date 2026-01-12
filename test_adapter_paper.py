@@ -73,13 +73,13 @@ def main():
     print(f"✅ Engine initialized - Adapter: {engine.exchange.__class__.__name__}", flush=True)
     print(f"✅ Kill Switch Status: {'ACTIVE' if engine.exchange.kill_switch_active else 'INACTIVE'}", flush=True)
 
-    # Add TWO grid bots - BTC and ETH (PROVEN CONFIG from OLD bots)
-    print("\n🤖 Adding Grid Bot BTC ($250 budget - PROVEN)...", flush=True)
+    # Add TWO grid bots - BTC and ETH (ADJUSTED for Risk Manager limits)
+    print("\n🤖 Adding Grid Bot BTC ($250 budget - ADJUSTED)...", flush=True)
     engine.add_bot({
         'name': 'Test Grid Bot BTC',
         'type': 'Grid',
         'symbols': ['BTC/USDT'],
-        'amount': 25,           # PROVEN: $25 per trade
+        'amount': 10,           # ADJUSTED: $10 per trade (2% of $500 = fits MODERATE limit)
         'grid_levels': 20,      # PROVEN: 20 levels
         'atr_multiplier': 2.0,  # PROVEN: 2.0 ATR
         'atr_period': 14,
@@ -88,14 +88,14 @@ def main():
         'initial_balance': 250, # PROVEN: $250 budget
         'max_exposure_per_coin': 250
     })
-    print("✅ Grid Bot BTC configured (PROVEN parameters)", flush=True)
+    print("✅ Grid Bot BTC configured (Risk Manager compliant)", flush=True)
 
-    print("\n🤖 Adding Grid Bot ETH ($250 budget - PROVEN)...", flush=True)
+    print("\n🤖 Adding Grid Bot ETH ($250 budget - ADJUSTED)...", flush=True)
     engine.add_bot({
         'name': 'Test Grid Bot ETH',
         'type': 'Grid',
         'symbols': ['ETH/USDT'],
-        'amount': 25,           # PROVEN: $25 per trade
+        'amount': 10,           # ADJUSTED: $10 per trade (2% of $500 = fits MODERATE limit)
         'grid_levels': 30,      # PROVEN: 30 levels
         'atr_multiplier': 2.5,  # PROVEN: 2.5 ATR
         'atr_period': 14,
@@ -104,7 +104,7 @@ def main():
         'initial_balance': 250, # PROVEN: $250 budget
         'max_exposure_per_coin': 250
     })
-    print("✅ Grid Bot ETH configured (PROVEN parameters)", flush=True)
+    print("✅ Grid Bot ETH configured (Risk Manager compliant)", flush=True)
 
     # ⚠️ CRITICAL FIX: Update Risk Manager with actual starting capital
     # Risk Manager defaults to $10,000, but our test has only $500
@@ -118,14 +118,14 @@ def main():
     print("\n" + "=" * 80, flush=True)
     print("🚀 STARTING ADAPTER TEST - Paper Trading Only", flush=True)
     print("=" * 80, flush=True)
-    print("\n📊 Expected Performance (PROVEN parameters - $500 total):", flush=True)
-    print("   - BTC: 20 levels @ $25/trade, range $85K-$110K ($25K spread)", flush=True)
-    print("   - ETH: 30 levels @ $25/trade, range $2.8K-$4.2K ($1.4K spread)", flush=True)
+    print("\n📊 Expected Performance (ADJUSTED for Risk Manager - $500 total):", flush=True)
+    print("   - BTC: 20 levels @ $10/trade, range $85K-$110K ($25K spread)", flush=True)
+    print("   - ETH: 30 levels @ $10/trade, range $2.8K-$4.2K ($1.4K spread)", flush=True)
     print("   - Trades per day: ~10-15 grid fills (combined)", flush=True)
-    print("   - Profit per BTC trade: ~$0.32 (1.27% net per round trip)", flush=True)
-    print("   - Profit per ETH trade: ~$0.25-$0.35 (after Binance fees)", flush=True)
+    print("   - Profit per BTC trade: ~$0.13 (1.27% net per round trip, scaled)", flush=True)
+    print("   - Profit per ETH trade: ~$0.10-$0.14 (after Binance fees, scaled)", flush=True)
     print("   - Total capital deployed: $500 ($250 BTC + $250 ETH)", flush=True)
-    print("   - ⚠️  Config matches PROVEN OLD bots for accurate comparison", flush=True)
+    print("   - ⚠️  Trade size ADJUSTED: $10 instead of $25 (Risk Manager 2% limit)", flush=True)
     print("\n⚠️  This is a TEST - Monitoring adapter pattern core only", flush=True)
     print("⚠️  Priority 1 enhancements NOT active (health monitor, config manager)", flush=True)
     print("\n💡 To stop: Create a file named 'STOP_SIGNAL' or press Ctrl+C\n", flush=True)
