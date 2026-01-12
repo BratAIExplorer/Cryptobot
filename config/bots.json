@@ -1,0 +1,82 @@
+[
+    {
+        "id": "demo_btc_dip_001",
+        "name": "BTC Dip Hunter",
+        "strategy": "buy_dip",
+        "symbol": "BTC/USDT",
+        "max_allocation": 500.0,
+        "balance_used": 150.0,
+        "enabled": true,
+        "status": "running",
+        "created_at": "2026-01-10T10:00:00",
+        "total_pnl": 15.30,
+        "total_trades": 12,
+        "winning_trades": 8,
+        "strategy_config": {
+            "dip_percentage": 5.0,
+            "cooldown_hours": 4,
+            "position_size_percent": 10.0,
+            "stop_loss_percent": 2.0
+        }
+    },
+    {
+        "id": "demo_eth_dip_001",
+        "name": "ETH Aggressive Dip",
+        "strategy": "buy_dip",
+        "symbol": "ETH/USDT",
+        "max_allocation": 300.0,
+        "balance_used": 0.0,
+        "enabled": true,
+        "status": "paused",
+        "created_at": "2026-01-11T14:30:00",
+        "total_pnl": 8.20,
+        "total_trades": 5,
+        "winning_trades": 4,
+        "strategy_config": {
+            "dip_percentage": 3.0,
+            "cooldown_hours": 2,
+            "position_size_percent": 15.0,
+            "stop_loss_percent": 3.0
+        }
+    },
+    {
+        "id": "demo_btc_profit_001",
+        "name": "BTC Profit Taker",
+        "strategy": "take_profit",
+        "symbol": "BTC/USDT",
+        "max_allocation": 400.0,
+        "balance_used": 200.0,
+        "enabled": true,
+        "status": "running",
+        "created_at": "2026-01-12T09:15:00",
+        "total_pnl": 18.20,
+        "total_trades": 8,
+        "winning_trades": 7,
+        "strategy_config": {
+            "profit_target_percent": 2.5,
+            "trailing_stop_percent": 0.5,
+            "stop_loss_percent": 1.5,
+            "position_size_percent": 20.0
+        }
+    },
+    {
+        "id": "demo_sol_trend_001",
+        "name": "SOL Trend Follower",
+        "strategy": "trend_following",
+        "symbol": "SOL/USDT",
+        "max_allocation": 200.0,
+        "balance_used": 0.0,
+        "enabled": false,
+        "status": "idle",
+        "created_at": "2026-01-12T16:45:00",
+        "total_pnl": 0.0,
+        "total_trades": 0,
+        "winning_trades": 0,
+        "strategy_config": {
+            "fast_ma_period": 20,
+            "slow_ma_period": 50,
+            "max_drawdown_percent": 5.0,
+            "position_size_percent": 10.0
+        }
+    }
+]

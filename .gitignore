@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv
+
+# Sensitive Files
+.env
+*.key
+*.pem
+api_keys.json
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+logs/
+health_status.json
+EMERGENCY_STOP.txt
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Backtest Results
+backtest_results/
+*.csv
+*.png
+charts/
+
+# OS
+.DS_Store
+Thumbs.db

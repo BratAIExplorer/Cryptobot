@@ -1,0 +1,72 @@
+[
+  {
+    "timestamp": "2026-01-12T23:42:16.570875",
+    "bot_id": "demo_btc_profit_001",
+    "bot_name": "BTC Profit Taker",
+    "symbol": "BTC/USDT",
+    "side": "sell",
+    "price": 68250.0,
+    "amount": 0.005,
+    "value": 341.25,
+    "pnl": 12.5,
+    "strategy": "take_profit",
+    "details": {
+      "reason": "Profit Target Hit",
+      "target_price": 68000.0,
+      "rsi_14": 72.5,
+      "trend": "Strong Uptrend"
+    }
+  },
+  {
+    "timestamp": "2026-01-12T23:42:16.570875",
+    "bot_id": "demo_btc_dip_001",
+    "bot_name": "BTC Dip Hunter",
+    "symbol": "BTC/USDT",
+    "side": "buy",
+    "price": 66500.0,
+    "amount": 0.008,
+    "value": 532.0,
+    "pnl": 0,
+    "strategy": "buy_dip",
+    "details": {
+      "reason": "Dip > 5%",
+      "dip_depth": "5.2%",
+      "24h_high": 70150.0,
+      "rsi_14": 28.4
+    }
+  },
+  {
+    "timestamp": "2026-01-12T23:42:16.570875",
+    "bot_id": "demo_eth_dip_001",
+    "bot_name": "ETH Aggressive Dip",
+    "symbol": "ETH/USDT",
+    "side": "sell",
+    "price": 2650.0,
+    "amount": 0.5,
+    "value": 1325.0,
+    "pnl": 8.2,
+    "strategy": "buy_dip",
+    "details": {
+      "reason": "Trailing Stop Hit",
+      "stop_price": 2645.0,
+      "rsi_14": 68.0
+    }
+  },
+  {
+    "timestamp": "2026-01-12T23:42:16.570875",
+    "bot_id": "demo_btc_profit_001",
+    "bot_name": "BTC Profit Taker",
+    "symbol": "BTC/USDT",
+    "side": "buy",
+    "price": 67000.0,
+    "amount": 0.005,
+    "value": 335.0,
+    "pnl": 0,
+    "strategy": "take_profit",
+    "details": {
+      "reason": "Entry Signal",
+      "rsi_14": 45.0,
+      "adx": 35.0
+    }
+  }
+]

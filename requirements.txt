@@ -1,0 +1,45 @@
+# CryptoBots V3 - Core Dependencies
+
+# Exchange API & Trading
+ccxt>=4.2.0                  # Unified exchange API
+pandas>=2.1.0                # Data manipulation
+# ccxt>=4.2.0                  # Unified exchange API
+# pandas>=2.1.0                # Data manipulation
+# numpy>=1.26.0                # Numerical computing
+
+# System Monitoring
+psutil>=5.9.0                # System resource monitoring
+
+# Configuration & Environment
+python-dotenv>=1.0.0      # Core trading
+ccxt>=4.0.0
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Web Dashboard
+streamlit>=1.30.0
+plotly>=5.18.0
+
+# Security
+cryptography>=41.0.0
+
+# System monitoring
+# psutil>=5.9.0 # This line is a duplicate of the one above, keeping the first one with its comment.
+
+# Configuration
+# python-dotenv>=1.0.0 # This line is a duplicate of the one above, keeping the first one with its comment.
+
+# Backtesting (upcoming)
+backtrader>=1.9.78
+
+# Utilities
+requests>=2.31.0             # HTTP requests for webhooks
+colorama>=0.4.6              # Colored terminal output
+
+# Backtesting & Analysis
+matplotlib>=3.8.0            # Chart generation
+ta-lib>=0.4.28               # Technical indicators (optional, requires C++ libs)
+
+# Testing
+pytest>=7.4.0                # Unit testing framework
+pytest-mock>=3.12.0          # Mocking for tests
