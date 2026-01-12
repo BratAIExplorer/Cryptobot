@@ -486,7 +486,8 @@ class TradingEngine:
             strategy = position['strategy']
             symbol = position['symbol']
             position_id = position['id']
-            buy_timestamp = pd.to_datetime(position['buy_timestamp'])
+            # Use entry_date (V3)
+            buy_timestamp = pd.to_datetime(position.get('entry_date', position.get('buy_timestamp')))
             
             # Calculate position age
             age_hours = (datetime.now() - buy_timestamp).total_seconds() / 3600
@@ -670,7 +671,7 @@ class TradingEngine:
                     oldest_position = open_positions.iloc[0]
                     buy_price = oldest_position['buy_price']
                     position_id = oldest_position['id']
-                    buy_timestamp = oldest_position['buy_timestamp']
+                    buy_timestamp = oldest_position.get('entry_date', oldest_position.get('buy_timestamp'))
                     
                     # Calculate position age
                     try:

@@ -184,17 +184,22 @@ def main():
             total_trades = cursor.fetchone()[0]
             print(f"📈 Total Positions Created: {total_trades}", flush=True)
 
-            # Count closed trades with PnL
-            cursor.execute("""
-                SELECT COUNT(*), ROUND(SUM(realized_pnl), 2), ROUND(AVG(realized_pnl), 2)
-                FROM positions
-                WHERE status='CLOSED' AND realized_pnl IS NOT NULL
-            """)
-            closed_count, total_pnl, avg_pnl = cursor.fetchone()
+            # Count closed trades
+            cursor.execute("SELECT COUNT(*) FROM positions WHERE status='CLOSED'")
+            closed_count = cursor.fetchone()[0]
+            
             if closed_count and closed_count > 0:
                 print(f"✅ Closed Trades: {closed_count}", flush=True)
-                print(f"💰 Total PnL: ${total_pnl:.2f}", flush=True)
-                print(f"📊 Average PnL: ${avg_pnl:.2f}", flush=True)
+                # Calculate PnL from trades table if possible, or skip for now to avoid crash
+                try:
+                    cursor.execute("SELECT SUM(cost) FROM trades WHERE side='SELL'")
+                    total_sells = cursor.fetchone()[0] or 0.0
+                    cursor.execute("SELECT SUM(cost) FROM trades WHERE side='BUY'")
+                    total_buys = cursor.fetchone()[0] or 0.0
+                    total_pnl = total_sells - total_buys
+                    print(f"💰 Total PnL (Approx): ${total_pnl:.2f}", flush=True)
+                except:
+                    print("⚠️  Could not calculate exact PnL from DB directly.", flush=True)
             else:
                 print("⏳ No closed trades yet (needs more time)", flush=True)
 
