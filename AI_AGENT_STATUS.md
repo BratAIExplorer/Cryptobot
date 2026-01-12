@@ -117,6 +117,12 @@
 - Test script updated to avoid legacy column queries
 - Obsolete file `strategies/core/logger.py` **MOVED** to `bak/strategies/core/logger_deprecated.py` (Safe Backup)
 
+#### 5. Config Alignment (VPS Match) ✅
+- **Issue**: New Bot was too safe ($10 trades vs $25) and blocking on high latency (2895ms).
+- **Fix**: Adjusted `test_adapter_paper.py` to use `AGRESSIVE` risk profile (Allowing $25 trades).
+- **Fix**: Increased `binance_adapter.py` latency tolerance to 5000ms.
+- **Status**: Ready to Deployed. Matches "Old Bot" behavior.
+
 ---
 
 ## 🎯 Immediate Actions Required

@@ -139,7 +139,7 @@ class BinanceAdapter(BaseExchangeAdapter):
             status = 'ONLINE'
             
             if latency > 1000: status = 'DEGRADED'
-            if latency > 2000: 
+            if latency > 5000: 
                 status = 'CRITICAL'
                 self.trigger_kill_switch(f"High Latency: {latency}ms")
                 

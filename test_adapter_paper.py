@@ -61,13 +61,18 @@ def main():
     db_path = f'data/test_adapter_{EXCHANGE.lower()}_paper.db'
     print(f"💾 Database: {db_path}", flush=True)
 
+    # Initialize Risk Manager with AGGRESSIVE profile (Matches Old Bot $25 trades)
+    from core.risk_module import setup_safe_trading_bot
+    risk_manager = setup_safe_trading_bot('aggressive')
+
     # Initialize engine with adapter pattern
     print(f"\n🔧 Initializing TradingEngine with {EXCHANGE} adapter...", flush=True)
     engine = TradingEngine(
         mode=TRADING_MODE,
         telegram_config=telegram_config,
         exchange=EXCHANGE,
-        db_path=db_path
+        db_path=db_path,
+        risk_manager=risk_manager
     )
 
     print(f"✅ Engine initialized - Adapter: {engine.exchange.__class__.__name__}", flush=True)
@@ -79,7 +84,7 @@ def main():
         'name': 'Test Grid Bot BTC',
         'type': 'Grid',
         'symbols': ['BTC/USDT'],
-        'amount': 10,           # ADJUSTED: $10 per trade (2% of $500 = fits MODERATE limit)
+        'amount': 25,           # RESTORED: $25 per trade (Matches Old Bot)
         'grid_levels': 20,      # PROVEN: 20 levels
         'atr_multiplier': 2.0,  # PROVEN: 2.0 ATR
         'atr_period': 14,
@@ -95,7 +100,7 @@ def main():
         'name': 'Test Grid Bot ETH',
         'type': 'Grid',
         'symbols': ['ETH/USDT'],
-        'amount': 10,           # ADJUSTED: $10 per trade (2% of $500 = fits MODERATE limit)
+        'amount': 25,           # RESTORED: $25 per trade (Matches Old Bot)
         'grid_levels': 30,      # PROVEN: 30 levels
         'atr_multiplier': 2.5,  # PROVEN: 2.5 ATR
         'atr_period': 14,
@@ -125,7 +130,7 @@ def main():
     print("   - Profit per BTC trade: ~$0.13 (1.27% net per round trip, scaled)", flush=True)
     print("   - Profit per ETH trade: ~$0.10-$0.14 (after Binance fees, scaled)", flush=True)
     print("   - Total capital deployed: $500 ($250 BTC + $250 ETH)", flush=True)
-    print("   - ⚠️  Trade size ADJUSTED: $10 instead of $25 (Risk Manager 2% limit)", flush=True)
+    print("   - ✅ Trade size RESTORED: $25 (Aggressive Risk Profile)", flush=True)
     print("\n⚠️  This is a TEST - Monitoring adapter pattern core only", flush=True)
     print("⚠️  Priority 1 enhancements NOT active (health monitor, config manager)", flush=True)
     print("\n💡 To stop: Create a file named 'STOP_SIGNAL' or press Ctrl+C\n", flush=True)
