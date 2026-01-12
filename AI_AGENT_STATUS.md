@@ -3,7 +3,7 @@
 **Last Updated**: 2026-01-11 10:30 UTC
 **Session ID**: claude/priority1-enhancements-lXrIG
 **Current Agent**: Initial development agent
-**Status**: 🟢 READY TO DEPLOY
+**Status**: 🟢 ACTIVE TESTING (VPS Updated @ 2026-01-12)
 
 ---
 
@@ -50,7 +50,7 @@
 
 #### 1. Database Schema Fix (CRITICAL) ✅
 - **Issue**: `engine.py` using old V2 columns (`buy_timestamp`) vs V3 Database (`entry_date`).
-- **Fix**: Refactored `core/engine.py` to use `entry_date` explicitly. Updated `test_adapter_paper.py` to avoid calling non-existent columns.
+- **Fix**: Refactored `core/engine.py` to use `entry_date` explicitly. Updated `test_adapter_paper.py` to avoid legacy column queries.
 - **Cleanup**: Deleted obsolete `strategies/core/logger.py` to prevent confusion.
 - **Status**: Codebase now fully V3 compliant.
 
@@ -78,6 +78,12 @@
 - **ETH Grid**: $250 budget, 30 levels, $2.8K-$4.2K range
 - **Parameters**: Match PROVEN OLD bot configuration exactly
 
+#### 6. Config Alignment (VPS Match) ✅
+- **Issue**: New Bot was too safe ($10 trades vs $25) and blocking on high latency (2895ms).
+- **Fix**: Adjusted `test_adapter_paper.py` to use `AGRESSIVE` risk profile (Allowing $25 trades).
+- **Fix**: Increased `binance_adapter.py` latency tolerance to 5000ms.
+- **Status**: Deployed & Running. Matches "Old Bot" behavior.
+
 ---
 
 ## 🔧 Current Test Configuration
@@ -89,13 +95,13 @@
 **Capital**: $500 ($250 BTC + $250 ETH)
 **Database**: data/test_adapter_binance_paper.db
 
-**Test Started**: 2026-01-11 08:54 UTC
+**Test Started**: 2026-01-12 ~12:40 UTC
 **Expected Duration**: 48 hours
-**Expected Completion**: 2026-01-13 08:54 UTC
+**Expected Completion**: 2026-01-14 12:40 UTC
 
 **Process**:
-- PID 542118 (verify with: `ps aux | grep 542118`)
-- Log file: test_proven_config.log
+- PID 550953 (verify with: `ps aux | grep test_adapter`)
+- Log file: test_proven_config_v2.log
 
 ---
 
@@ -115,47 +121,24 @@
 ### Issue #4: Database Schema / Zero Positions ✅ RESOLVED
 - Code updated to use V3 schema (`entry_date` instead of `buy_timestamp`)
 - Test script updated to avoid legacy column queries
-- Obsolete file `strategies/core/logger.py` **MOVED** to `bak/strategies/core/logger_deprecated.py` (Safe Backup)
-
-#### 5. Config Alignment (VPS Match) ✅
-- **Issue**: New Bot was too safe ($10 trades vs $25) and blocking on high latency (2895ms).
-- **Fix**: Adjusted `test_adapter_paper.py` to use `AGRESSIVE` risk profile (Allowing $25 trades).
-- **Fix**: Increased `binance_adapter.py` latency tolerance to 5000ms.
-- **Status**: Ready to Deployed. Matches "Old Bot" behavior.
+- Obsolete file `strategies/core/logger.py` MOVED to backup
 
 ---
 
 ## 🎯 Immediate Actions Required
 
-### For Next Agent (or VPS Deployment)
+### For Next Agent (Monitoring)
 
-**1. Deploy Fix to VPS**:
+**1. Monitor Trading Activity**:
 ```bash
-cd /root/cryptobot_v3
-git pull origin claude/priority1-enhancements-lXrIG
-# The test script is still running with OLD code in memory.
-# You MUST restart the test to pick up the fixes.
+tail -f test_proven_config_v2.log
+# Look for "✅ [PAPER] Binance BUY ..."
 ```
 
-**2. Restart Test**:
+**2. Verify Database Population**:
 ```bash
-# Find old process
-ps aux | grep test_adapter
-
-# Kill it
-kill 542118
-
-# Archive old log
-mv test_proven_config.log test_proven_config_old.log
-
-# Start new test
-nohup python3 test_adapter_paper.py > test_proven_config.log 2>&1 &
-```
-
-**3. Verify Fix**:
-```bash
-tail -f test_proven_config.log
-# Ensure no "no such column" errors appear.
+sqlite3 data/test_adapter_binance_paper.db "SELECT count(*) FROM positions;"
+# Should be > 0 after a few hours
 ```
 
 ---
@@ -166,7 +149,7 @@ tail -f test_proven_config.log
 - **Repository**: /root/cryptobot_v3
 - **Test Script**: test_adapter_paper.py
 - **Database**: data/test_adapter_binance_paper.db
-- **Logs**: test_proven_config.log
+- **Logs**: test_proven_config_v2.log
 - **Branch**: claude/priority1-enhancements-lXrIG
 
 ### Local Paths
@@ -185,17 +168,13 @@ tail -f test_proven_config.log
 
 ### What User Wants
 1. **Primary Goal**: Validate adapter architecture with 48-hour paper trading test
-2. **Test Parameters**: Must match PROVEN OLD bot configuration exactly
-3. **Exchange**: BINANCE only (no MEXC, no LUNO)
-4. **Capital**: $500 realistic test amount
-5. **Decision Point**: GO/NO-GO for production after 48 hours
+2. **Test Parameters**: Must match PROVEN OLD bot configuration exactly (DONE)
+3. **Next Steps**: See `ROADMAP_TO_PRODUCTION.md`
 
 ### User's Background
-- Has OLD bots that made $8,204 profit (now broken)
-- OLD bots used PROVEN parameters we replicated
-- User is cost-conscious (limited credits)
-- Wants comprehensive documentation for continuity
-- Technical enough to run VPS commands
+- Has OLD bots that made $8,204 profit
+- Focused on reliability and safety now
+- wants "Buy-The-Dip" strategy next
 
 ### What NOT To Do
 - ❌ Don't modify OLD bot files (reference only)
@@ -209,19 +188,15 @@ tail -f test_proven_config.log
 ## 📖 Documentation Files
 
 **Must Read** (in order):
-1. **README_FOR_NEXT_AGENT.md** - Start here (10 min read)
-2. **MASTER_KNOWLEDGE_BASE.md** - Complete reference (30-45 min)
-   - Section 2: OLD BOTS Reference
-   - Section 5: Critical Issues & Resolutions
-   - Section 10: Current Status
-   - Section 11: Backlog
-   - Section 12: Next Steps
+1. **ROADMAP_TO_PRODUCTION.md** - The strategic plan
+2. **MONITORING_SHEET.md** - How to check the bot
+3. **MASTER_KNOWLEDGE_BASE.md** - Deep dive
 
 **Reference**:
-3. **DEPLOY_RISK_FIX.md** - Deployment guide for Risk Manager fix
-4. **QUICK_PERFORMANCE_QUERIES.md** - SQL queries for monitoring
-5. **check_bot_performance.sh** - Automated performance check script
-6. **docs/GRID_BOT_ISSUE_RESOLUTION.md** - Issue #2 deep dive
+4. **DEPLOY_RISK_FIX.md** - Deployment guide for Risk Manager fix
+5. **QUICK_PERFORMANCE_QUERIES.md** - SQL queries for monitoring
+6. **check_bot_performance.sh** - Automated performance check script
+7. **docs/GRID_BOT_ISSUE_RESOLUTION.md** - Issue #2 deep dive
 
 ---
 
@@ -276,9 +251,9 @@ sqlite3 $DB "SELECT name FROM sqlite_master WHERE type='table';"
 - ✅ All positions on BINANCE exchange
 
 **Current Status**:
-- ⚠️ ZERO positions after 1.5 hours (expected: 1-3)
-- 🟢 Database schema issues RESOLVED (Run git pull on VPS)
-- 🟡 Needs restart on VPS
+- 🟢 Test Active (PID 550953)
+- 🟢 Config Aligned (Aggressive Risk, High Latency)
+- 🟡 Monitoring Phase (Waiting for first trade)
 
 ---
 
@@ -315,14 +290,9 @@ sqlite3 $DB "SELECT name FROM sqlite_master WHERE type='table';"
 
 Recent commits (most recent first):
 ```
-0f809df - feat: add comprehensive bot performance monitoring tools
-2a8e193 - docs: update README to reflect new sections in Master KB
-6e54050 - docs: add OLD BOTS reference and comprehensive backlog to Master KB
-c883232 - docs: add quick start guide for agent continuity
-82295ef - docs: add comprehensive Master Knowledge Base for session continuity
-66ca1ad - docs: add complete Grid Bot issue investigation and resolution
-c4b6585 - docs: add deployment guide for Risk Manager fix
-a0d87d4 - fix: CRITICAL - Risk Manager blocking trades due to portfolio mismatch
+[latest] - fix: align risk and latency settings with legacy bot behavior
+[prev]   - chore: move obsolete logger to backup folder instead of deleting
+[prev]   - fix: resolve V3 database schema mismatch and remove obsolete logger
 ```
 
 All commits pushed to: claude/priority1-enhancements-lXrIG
@@ -333,24 +303,25 @@ All commits pushed to: claude/priority1-enhancements-lXrIG
 
 **Before switching agents**:
 - [x] All code committed and pushed
-- [x] Documentation complete (MASTER_KNOWLEDGE_BASE.md)
-- [x] Current issue documented (database zero positions)
-- [x] Next steps clearly defined
+- [x] Documentation complete (MASTER_KNOWLEDGE_BASE.md + ROADMAP)
+- [x] Current issue documented (database zero positions = RESOLVED)
+- [x] Next steps clearly defined (Monitor)
 - [x] Success criteria documented
 - [x] **Database issue resolved**
 
-**Current Blocker**: Restart required on VPS to pick up schema fix.
+**Current Blocker**: None. Test is running.
 
 ---
 
-## 📞 Quick Reference
+**Status**: ACTIVE. Monitoring required.
 
+**Next Agent**: Check `MONITORING_SHEET.md` and start implementing Phase 1 of `ROADMAP_TO_PRODUCTION.md`.
 **Branch**: claude/priority1-enhancements-lXrIG
 **VPS Path**: /root/cryptobot_v3
-**Test PID**: 542118 (verify still running)
+**Test PID**: 550953 (verify still running)
 **Database**: data/test_adapter_binance_paper.db
-**Log File**: test_proven_config.log
-**Test Started**: 2026-01-11 08:54 UTC
+**Log File**: test_proven_config_v2.log
+**Test Started**: 2026-01-12 ~12:40 UTC
 
 **Key Fix**: Risk Manager initialization (test_adapter_paper.py:109-116)
 
