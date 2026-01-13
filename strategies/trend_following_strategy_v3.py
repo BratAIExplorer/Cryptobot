@@ -25,16 +25,17 @@ class TrendFollowingStrategy(BaseStrategy):
     
     def __init__(self, config: Dict = None):
         default_config = {
+            'name': 'Trend Following',      # Strategy name
             'fast_ma_period': 50,           # 50-period MA
             'slow_ma_period': 200,          # 200-period MA
             'max_drawdown_percent': 5.0,    # 5% max drawdown
             'position_size_percent': 15.0   # Use 15% of balance
         }
-        
+
         if config:
             default_config.update(config)
-        
-        super().__init__(name="Trend Following", config=default_config)
+
+        super().__init__(config=default_config)
         self.last_signal = None
         self.peak_balance = None
     

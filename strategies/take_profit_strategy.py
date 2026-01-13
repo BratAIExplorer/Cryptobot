@@ -26,16 +26,17 @@ class TakeProfitStrategy(BaseStrategy):
     
     def __init__(self, config: Dict = None):
         default_config = {
+            'name': 'Take Profit',           # Strategy name
             'profit_target_percent': 3.0,    # 3% profit target
             'trailing_stop_percent': 1.0,    # 1% trailing stop
             'stop_loss_percent': 2.0,        # 2% max loss
             'position_size_percent': 10.0    # Use 10% of balance
         }
-        
+
         if config:
             default_config.update(config)
-        
-        super().__init__(name="Take Profit", config=default_config)
+
+        super().__init__(config=default_config)
         self.highest_price_since_entry = {}  # Track highest price per position
     
     def generate_signal(self, market_data: Dict) -> Optional[str]:

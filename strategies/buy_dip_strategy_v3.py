@@ -26,16 +26,17 @@ class BuyDipStrategy(BaseStrategy):
     
     def __init__(self, config: Dict = None):
         default_config = {
+            'name': 'Buy @ DIP',         # Strategy name
             'dip_percentage': 5.0,      # Buy at 5% dip
             'cooldown_hours': 4,         # 4 hour cooldown
             'position_size_percent': 10.0,  # Use 10% of balance
             'stop_loss_percent': 2.0     # 2% stop loss
         }
-        
+
         if config:
             default_config.update(config)
-        
-        super().__init__(name="Buy @ DIP", config=default_config)
+
+        super().__init__(config=default_config)
         self.last_buy_time = None
         self.high_24h = None
     
