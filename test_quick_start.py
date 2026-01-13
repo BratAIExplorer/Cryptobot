@@ -124,9 +124,9 @@ def main():
 
     # Display risk settings
     print("🛡️  Risk Management Settings:")
-    print(f"   Daily Loss Limit: {engine.risk_manager.max_daily_loss_percent}%")
-    print(f"   Max Position Size: {engine.risk_manager.max_position_size_percent}%")
-    print(f"   Max Open Positions: {engine.risk_manager.max_positions}")
+    print(f"   Daily Loss Limit: {engine.risk_manager.limits.max_daily_loss_pct}%")
+    print(f"   Max Position Size: {engine.risk_manager.limits.max_position_size_pct}%")
+    print(f"   Max Open Positions: {engine.risk_manager.limits.max_concurrent_positions}")
     print()
 
     # Start the engine
