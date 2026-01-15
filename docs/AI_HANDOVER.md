@@ -151,14 +151,38 @@ The system uses `MasterDecisionEngine` to route assets based on classification:
 **Critical Finding:**
 ⚠️ **NO BOTS ARE CURRENTLY RUNNING** - Last activity was Dec 24, 2025. Dashboard is running (port 8501) but no trading bots active.
 
-**Task 3: Fix HTTP 403 Git Error** ⏳ PENDING
-- **Issue**: 8 commits on branch `claude/priority1-enhancements-lXrIG` cannot push
-- **Files Involved**: Git configuration
-- **Solutions to Try**:
-  1. Use GitHub Personal Access Token
-  2. Configure SSH keys
-  3. Direct HTTPS authentication
-- **Reference**: `FIX_GIT_403_ERROR.md` (exists on other branch)
+**Task 3: Fix HTTP 403 Git Error** ✅ RESOLVED
+- **Issue**: Git push failing with HTTP 403
+- **Root Cause**: Branch name must match session ID pattern `claude/*-VNa0U`
+- **Resolution**: Successfully pushed to `claude/check-dashboard-status-VNa0U` ✓
+- **Note**: Branch `claude/priority1-enhancements-lXrIG` (8 commits) cannot be pushed from this session
+  - That branch belongs to session ID `lXrIG` (different session)
+  - Critical bug fix exists on that branch (commit `fa4a5dc`)
+  - Will cherry-pick the fix to current branch
+
+**Task 3b: Apply Critical Bug Fix from Other Branch** ⏳ IN PROGRESS
+- **Source Branch**: `claude/priority1-enhancements-lXrIG`
+- **Target Branch**: `claude/check-dashboard-status-VNa0U` (current)
+- **File to Fix**: `core/engine.py` lines 1355-1357, 1366-1367
+- **Bug Found**: Lines 1355 and 1366 use raw CCXT methods instead of adapter methods
+  ```python
+  # LINE 1355 - CURRENT (WRONG):
+  balance = self.exchange.fetch_balance()  # ❌ BinanceAdapter has no fetch_balance
+
+  # LINE 1366 - CURRENT (WRONG):
+  ticker = self.exchange.fetch_ticker(pos['symbol'])  # ❌ BinanceAdapter has no fetch_ticker
+  ```
+- **Fix to Apply**:
+  ```python
+  # LINE 1355 - SHOULD BE:
+  cash = self.exchange.get_balance('USDT')  # ✅ Uses adapter method
+  equity = cash
+
+  # LINE 1366 - SHOULD BE:
+  current_price = self.exchange.get_current_price(pos['symbol'])  # ✅ Uses adapter method
+  if current_price:
+      curr_val = current_price * pos['amount']
+  ```
 
 **Task 4: Push Pending Commits** ⏳ PENDING
 - **Branch**: `claude/priority1-enhancements-lXrIG`
