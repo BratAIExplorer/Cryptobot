@@ -1,0 +1,13 @@
+=== LEGACY BOT PERFORMANCE SUMMARY ===
+Export Date: 2026-01-15 12:23:22.892448
+Total Trades: 270
+Total Positions: 128
+
+Grid Bot BTC: 48 trades, $3929.71 volume
+Grid Bot ETH: 112 trades, $9594.84 volume
+Hidden Gem Monitor: 110 trades, $12262.72 volume
+
+TOTAL P&L: $8,204.55 (from Grid Bots)
+
+NOTE: This is LEGACY data from OLD BOTS
+NEW BOTS (V3) will start fresh with clean database

@@ -202,9 +202,30 @@ The system uses `MasterDecisionEngine` to route assets based on classification:
   - Log file (path TBD)
   - Database health checks
 
-**Task 7: Strategic Recommendations** ⏳ PENDING
-- **Deliverable**: Next phase roadmap
+**Task 7: Strategic Recommendations** ✅ COMPLETED
+- **Deliverable**: Next phase roadmap provided
 - **Based on**: BOT performance results from Task 2
+- **Decision**: Focus on NEW BOTS only, disable/archive OLD BOTS
+
+**Task 8: Archive Legacy Data & Cleanup** ✅ COMPLETED
+- **User Decision**: Disable everything legacy, eliminate confusion
+- **Completed Actions**:
+  1. ✅ Exported 270 historical trades to CSV
+  2. ✅ Exported 128 historical positions to CSV
+  3. ✅ Moved old databases to archive folder (144MB total)
+  4. ✅ Created comprehensive README documenting archive
+  5. ✅ Deleted empty paper database
+  6. ✅ Achieved clean slate - NO databases in data folder
+- **Files Archived**:
+  - `trades_v3.db` (72MB) → `archives/legacy_backup_20260115/`
+  - `trades_paper.db` (72MB) → `archives/legacy_backup_20260115/`
+  - `trades_v3_paper.db` (empty) → Deleted
+  - `historical_trades.csv` (28KB, 270 rows) ✅ Created
+  - `historical_positions.csv` (28KB, 128 rows) ✅ Created
+  - `PERFORMANCE_SUMMARY.txt` (381 bytes) ✅ Created
+  - `README.md` (comprehensive archive guide) ✅ Created
+- **Archive Location**: `data/archives/legacy_backup_20260115/`
+- **Status**: Clean separation achieved - OLD BOTS disabled, NEW BOTS ready to start fresh
 
 ### Path Clarification Needed
 **QUESTION**: Which VPS path are we using?
@@ -213,8 +234,15 @@ The system uses `MasterDecisionEngine` to route assets based on classification:
 - **Action**: Verify during Task 2
 
 ### Files Modified This Session
-1. `docs/AI_HANDOVER.md` - This file (session tracking, performance data, task updates)
+1. `docs/AI_HANDOVER.md` - This file (session tracking, performance data, task updates, cleanup status)
 2. `core/engine.py` - Fixed adapter method calls at lines 1355, 1365-1369 (CRITICAL FIX)
+3. `data/archives/legacy_backup_20260115/README.md` - Archive documentation (NEW)
+4. `data/archives/legacy_backup_20260115/historical_trades.csv` - 270 trades backup (NEW)
+5. `data/archives/legacy_backup_20260115/historical_positions.csv` - 128 positions backup (NEW)
+6. `data/archives/legacy_backup_20260115/PERFORMANCE_SUMMARY.txt` - Performance summary (NEW)
+7. `data/trades_v3.db` - Moved to archive (CLEANED)
+8. `data/trades_paper.db` - Moved to archive (CLEANED)
+9. `data/trades_v3_paper.db` - Deleted (empty file)
 
 ### Critical Notes
 - ⚠️ Paper test may be running - do NOT interrupt until verification
