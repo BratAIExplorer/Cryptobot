@@ -109,13 +109,47 @@ The system uses `MasterDecisionEngine` to route assets based on classification:
 - **Changes**: Adding session tracking section
 - **Status**: Writing now
 
-**Task 2: Check BOT Performance** ⏳ PENDING
-- **Files to Check**:
-  - `data/trades_v3.db` or `data/trades_paper.db` (database queries)
-  - Log files (location TBD - need to find on VPS)
-  - `core/engine.py` (check if running)
-- **Queries**: Position count, win rate, P&L, error logs
-- **Expected Path**: `/home/user/Cryptobot` OR `/root/cryptobot_v3` (verify)
+**Task 2: Check BOT Performance** ✅ COMPLETED
+- **Files Checked**:
+  - `data/trades_v3.db` at `/home/user/Cryptobot/data/` (72MB, last modified Jan 11 12:03)
+  - `data/trades_paper.db` at `/home/user/Cryptobot/data/` (72MB, last modified Jan 11 12:03)
+  - Dashboard log at `/home/user/Cryptobot/dashboard.log`
+- **Path Confirmed**: `/home/user/Cryptobot` (NOT `/root/cryptobot_v3`)
+- **BOT Status**: ❌ NO TRADING BOTS CURRENTLY RUNNING
+- **Last Activity**: December 24, 2025 (3 weeks ago)
+
+**Performance Results (Historical Data):**
+
+📊 **Grid Bot BTC:**
+- Trades: 48 (22 buys, 26 sells)
+- Net P&L: **$1,729.71** ✅
+- Closed Positions: 22
+- Avg P&L per position: $7.68
+- Win Rate: Not calculated (fees data missing)
+
+📊 **Grid Bot ETH:**
+- Trades: 112 (52 buys, 60 sells)
+- Net P&L: **$6,474.84** ✅
+- Closed Positions: 52
+- Avg P&L per position: $14.26
+- Win Rate: Not calculated (fees data missing)
+
+📊 **Hidden Gem Monitor:**
+- Trades: 110 across 19 symbols
+- Winners: LTC (+$764), UNI (+$766), XTZ (+$8), AAVE (+$5), THETA (+$5)
+- Losers: NEAR (-$13), DOT (-$12), VET (-$10), ICP (-$10), SAND (-$9)
+- Net Result: Mixed (likely small profit overall)
+
+📈 **Overall Totals:**
+- Total Trades: 270 (128 buys, 142 sells)
+- Total Volume: $25,787.27
+- Grid Bots Combined P&L: **$8,204.55** 🎉
+- Total Fees Tracked: $1.53 (incomplete data)
+- Active Strategies: 3 (Grid Bot BTC, Grid Bot ETH, Hidden Gem Monitor)
+- Symbols Traded: 21
+
+**Critical Finding:**
+⚠️ **NO BOTS ARE CURRENTLY RUNNING** - Last activity was Dec 24, 2025. Dashboard is running (port 8501) but no trading bots active.
 
 **Task 3: Fix HTTP 403 Git Error** ⏳ PENDING
 - **Issue**: 8 commits on branch `claude/priority1-enhancements-lXrIG` cannot push
