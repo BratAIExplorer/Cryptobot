@@ -18,7 +18,10 @@ The project has been refactored from a monolithic `UnifiedExchange` to a modular
 
 ### 2. Strategy Routing (Engine V3)
 
-**Bot Configuration File:** `/home/user/Cryptobot/run_bot.py`
+**Bot Configuration File:**
+- **LOCAL:** `/home/user/Cryptobot/run_bot.py`
+- **VPS:** `/root/cryptobot_v3/run_bot.py` ← **BOTS USE THIS**
+
 **Trading Mode:** Paper (line 36) - Switch to 'live' when ready
 **Branch:** `claude/check-dashboard-status-VNa0U`
 **Session ID:** `VNa0U`
@@ -71,23 +74,40 @@ The project has been refactored from a monolithic `UnifiedExchange` to a modular
 
 ---
 
-## 🚀 Current Project State: VPS Deployment
+## 🚀 Current Project State: Dual Environment
 
 ### Environment Details
-- **VPS Host**: `srv1010193` (Hostname: `runsc`)
-- **Active Path**: `/home/user/Cryptobot` ← **CONFIRMED ACTIVE**
-- **Legacy Path**: `/root/cryptobot_v3` (if exists, NOT USED)
-- **Python**: Python 3.11.14 (`/usr/local/bin/python3`)
+
+**🖥️ LOCAL MACHINE** (Development/Git):
+- **Path**: `/home/user/Cryptobot` ← Where code changes are made
 - **Branch**: `claude/check-dashboard-status-VNa0U`
 - **Session ID**: `VNa0U`
-- **Control**: Use `nohup` or `screen` for long-running bots
+- **Purpose**: Git repository, code fixes, documentation
+- **Python**: Python 3.11.14
+- **Status**: ✅ All changes committed and pushed
 
-### Path Clarification (RESOLVED)
-✅ **CONFIRMED:** `/home/user/Cryptobot` is the ACTIVE project directory
-- Dashboard running from this path (port 8501)
-- Adapter fix deployed here
-- All future work uses this path
-- Any references to `/root/cryptobot_v3` are from previous sessions (ignore)
+**🌐 VPS** (Production/Trading):
+- **Host**: `srv1010193` (Hostname: `runsc`)
+- **Path**: `/root/cryptobot_v3` ← **WHERE BOTS RUN**
+- **Python**: `/usr/local/bin/python3`
+- **Purpose**: Live bot execution, paper/live trading
+- **Status**: ⚠️ Needs to pull latest code with adapter fix
+- **Old Bot Running**: PID 528209 from `/Antigravity/antigravity/scratch/crypto_trading_bot/` (KILL THIS!)
+
+### Path Clarification (CRITICAL)
+⚠️ **TWO DIFFERENT MACHINES:**
+
+**LOCAL** (`/home/user/Cryptobot`):
+- Where I make code changes
+- Where git commits happen
+- Where adapter fix was applied
+- Changes pushed to remote GitHub
+
+**VPS** (`/root/cryptobot_v3`):
+- Where bots actually trade
+- Needs to **pull from GitHub** to get fixes
+- Currently running OLD code without adapter fix
+- **ACTION REQUIRED:** Run `git pull origin claude/check-dashboard-status-VNa0U`
 
 ### Database Configuration
 - **Active DB**: None (clean slate after archive)
@@ -288,22 +308,48 @@ The system uses `MasterDecisionEngine` to route assets based on classification:
 - **Archive Location**: `data/archives/legacy_backup_20260115/`
 - **Status**: Clean separation achieved - OLD BOTS disabled, NEW BOTS ready to start fresh
 
-### Path Clarification Needed
-**QUESTION**: Which VPS path are we using?
-- Previous session mentioned: `/root/cryptobot_v3`
-- Current dashboard at: `/home/user/Cryptobot`
-- **Action**: Verify during Task 2
+**Task 9: VPS Deployment & Latency Fix** ⏳ IN PROGRESS
+- **Issue**: User started bots on VPS WITHOUT pulling latest code
+- **VPS Status**:
+  - Old bot running (PID 528209 from `/Antigravity/...`) ← Must kill
+  - New bot started (PID 574619) but without adapter fix
+  - No database (expected - clean slate)
+  - **CRITICAL**: Binance latency 2,221ms (4-5x too slow!)
+- **Actions Created**:
+  1. ✅ Created `VPS_DEPLOY_FIX.sh` - Automated deployment script
+  2. ✅ Created `BINANCE_LATENCY_INVESTIGATION.md` - Diagnostic guide
+  3. ⏳ User needs to run deployment script on VPS
+- **Files to Deploy to VPS**: `/root/cryptobot_v3/`
+  - `core/engine.py` (adapter fix)
+  - `run_bot.py` (strategies config)
+  - All supporting files
+- **VPS Commands to Run**:
+  ```bash
+  cd /root/cryptobot_v3
+  pkill -f run_bot.py  # Kill old bots
+  git pull origin claude/check-dashboard-status-VNa0U  # Get latest code
+  bash VPS_DEPLOY_FIX.sh  # Or run deployment script
+  ```
+
+### Path Clarification **✅ RESOLVED**
+**ANSWER**: TWO different machines with different paths:
+- **LOCAL**: `/home/user/Cryptobot` (Git repo, development)
+- **VPS**: `/root/cryptobot_v3` (Production, where bots run)
+- **Action**: Always specify which machine when giving commands
 
 ### Files Modified This Session
-1. `docs/AI_HANDOVER.md` - This file (session tracking, performance data, task updates, cleanup status)
+1. `docs/AI_HANDOVER.md` - Updated with dual path clarification, VPS deployment task
 2. `core/engine.py` - Fixed adapter method calls at lines 1355, 1365-1369 (CRITICAL FIX)
-3. `data/archives/legacy_backup_20260115/README.md` - Archive documentation (NEW)
-4. `data/archives/legacy_backup_20260115/historical_trades.csv` - 270 trades backup (NEW)
-5. `data/archives/legacy_backup_20260115/historical_positions.csv` - 128 positions backup (NEW)
-6. `data/archives/legacy_backup_20260115/PERFORMANCE_SUMMARY.txt` - Performance summary (NEW)
-7. `data/trades_v3.db` - Moved to archive (CLEANED)
-8. `data/trades_paper.db` - Moved to archive (CLEANED)
-9. `data/trades_v3_paper.db` - Deleted (empty file)
+3. `BOT_STATUS_REPORT.md` - Complete bot monitoring guide (NEW)
+4. `VPS_DEPLOY_FIX.sh` - Automated VPS deployment script (NEW)
+5. `BINANCE_LATENCY_INVESTIGATION.md` - Latency diagnostic guide (NEW)
+6. `data/archives/legacy_backup_20260115/README.md` - Archive documentation (NEW)
+7. `data/archives/legacy_backup_20260115/historical_trades.csv` - 270 trades backup (NEW)
+8. `data/archives/legacy_backup_20260115/historical_positions.csv` - 128 positions backup (NEW)
+9. `data/archives/legacy_backup_20260115/PERFORMANCE_SUMMARY.txt` - Performance summary (NEW)
+10. `data/trades_v3.db` - Moved to archive (CLEANED)
+11. `data/trades_paper.db` - Moved to archive (CLEANED)
+12. `data/trades_v3_paper.db` - Deleted (empty file)
 
 ### Critical Notes
 - ⚠️ Paper test may be running - do NOT interrupt until verification
