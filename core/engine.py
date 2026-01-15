@@ -1352,9 +1352,8 @@ class TradingEngine:
         """Record current portfolio state to DB for performance & safety tracking"""
         try:
             # 1. Get current balance and positions
-            balance = self.exchange.fetch_balance()
-            equity = balance.get('total', 0)
-            cash = balance.get('free', 0)
+            cash = self.exchange.get_balance('USDT')
+            equity = cash  # Will be updated with position values below
             
             # 2. Get unrealized P&L
             open_positions = self.logger.get_open_positions()
@@ -1363,10 +1362,11 @@ class TradingEngine:
             if not open_positions.empty:
                 for _, pos in open_positions.iterrows():
                     try:
-                        ticker = self.exchange.fetch_ticker(pos['symbol'])
-                        curr_val = ticker['last'] * pos['amount']
-                        pos_value += curr_val
-                        unrealized_pnl += (ticker['last'] - pos['buy_price']) * pos['amount']
+                        current_price = self.exchange.get_current_price(pos['symbol'])
+                        if current_price:
+                            curr_val = current_price * pos['amount']
+                            pos_value += curr_val
+                            unrealized_pnl += (current_price - pos['buy_price']) * pos['amount']
                     except:
                         pass
             
