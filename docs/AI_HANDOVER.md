@@ -10,30 +10,91 @@
 
 ### 1. Core Architecture (Adapter Pattern)
 The project has been refactored from a monolithic `UnifiedExchange` to a modular **Adapter Pattern**.
-- **Adapters**: `BinanceAdapter` (Primary), `MexcAdapter` (Legacy/Inactive), `LunoAdapter` (Secondary/MYR focus).
+- **Adapters**: `BinanceAdapter` (Primary, Active), `MexcAdapter` (Legacy/Archived), `LunoAdapter` (Reserved for future).
 - **Interface**: `BaseExchangeAdapter` defines the strict contract for all exchange interactions.
 - **Factory**: `ExchangeFactory` handles instantiation.
 - **Observability**: `ExchangeHealthMonitor` runs background heartbeats for latency and connectivity.
+- **Exchange**: **BINANCE ONLY** per user preference (NO MEXC)
 
 ### 2. Strategy Routing (Engine V3)
-`TradingEngine` now handles multiple bots with specific exchange routing.
-- **Grid Bots (BTC/ETH)**: Routed to Binance. Budget $250 each.
-- **Buy-the-Dip Strategy**: Routed to Binance. Budget $1000.
-- **Other Bots**: SMA, Momentum, and Hidden Gems are currently **DISABLED** for stability.
+
+**Bot Configuration File:** `/home/user/Cryptobot/run_bot.py`
+**Trading Mode:** Paper (line 36) - Switch to 'live' when ready
+**Branch:** `claude/check-dashboard-status-VNa0U`
+**Session ID:** `VNa0U`
+
+#### ✅ **ACTIVE STRATEGIES** (Configured & Ready)
+
+**1. Grid Bot BTC** (`run_bot.py` lines 67-85)
+- Symbol: BTC/USDT
+- Budget: $250
+- Trade Size: $25 per grid level
+- Grid Levels: 20
+- Price Range: $85,000 - $110,000
+- Exchange: BINANCE
+- Historical P&L: $1,729.71 profit (48 trades) ⭐ PROVEN
+- Status: ✅ Active in config, not running yet
+
+**2. Grid Bot ETH** (`run_bot.py` lines 87-100)
+- Symbol: ETH/USDT
+- Budget: $250
+- Trade Size: $25 per grid level
+- Grid Levels: 30
+- Price Range: $2,800 - $4,200
+- Exchange: BINANCE
+- Historical P&L: $6,474.84 profit (112 trades) ⭐ PROVEN
+- Status: ✅ Active in config, not running yet
+
+**3. Buy-the-Dip Strategy** (`run_bot.py` lines 148-175)
+- Symbols: Top 10 (BTC, ETH, SOL, BNB, XRP, ADA, DOGE, TRX, DOT, LINK)
+- Budget: $1,000 total ($100 max per coin)
+- Trade Size: $15 per buy
+- Entry: 3% dip, RSI < 35
+- Take Profit: 8%
+- Stop Loss: DISABLED (hold until profit)
+- Exchange: BINANCE
+- Status: ✅ Active in config, untested, not running yet
+
+**Total Capital Allocation (Active):** $1,500
+
+#### ⏸️ **DISABLED STRATEGIES** (Commented Out)
+
+**4. SMA Trend Bot V2** (`run_bot.py` lines 114-133)
+- Symbols: BTC, ETH, SOL, BNB, DOGE
+- Budget: $4,000
+- Status: ❌ Disabled - Awaiting user decision
+
+**5. Momentum Swing Bot** (`run_bot.py` lines 185-199)
+- Symbols: BTC, ETH
+- Budget: $500
+- Status: ❌ Disabled - Strategy not implemented (needs backtest)
 
 ---
 
 ## 🚀 Current Project State: VPS Deployment
 
 ### Environment Details
-- **VPS Host**: `srv1010193` (`ssh root@72.60.40.29`)
-- **Deployment Path**: `~/cryptobot_v3`
-- **Python**: 3.10+ (Use `python3` explicitly).
-- **Control**: Running via foreground terminal (consider `screen` or `pm2` for long-term).
+- **VPS Host**: `srv1010193` (Hostname: `runsc`)
+- **Active Path**: `/home/user/Cryptobot` ← **CONFIRMED ACTIVE**
+- **Legacy Path**: `/root/cryptobot_v3` (if exists, NOT USED)
+- **Python**: Python 3.11.14 (`/usr/local/bin/python3`)
+- **Branch**: `claude/check-dashboard-status-VNa0U`
+- **Session ID**: `VNa0U`
+- **Control**: Use `nohup` or `screen` for long-running bots
+
+### Path Clarification (RESOLVED)
+✅ **CONFIRMED:** `/home/user/Cryptobot` is the ACTIVE project directory
+- Dashboard running from this path (port 8501)
+- Adapter fix deployed here
+- All future work uses this path
+- Any references to `/root/cryptobot_v3` are from previous sessions (ignore)
 
 ### Database Configuration
-- **Path**: `data/trades_paper.db` (Unified V3 Paper DB).
-- **Separation**: Data is isolated by exchange adapter where necessary, but the primary paper trading log is centralized for the dashboard.
+- **Active DB**: None (clean slate after archive)
+- **Will Be Created**: `data/trades_paper.db` when bot starts
+- **Paper Mode**: Simulated trades (no real money)
+- **Live Mode DB**: `data/trades_v3.db` (when switched to live)
+- **Archived Data**: `data/archives/legacy_backup_20260115/` (reference only)
 
 ---
 
