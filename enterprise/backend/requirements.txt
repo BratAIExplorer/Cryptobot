@@ -1,0 +1,32 @@
+# FastAPI and server
+fastapi==0.110.0
+uvicorn[standard]==0.27.1
+python-multipart==0.0.9
+
+# Database
+sqlalchemy==2.0.25
+psycopg2-binary==2.9.9
+alembic==1.13.1
+
+# Authentication & Security
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+bcrypt==4.1.2
+
+# Environment & Config
+python-dotenv==1.0.1
+pydantic==2.6.1
+pydantic-settings==2.1.0
+
+# CORS
+fastapi-cors==0.0.6
+
+# WebSocket
+websockets==12.0
+
+# Date/Time
+python-dateutil==2.8.2
+
+# Existing bot integration (read-only)
+# Uses same CCXT version as main bot
+ccxt==4.5.33
