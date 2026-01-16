@@ -510,54 +510,63 @@ The system uses `MasterDecisionEngine` to route assets based on classification:
 
 **Phase 3: Frontend Implementation** ✅ COMPLETED (2026-01-16 04:30 UTC)
 - **Directory**: `enterprise/frontend/`
-- **Tech Stack**: Next.js 14 + React 18 + TypeScript + Tailwind CSS + Shadcn/ui
+- **Tech Stack**: Next.js 14 + React 18 + TypeScript + Tailwind CSS + Recharts + Lucide Icons
 - **Git Commits**:
   - `f4feab9` - "feat: complete Next.js frontend for enterprise platform"
   - `2381c96` - "feat: add frontend lib files (API client, store, utils)"
+  - `PENDING` - "feat: redesign dashboard to match Figma design" ⚡ LATEST
 - **Pages Created**:
   - `/` - Home (auto-redirect to dashboard or login)
   - `/login` - Authentication page
   - `/register` - User registration page
-  - `/dashboard` - Main dashboard (protected route)
+  - `/dashboard` - Main dashboard (protected route) - **REDESIGNED TO MATCH FIGMA** ✨
 - **Components Built**:
   - ✅ API client (axios with JWT interceptors)
   - ✅ State management (Zustand for auth + bot state)
   - ✅ UI components (Button, Card from Shadcn/ui)
   - ✅ Authentication flow (login/register/logout)
-  - ✅ Bot status display (running/stopped, uptime, PID)
+  - ✅ **4 Metric Cards with gradient icons** (Portfolio, P&L, Bots, Trades) ⭐ NEW
+  - ✅ **Portfolio Value Line Chart** (Recharts AreaChart with gradient fill) ⭐ NEW
+  - ✅ **Asset Distribution Pie Chart** (Recharts PieChart with 5 assets) ⭐ NEW
+  - ✅ **Trading Bots Cards** (status indicators, P&L, win rate, controls) ⭐ REDESIGNED
+  - ✅ **Recent Activity Feed** (timeline-style with colored borders) ⭐ NEW
   - ✅ Bot controls (start/stop/restart buttons)
-  - ✅ Portfolio summary (P&L, trades, win rate, positions)
-  - ✅ Strategy performance breakdown
-  - ✅ Recent trades table (last 24 hours)
   - ✅ Responsive layout (mobile-friendly)
-  - ✅ Dark mode support
-- **Files Created** (18 files, 1,755 lines):
-  - `enterprise/frontend/package.json` - Dependencies (Next.js 14, React 18, etc)
-  - `enterprise/frontend/tsconfig.json` - TypeScript config
-  - `enterprise/frontend/tailwind.config.js` - Tailwind CSS + dark mode
-  - `enterprise/frontend/next.config.js` - Next.js config + API proxy
-  - `enterprise/frontend/src/lib/api.ts` - API client (axios + JWT)
-  - `enterprise/frontend/src/lib/store.ts` - Zustand state management
-  - `enterprise/frontend/src/lib/utils.ts` - Utility functions (formatters)
-  - `enterprise/frontend/src/app/page.tsx` - Home page (redirect logic)
-  - `enterprise/frontend/src/app/layout.tsx` - Root layout
-  - `enterprise/frontend/src/app/globals.css` - Global styles (dark mode)
-  - `enterprise/frontend/src/app/login/page.tsx` - Login page
-  - `enterprise/frontend/src/app/register/page.tsx` - Registration page
-  - `enterprise/frontend/src/app/dashboard/page.tsx` - Main dashboard (335 lines)
-  - `enterprise/frontend/src/components/ui/button.tsx` - Button component
-  - `enterprise/frontend/src/components/ui/card.tsx` - Card component
-  - `enterprise/frontend/README.md` - Setup and usage guide
+  - ✅ Dark theme with navy background (#0F172A) ⭐ UPDATED
+- **Design System** (Matching Figma):
+  - **Colors**:
+    - Background: `#0F172A` (dark navy)
+    - Cards: `#1E293B` (dark blue-gray)
+    - Borders: `#374151` (gray-800)
+    - Primary Blue: `#3B82F6` (buttons, charts)
+    - Green: `#10B981` (positive P&L, active status)
+    - Red: `#EF4444` (negative P&L, sell orders)
+    - Pink: `#EC4899` (accent)
+    - Orange: `#F59E0B` (accent)
+    - Purple: `#8B5CF6` (accent)
+  - **Icons**: Lucide React (Wallet, TrendingUp, Activity, BarChart3, Power, Settings, Zap)
+  - **Charts**: Recharts with custom styling and gradients
+  - **Typography**: Bold headings, uppercase labels, color-coded metrics
+- **Files Modified** (Dashboard Redesign):
+  - `enterprise/frontend/src/app/dashboard/page.tsx` - **COMPLETELY REDESIGNED** (462 lines, +127 lines)
+    - Added 4 metric cards with circular gradient icons
+    - Integrated Recharts AreaChart for portfolio value
+    - Integrated Recharts PieChart for asset distribution
+    - Redesigned bot cards with status indicators and controls
+    - Added recent activity feed with timeline styling
+    - Dark theme matching Figma design exactly
 - **Key Features**:
   - ✅ JWT authentication with auto-redirect
   - ✅ Real-time bot status monitoring
   - ✅ One-click bot control (start/stop/restart)
-  - ✅ Portfolio analytics with color-coded P&L
-  - ✅ Strategy performance comparison
-  - ✅ Recent trades table with filters
+  - ✅ **Professional metric cards with gradient icons** ⭐ NEW
+  - ✅ **Interactive portfolio chart with gradient area fill** ⭐ NEW
+  - ✅ **Asset distribution donut chart with legend** ⭐ NEW
+  - ✅ **Bot cards with status dots and P&L color coding** ⭐ REDESIGNED
+  - ✅ **Activity feed with buy/sell/target indicators** ⭐ NEW
   - ✅ Auto-refresh every 30 seconds
-  - ✅ Responsive design (desktop + mobile)
-  - ✅ Dark mode with system preference detection
+  - ✅ Responsive design (desktop + mobile + tablet)
+  - ✅ Dark theme matching Figma design (#0F172A background)
   - ✅ Error handling and loading states
 
 **Phase 4: Deployment** ⏸️ READY (Manual Deployment Required)
