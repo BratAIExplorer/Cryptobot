@@ -5,13 +5,31 @@ import sqlite3
 import pandas as pd
 
 # Connect to database
-# Connect to database (defaulting to paper DB for V3)
+# Auto-detect database path (V3 uses data/multi/trades_paper.db)
 import os
-db_path = 'data/trades_paper.db' 
-if not os.path.exists(db_path):
-    # Fallback to older default if not found
-    db_path = 'data/trades.db'
-    
+
+# Try multiple possible database locations in order
+possible_paths = [
+    'data/multi/trades_paper.db',  # V3 multi-exchange (CURRENT)
+    'data/trades_paper.db',         # V2 paper mode
+    'data/trades.db',               # V1 live mode
+    'trades_paper.db',              # Legacy location
+]
+
+db_path = None
+for path in possible_paths:
+    if os.path.exists(path):
+        db_path = path
+        break
+
+if db_path is None:
+    print("❌ ERROR: No database file found!")
+    print("   Searched paths:")
+    for path in possible_paths:
+        print(f"   - {path}")
+    print("\nIs the bot running? Check with: ps aux | grep run_bot")
+    exit(1)
+
 print(f"📊 Reading Database: {db_path}")
 conn = sqlite3.connect(db_path)
 
