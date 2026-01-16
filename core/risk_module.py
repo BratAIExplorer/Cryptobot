@@ -115,10 +115,13 @@ class RiskManager:
         self.cooldown_until: Optional[datetime] = None
         from datetime import time
         self.allowed_hours = (time(0, 0), time(23, 59)) # Default: 24/7
-        
+
         # Institutional Hardening
         self.portfolio_analyzer = PortfolioCorrelationAnalyzer()
         self.peak_equity = Decimal("0")
+
+        # Correlation Manager (injected by TradingEngine after initialization)
+        self.correlation_manager = None
 
         
     @property
@@ -305,7 +308,7 @@ class RiskManager:
                  # we mainly rejection if it's too high. Adjusting size needs to happen in TradingEngine.
             
         # Check 10: Intelligent Correlation (Legacy Placeholder)
-        if active_symbols:
+        if active_symbols and self.correlation_manager:
             is_risky, corr_reason = self.correlation_manager.check_correlation_risk(symbol, active_symbols)
             if is_risky:
                   return False, f"Correlation Risk: {corr_reason}"

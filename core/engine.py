@@ -93,6 +93,9 @@ class TradingEngine:
         )
         self.correlation_matrix_last_update = None
 
+        # Inject correlation_manager into risk_manager
+        self.risk_manager.correlation_manager = self.correlation_manager
+
         # Initialize Observability (Pass risk manager)
         self.system_monitor = SystemMonitor(self.logger, self.risk_manager, self.resilience_manager)
         
@@ -1091,7 +1094,11 @@ class TradingEngine:
             
                 # --- DYNAMIC TRANCHING ---
                 v2_score = v2_result['scores']['final_total']
-            
+
+                # ADAPTIVE THRESHOLD: Lower threshold when market regime is warming up
+                regime_state = self.regime_detector.current_regime if hasattr(self.regime_detector, 'current_regime') else RegimeState.UNDEFINED
+                min_threshold = 20 if regime_state == RegimeState.UNDEFINED else 75
+
                 if v2_score >= 85:
                     # STRONG BUY: 40% of planned tranche
                     trade_amount_usd = base_amount * 0.40
@@ -1100,9 +1107,13 @@ class TradingEngine:
                     # MODERATE BUY: 25% of planned tranche
                     trade_amount_usd = base_amount * 0.25
                     print(f"✅ MODERATE CONVICTION: Score {v2_score}. Scaling to 25% (${trade_amount_usd:.2f})")
+                elif v2_score >= min_threshold:
+                    # LOW CONVICTION: 10% of planned tranche (warmup mode)
+                    trade_amount_usd = base_amount * 0.10
+                    print(f"⚠️  LOW CONVICTION (Warmup): Score {v2_score}. Scaling to 10% (${trade_amount_usd:.2f})")
                 else:
-                    # Score < 75: AVOID/WAIT
-                    print(f"[SKIP] Confluence V2 Reject: Score {v2_score}/100 (Threshold 75)")
+                    # Score < threshold: AVOID/WAIT
+                    print(f"[SKIP] Confluence V2 Reject: Score {v2_score}/100 (Threshold {min_threshold})")
                     return
 
             # Recalculate amount with scaled trade_amount_usd
