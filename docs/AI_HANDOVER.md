@@ -383,9 +383,10 @@ The system uses `MasterDecisionEngine` to route assets based on classification:
 - **Status**: Bot deployed and running successfully
 - **Next Steps**: 48-72 hour validation period (see Task 11)
 
-**Task 11: 48-72 Hour Validation & Monitoring** ⏳ IN PROGRESS
-- **Start Time**: 2026-01-16 00:33 UTC
-- **End Time**: 2026-01-18 12:33 UTC (72 hours) or 2026-01-17 12:33 UTC (48 hours minimum)
+**Task 11: 48-72 Hour Validation & Monitoring** ⏳ IN PROGRESS (RESTARTED)
+- **Original Start**: 2026-01-16 00:33 UTC (had critical bugs - invalid)
+- **Restart Time**: 2026-01-16 01:37 UTC (AFTER critical bug fixes)
+- **End Time**: 2026-01-18 01:37 UTC (48 hours) or 2026-01-19 01:37 UTC (72 hours)
 - **Objective**: Validate bot performance before switching to live mode
 - **Success Criteria**:
   1. ✅ Bot runs without crashes for 48-72 hours
@@ -423,21 +424,76 @@ The system uses `MasterDecisionEngine` to route assets based on classification:
   # Check database
   sqlite3 data/multi/trades_paper.db "SELECT COUNT(*) FROM trades;"
   ```
-- **Current Status**:
-  - Bot running: ✅ PID 584536
-  - Uptime: Just started (< 1 minute)
-  - Trades executed: 1 (Grid Bot BTC)
-  - P&L: -$25.00 (one open position)
+- **Current Status** (2026-01-16 01:37 UTC - AFTER CRITICAL FIXES):
+  - Bot running: ✅ PID 585794 (RESTARTED with fixes)
+  - Previous bot: PID 584536 (had critical bugs)
+  - Uptime: Just restarted (< 1 minute)
+  - Trades executed: 1 (from yesterday's test - 2026-01-15)
+  - P&L: -$25.00 (one old position)
   - Monitoring: Active
-- **ISSUE DISCOVERED (2026-01-16)**: Database path mismatch
-  - `analyze_trades.py` was looking for `data/trades_paper.db`
-  - Bot actually creates `data/multi/trades_paper.db` (V3 multi-exchange path)
-  - User saw "Empty DataFrame" but bot was generating signals
-  - **FIXED**: Updated `analyze_trades.py` to auto-detect database path
-  - Created `check_bot_health.sh` to diagnose bot issues
-  - User needs to pull latest code and re-run analysis
-- **Next Milestone**: Check back in 4-6 hours for first trades analysis
-- **Decision Point**: 48 hours (2026-01-17 12:33 UTC) - GO/NO-GO for live trading
+  - **VALIDATION PERIOD RESET**: Starting fresh from 01:37 UTC
+- **CRITICAL BUGS DISCOVERED & FIXED (2026-01-16)**:
+  1. **RiskManager correlation_manager Error**:
+     - Error: `'RiskManager' object has no attribute 'correlation_manager'`
+     - Impact: Grid Bot BTC crashing on EVERY trade attempt (10+ crashes in 1 hour)
+     - Root Cause: RiskManager.__init__ never initialized correlation_manager
+     - Fix: Added `self.correlation_manager = None` and inject from TradingEngine
+     - Files: `core/risk_module.py` lines 124, 311; `core/engine.py` line 97
+  2. **Buy-the-Dip Confluence Threshold Too Strict**:
+     - Error: All dips rejected despite 8-9% drops (ADA, DOT, DOGE, etc.)
+     - Impact: Buy-the-Dip strategy completely paralyzed (0 trades)
+     - Root Cause: Hardcoded threshold of 75 when market regime is UNDEFINED
+     - Confluence scores only 2-4/100 during warmup (insufficient data)
+     - Fix: Adaptive threshold - UNDEFINED regime = 20, Normal = 75
+     - Added LOW CONVICTION tier: 10% position size for warmup trades
+     - Files: `core/engine.py` lines 1098-1116
+- **OTHER ISSUES RESOLVED**:
+  - Database path mismatch: Fixed `analyze_trades.py` to auto-detect
+  - Created `check_bot_health.sh` for comprehensive diagnostics
+- **EXPECTED RESULTS (After Fixes)**:
+  - Grid Bot BTC: Should execute trades without crashing
+  - Buy-the-Dip: Should accept dips with score ≥ 20 during warmup (10% size)
+  - Target: 15-30 trades in first 6 hours
+- **Next Milestone**: Check in 2-4 hours for first trades analysis
+- **Decision Point**: 48 hours (2026-01-18 01:37 UTC) - GO/NO-GO for live trading
+
+**Task 12: Non-Technical Management Interface** 📱 PLANNING
+- **User Request**: "How do we make this seamless for Non Techies?"
+- **Use Case**: User wants to share bot with family and friends
+- **Requirements**:
+  1. Easy monitoring (no SSH, no command line)
+  2. Simple configuration (pairs, wallets, amounts, strategies)
+  3. Mobile-friendly interface
+  4. Real-time updates
+  5. Alerts and notifications
+- **Proposed Solution**: Multi-tier approach
+  - **Tier 1: Telegram Bot** (Quick wins - 1-2 hours)
+    - Commands: `/status`, `/trades`, `/pnl`, `/start`, `/stop`
+    - Instant notifications on trades
+    - No server needed - works from phone
+  - **Tier 2: Enhanced Dashboard** (Medium effort - 4-8 hours)
+    - Upgrade existing Streamlit dashboard (port 8501)
+    - Add live charts, trade history, P&L graphs
+    - Configuration editor (no code changes needed)
+    - Mobile-responsive design
+  - **Tier 3: Web Admin Panel** (Long-term - 1-2 days)
+    - Full bot management: start/stop, add/remove strategies
+    - User authentication (for family/friends access)
+    - Multi-user support with separate portfolios
+    - API integration for mobile app
+- **Technology Stack**:
+  - Frontend: Streamlit (already exists) or React/Next.js
+  - Backend: FastAPI REST API
+  - Database: Existing SQLite (trades) + new config DB
+  - Notifications: Telegram Bot API
+  - Deployment: Same VPS (nginx proxy)
+- **Priority**: HIGH (enables sharing with non-technical users)
+- **Status**: Awaiting user decision on approach
+- **Next Steps**:
+  1. User decides: Quick (Telegram) vs Full (Web Dashboard)
+  2. If Telegram: Implement bot commands in 1-2 hours
+  3. If Dashboard: Design mockups, get user approval
+  4. Implementation phase after validation period completes
 
 ### Path Clarification **✅ RESOLVED**
 **ANSWER**: TWO different machines with different paths:
@@ -446,34 +502,39 @@ The system uses `MasterDecisionEngine` to route assets based on classification:
 - **Action**: Always specify which machine when giving commands
 
 ### Files Modified This Session
-1. `docs/AI_HANDOVER.md` - Updated with Task 11 and database path fix
-2. `core/engine.py` - Fixed adapter method calls at lines 1355, 1365-1369 (CRITICAL FIX)
-3. `start_bot.sh` - Start bot with unbuffered output (CRITICAL FIX)
-4. `analyze_trades.py` - Auto-detect database path (CRITICAL FIX)
-5. `check_bot_health.sh` - Comprehensive bot health diagnostics (NEW)
-6. `BOT_STATUS_REPORT.md` - Complete bot monitoring guide (NEW)
-7. `VPS_DEPLOY_FIX.sh` - Automated VPS deployment script (NEW)
-8. `BINANCE_LATENCY_INVESTIGATION.md` - Latency diagnostic guide (NEW)
-9. `check_bot_status_vps.sh` - Comprehensive bot status checker with live monitoring (NEW)
-10. `quick_status.sh` - Quick 10-second bot status check (NEW)
-11. `cleanup_old_bots.sh` - Permanently delete old bot installations (NEW)
-12. `diagnose_bot.sh` - Diagnose bot initialization issues (NEW)
-13. `data/archives/legacy_backup_20260115/README.md` - Archive documentation (NEW)
-14. `data/archives/legacy_backup_20260115/historical_trades.csv` - 270 trades backup (NEW)
-15. `data/archives/legacy_backup_20260115/historical_positions.csv` - 128 positions backup (NEW)
-16. `data/archives/legacy_backup_20260115/PERFORMANCE_SUMMARY.txt` - Performance summary (NEW)
-17. `data/trades_v3.db` - Moved to archive (CLEANED)
-18. `data/trades_paper.db` - Moved to archive (CLEANED)
-19. `data/trades_v3_paper.db` - Deleted (empty file)
+1. `docs/AI_HANDOVER.md` - Updated with Task 11 restart, critical bugs, Task 12 (non-technical interface)
+2. `core/engine.py` - Fixed adapter calls + correlation_manager injection + adaptive confluence threshold (CRITICAL FIXES)
+3. `core/risk_module.py` - Added correlation_manager initialization and null check (CRITICAL FIX)
+4. `start_bot.sh` - Start bot with unbuffered output (CRITICAL FIX)
+5. `analyze_trades.py` - Auto-detect database path (CRITICAL FIX)
+6. `check_bot_health.sh` - Comprehensive bot health diagnostics (NEW)
+7. `BOT_STATUS_REPORT.md` - Complete bot monitoring guide (NEW)
+8. `VPS_DEPLOY_FIX.sh` - Automated VPS deployment script (NEW)
+9. `BINANCE_LATENCY_INVESTIGATION.md` - Latency diagnostic guide (NEW)
+10. `check_bot_status_vps.sh` - Comprehensive bot status checker with live monitoring (NEW)
+11. `quick_status.sh` - Quick 10-second bot status check (NEW)
+12. `cleanup_old_bots.sh` - Permanently delete old bot installations (NEW)
+13. `diagnose_bot.sh` - Diagnose bot initialization issues (NEW)
+14. `data/archives/legacy_backup_20260115/README.md` - Archive documentation (NEW)
+15. `data/archives/legacy_backup_20260115/historical_trades.csv` - 270 trades backup (NEW)
+16. `data/archives/legacy_backup_20260115/historical_positions.csv` - 128 positions backup (NEW)
+17. `data/archives/legacy_backup_20260115/PERFORMANCE_SUMMARY.txt` - Performance summary (NEW)
+18. `data/trades_v3.db` - Moved to archive (CLEANED)
+19. `data/trades_paper.db` - Moved to archive (CLEANED)
+20. `data/trades_v3_paper.db` - Deleted (empty file)
 
 ### Critical Notes
-- 🎉 **BOTS NOW RUNNING SUCCESSFULLY**: PID 584536 started 2026-01-16 00:33 UTC
+- 🎉 **BOTS RESTARTED WITH CRITICAL FIXES**: PID 585794 started 2026-01-16 01:37 UTC
 - ✅ All 3 strategies active: Grid BTC, Grid ETH, Buy-the-Dip ($1,500 total capital)
-- ✅ Full logging working: 23 lines output in first 5 seconds (Python `-u` flag fix)
-- ✅ Adapter fix validated: No fetch_balance errors
+- 🔧 **CRITICAL BUGS FIXED**:
+  - RiskManager correlation_manager error (Grid Bot BTC was crashing)
+  - Buy-the-Dip confluence threshold too strict (rejecting all dips)
+- ✅ Full logging working: Python `-u` flag fix
+- ✅ Adaptive threshold: UNDEFINED regime = 20, Normal = 75
 - ✅ Database active: `/root/cryptobot_v3/data/multi/trades_paper.db`
-- 🎯 **VALIDATION PERIOD**: 48-72 hours (until 2026-01-17/18)
-- 📊 **NEXT CHECK**: 4-6 hours - run `python3 analyze_trades.py` on VPS
+- 🎯 **VALIDATION PERIOD RESET**: 48-72 hours (until 2026-01-18/19) - fresh start
+- 📊 **NEXT CHECK**: 2-4 hours - expect 15-30 trades
+- 📱 **TASK 12**: Planning non-technical management interface (Telegram + Web Dashboard)
 - ⚠️ Old bot directories (5.1GB) at `/Antigravity/...` - optional cleanup
 - ✅ User requires AI HANDOVER update BEFORE each task execution (FOLLOWED)
 
