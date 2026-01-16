@@ -99,30 +99,69 @@ export const useAuthStore = create<AuthState>((set) => ({
 }));
 
 interface BotState {
-  status: any | null;
+  botStatus: any | null;
+  portfolio: any | null;
+  recentTrades: any[];
+  strategyPerformance: any[];
   isLoading: boolean;
   error: string | null;
 
   // Actions
-  loadStatus: () => Promise<void>;
+  fetchBotStatus: () => Promise<void>;
+  fetchPortfolio: () => Promise<void>;
+  fetchRecentTrades: (hours: number) => Promise<void>;
+  fetchStrategyPerformance: () => Promise<void>;
   startBot: () => Promise<void>;
   stopBot: () => Promise<void>;
   restartBot: () => Promise<void>;
 }
 
 export const useBotStore = create<BotState>((set) => ({
-  status: null,
+  botStatus: null,
+  portfolio: null,
+  recentTrades: [],
+  strategyPerformance: [],
   isLoading: false,
   error: null,
 
-  loadStatus: async () => {
-    set({ isLoading: true, error: null });
+  fetchBotStatus: async () => {
     try {
-      const status = await api.getBotStatus();
-      set({ status, isLoading: false });
+      const botStatus = await api.getBotStatus();
+      set({ botStatus });
     } catch (error: any) {
-      const message = error.response?.data?.detail || 'Failed to load bot status';
-      set({ error: message, isLoading: false });
+      console.error('Failed to fetch bot status:', error);
+      set({ error: error.response?.data?.detail || 'Failed to load bot status' });
+    }
+  },
+
+  fetchPortfolio: async () => {
+    try {
+      const portfolio = await api.getPortfolio();
+      set({ portfolio });
+    } catch (error: any) {
+      console.error('Failed to fetch portfolio:', error);
+      set({ error: error.response?.data?.detail || 'Failed to load portfolio' });
+    }
+  },
+
+  fetchRecentTrades: async (hours: number) => {
+    try {
+      const recentTrades = await api.getRecentTrades(hours);
+      set({ recentTrades });
+    } catch (error: any) {
+      console.error('Failed to fetch recent trades:', error);
+      set({ error: error.response?.data?.detail || 'Failed to load trades' });
+    }
+  },
+
+  fetchStrategyPerformance: async () => {
+    try {
+      const data = await api.getStrategyPerformance();
+      const strategyPerformance = data.strategies || [];
+      set({ strategyPerformance });
+    } catch (error: any) {
+      console.error('Failed to fetch strategy performance:', error);
+      set({ error: error.response?.data?.detail || 'Failed to load performance' });
     }
   },
 
@@ -130,8 +169,8 @@ export const useBotStore = create<BotState>((set) => ({
     set({ isLoading: true, error: null });
     try {
       await api.startBot();
-      const status = await api.getBotStatus();
-      set({ status, isLoading: false });
+      const botStatus = await api.getBotStatus();
+      set({ botStatus, isLoading: false });
     } catch (error: any) {
       const message = error.response?.data?.detail || 'Failed to start bot';
       set({ error: message, isLoading: false });
@@ -143,8 +182,8 @@ export const useBotStore = create<BotState>((set) => ({
     set({ isLoading: true, error: null });
     try {
       await api.stopBot();
-      const status = await api.getBotStatus();
-      set({ status, isLoading: false });
+      const botStatus = await api.getBotStatus();
+      set({ botStatus, isLoading: false });
     } catch (error: any) {
       const message = error.response?.data?.detail || 'Failed to stop bot';
       set({ error: message, isLoading: false });
@@ -156,8 +195,8 @@ export const useBotStore = create<BotState>((set) => ({
     set({ isLoading: true, error: null });
     try {
       await api.restartBot();
-      const status = await api.getBotStatus();
-      set({ status, isLoading: false });
+      const botStatus = await api.getBotStatus();
+      set({ botStatus, isLoading: false });
     } catch (error: any) {
       const message = error.response?.data?.detail || 'Failed to restart bot';
       set({ error: message, isLoading: false });
