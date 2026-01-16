@@ -605,14 +605,17 @@ The system uses `MasterDecisionEngine` to route assets based on classification:
 - ⏸️ Tax reporting (P&L export for accountants)
 - ⏸️ Backtesting framework improvements
 
-### 🚨 IMMEDIATE ISSUES TO FIX
+### ✅ IMMEDIATE ISSUES FIXED
 
-**Issue 1: Telegram Crash Detection Too Sensitive** 🔴 HIGH PRIORITY
+**Issue 1: Telegram Crash Detection Too Sensitive** ✅ FIXED (2026-01-16)
 - **Problem**: Flagging -3% to -5% as "COIN CRASH" and blocking trading for 4 hours
 - **Impact**: DOT, LINK blocked unnecessarily (normal market volatility)
-- **Root Cause**: Crash threshold likely set to 3% (too low for crypto)
-- **Fix Required**: Adjust threshold to 15-20% or disable feature
-- **Action**: Will fix before enterprise solution
+- **Root Cause**: Multiple crash triggers (Flash >10%, Death Spiral 6+ lower lows, etc.)
+- **Fix Applied**: DISABLED crash detection entirely (core/engine.py lines 647-674)
+  - Grid Bots already skip it (trade through volatility)
+  - Buy-the-Dip SHOULD buy dips, not avoid them
+  - Normal 3-5% dips are trading opportunities, not crashes
+- **Action Required**: Restart bot on VPS to apply fix
 
 ---
 
