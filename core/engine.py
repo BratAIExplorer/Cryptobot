@@ -643,30 +643,35 @@ class TradingEngine:
                 # --- PER-COIN CRASH DETECTION ---
                 # === CRASH DETECTION (EXEMPT GRID BOTS) ===
                 strategy_type = bot.get('type', '')
-                
-                # Grid Bots trade through volatility - skip crash check
-                if strategy_type != 'Grid':
-                    is_crashing, crash_reason, crash_metrics = self.regime_detector.detect_coin_crash(
-                        symbol, df, lookback_hours=24
-                    )
 
-                    if is_crashing:
-                        # Log crash detection
-                        print(f"⚠️  [{bot['name']}] CRASH DETECTED: {symbol} - {crash_reason}")
-
-                    # Notify via Telegram (throttled to prevent spam)
-                    alert_key = f"crash_{symbol}"
-                    if self.notifier.can_send_throttled_msg(alert_key, hours=4):
-                        self.notifier.send_message(
-                            f"🚨 *COIN CRASH DETECTED*\n\n"
-                            f"Symbol: *{symbol}*\n"
-                            f"Reason: {crash_reason}\n"
-                            f"Metrics: {crash_metrics.get('drawdown_24h_pct', 'N/A'):.1f}% drawdown\n\n"
-                            f"⛔ Trading blocked for this coin for 4 hours"
-                        )
-
-                        # Skip this coin entirely - don't buy or sell during crash
-                        continue
+                # CRASH DETECTION DISABLED (2026-01-16)
+                # Reason: Too sensitive - flagging normal crypto volatility (3-5% dips) as crashes
+                # Grid Bots & Buy-the-Dip SHOULD trade through volatility
+                # If re-enabling, adjust thresholds: Flash >25%, Sustained >40%, etc.
+                #
+                # # Grid Bots trade through volatility - skip crash check
+                # if strategy_type != 'Grid':
+                #     is_crashing, crash_reason, crash_metrics = self.regime_detector.detect_coin_crash(
+                #         symbol, df, lookback_hours=24
+                #     )
+                #
+                #     if is_crashing:
+                #         # Log crash detection
+                #         print(f"⚠️  [{bot['name']}] CRASH DETECTED: {symbol} - {crash_reason}")
+                #
+                #     # Notify via Telegram (throttled to prevent spam)
+                #     alert_key = f"crash_{symbol}"
+                #     if self.notifier.can_send_throttled_msg(alert_key, hours=4):
+                #         self.notifier.send_message(
+                #             f"🚨 *COIN CRASH DETECTED*\n\n"
+                #             f"Symbol: *{symbol}*\n"
+                #             f"Reason: {crash_reason}\n"
+                #             f"Metrics: {crash_metrics.get('drawdown_24h_pct', 'N/A'):.1f}% drawdown\n\n"
+                #             f"⛔ Trading blocked for this coin for 4 hours"
+                #         )
+                #
+                #         # Skip this coin entirely - don't buy or sell during crash
+                #         continue
 
                 # --- SPECIAL HANDLING FOR GRID BOT ---
                 print(f"[DEBUG] Evaluating {bot['name']} - Type: {strategy_type}")
