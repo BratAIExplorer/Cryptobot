@@ -166,6 +166,22 @@ class TradingEngine:
                 
         print(f"Bot added: {strategy_config['name']}")
 
+        # Update portfolio value with actual capital after each bot is added
+        self._update_portfolio_value_from_bots()
+
+    def _update_portfolio_value_from_bots(self):
+        """Update RiskManager portfolio value based on actual bot capital allocation"""
+        total_capital = Decimal("0")
+        for bot in self.active_bots:
+            bot_capital = bot.get('initial_balance', 0)
+            total_capital += Decimal(str(bot_capital))
+
+        if total_capital > 0:
+            self.risk_manager.portfolio_value = total_capital
+            self.risk_manager.daily_start_value = total_capital
+            self.risk_manager.peak_equity = total_capital
+            print(f"[RISK] Portfolio value updated: ${total_capital} (from bot capital allocation)")
+
     def check_circuit_breaker(self):
         """Check if circuit breaker should be triggered (Persistent Safety Feature)"""
         # Check for auto-recovery first
