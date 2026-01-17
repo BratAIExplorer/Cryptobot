@@ -12,12 +12,26 @@ from decimal import Decimal
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(__file__))
 
-DB_PATH = os.path.join(os.path.dirname(__file__), 'data', 'multi', 'trades_paper.db')
+# Auto-detect database path
+def find_database():
+    """Find the trading database"""
+    possible_paths = [
+        os.path.join(os.path.dirname(__file__), 'data', 'multi', 'trades_paper.db'),
+        os.path.join(os.path.dirname(__file__), 'data', 'trades_v3_paper.db'),
+        os.path.join(os.path.dirname(__file__), 'data', 'trades_paper.db'),
+        os.path.join(os.path.dirname(__file__), 'trades_paper.db'),
+    ]
+    for path in possible_paths:
+        if os.path.exists(path):
+            return path
+    return None
+
+DB_PATH = find_database()
 
 def get_open_positions():
     """Get all open positions"""
-    if not os.path.exists(DB_PATH):
-        print(f"❌ Database not found: {DB_PATH}")
+    if not DB_PATH or not os.path.exists(DB_PATH):
+        print(f"❌ Database not found!")
         return []
 
     conn = sqlite3.connect(DB_PATH)
@@ -95,10 +109,16 @@ def main():
     print("=" * 100)
     print()
 
-    if not os.path.exists(DB_PATH):
-        print(f"❌ Database not found: {DB_PATH}")
-        print("⚠️  This script must be run on the VPS where the bot is running!")
+    if not DB_PATH or not os.path.exists(DB_PATH):
+        print(f"❌ Database not found!")
+        print("\nSearched in:")
+        print("  • data/multi/trades_paper.db")
+        print("  • data/trades_v3_paper.db")
+        print("  • data/trades_paper.db")
+        print("\n⚠️  This script must be run on the VPS where the bot is running!")
         return
+
+    print(f"✅ Found database: {DB_PATH}\n")
 
     positions = get_open_positions()
 
