@@ -38,19 +38,57 @@ class BotDiagnostic:
     def _init_exchange(self):
         """Initialize Binance adapter"""
         try:
-            from adapters.binance_adapter import BinanceAdapter
+            # Try multiple import paths for different environments
+            try:
+                from adapters.binance_adapter import BinanceAdapter
+            except ImportError:
+                from core.adapters.binance_adapter import BinanceAdapter
+
             self.exchange = BinanceAdapter(mode='paper')
             print(f"{GREEN}✓ Exchange adapter initialized{RESET}\n")
         except Exception as e:
             print(f"{RED}✗ Failed to initialize exchange: {e}{RESET}")
             print(f"{YELLOW}  Running in DB-only mode (no live price data){RESET}\n")
 
+    def check_db_schema(self):
+        """Check and display database schema"""
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+
+            # Get all tables
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+            tables = [row[0] for row in cursor.fetchall()]
+
+            schema_info = {}
+            for table in tables:
+                cursor.execute(f"PRAGMA table_info({table})")
+                columns = [row[1] for row in cursor.fetchall()]
+                schema_info[table] = columns
+
+            conn.close()
+            return schema_info
+        except Exception as e:
+            print(f"{RED}✗ Error reading schema: {e}{RESET}")
+            return {}
+
     def get_open_positions(self, bot_name=None):
         """Get open positions from database"""
         try:
             conn = sqlite3.connect(self.db_path)
-            query = """
-                SELECT id, strategy, symbol, amount, buy_price, buy_timestamp
+
+            # First, check what columns exist
+            cursor = conn.cursor()
+            cursor.execute("PRAGMA table_info(positions)")
+            columns = [row[1] for row in cursor.fetchall()]
+
+            # Adapt query based on available columns
+            # V3 uses 'price' instead of 'buy_price', 'timestamp' instead of 'buy_timestamp'
+            price_col = 'price' if 'price' in columns else 'buy_price'
+            time_col = 'timestamp' if 'timestamp' in columns and 'buy_timestamp' not in columns else 'buy_timestamp'
+
+            query = f"""
+                SELECT id, strategy, symbol, amount, {price_col} as buy_price, {time_col} as buy_timestamp
                 FROM positions
                 WHERE status = 'OPEN'
             """
@@ -284,10 +322,18 @@ class BotDiagnostic:
         print(f"{BOLD}{BLUE}{'='*100}{RESET}\n")
 
         print(f"{BOLD}📁 DATABASE{RESET}")
-        print(f"└─ Path: {self.db_path}")
+        print(f"├─ Path: {self.db_path}")
         if os.path.exists(self.db_path):
             size_mb = os.path.getsize(self.db_path) / (1024*1024)
-            print(f"└─ Size: {size_mb:.2f} MB {GREEN}✓ EXISTS{RESET}\n")
+            print(f"└─ Size: {size_mb:.2f} MB {GREEN}✓ EXISTS{RESET}")
+
+            # Show schema info
+            schema = self.check_db_schema()
+            if schema:
+                print(f"\n{BOLD}📊 DATABASE SCHEMA{RESET}")
+                for table, cols in schema.items():
+                    print(f"├─ {table}: {', '.join(cols[:5])}{'...' if len(cols) > 5 else ''}")
+                print()
         else:
             print(f"{RED}└─ ✗ DATABASE NOT FOUND{RESET}\n")
             return
