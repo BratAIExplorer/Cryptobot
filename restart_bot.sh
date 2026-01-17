@@ -3,21 +3,22 @@
 # Usage: bash restart_bot.sh
 
 echo "=================================================="
-echo "🔄 RESTARTING CRYPTO TRADING BOT"
+echo "🔄 RESTARTING CRYPTO TRADING BOT (V2 - WITH FIXES)"
 echo "=================================================="
 echo ""
 
 # Step 1: Stop existing bot processes
 echo "1️⃣  Stopping existing bot processes..."
-pkill -f "run_bot.py"
-sleep 2
+pkill -f "python3 -u run_bot.py"
+pkill -f "python.*run_bot"
+sleep 3
 
 # Verify stopped
-RUNNING=$(ps aux | grep "run_bot.py" | grep -v grep | wc -l)
+RUNNING=$(ps aux | grep "run_bot" | grep -v grep | grep -v "restart_bot" | wc -l)
 if [ $RUNNING -gt 0 ]; then
     echo "⚠️  Some processes still running. Force killing..."
-    pkill -9 -f "run_bot.py"
-    sleep 1
+    pkill -9 -f "run_bot"
+    sleep 2
 fi
 
 echo "   ✅ All bot processes stopped"
