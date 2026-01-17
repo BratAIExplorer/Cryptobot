@@ -14,8 +14,9 @@ import os
 
 # Database configuration
 MODE = 'paper'  # Change to 'live' if needed
-DB_FILENAME = 'trades_v3_live.db' if MODE == 'live' else 'trades_v3_paper.db'
-DB_PATH = os.path.join(os.path.dirname(__file__), 'data', DB_FILENAME)
+# V3: Multi-exchange databases are in data/multi/ subdirectory
+DB_FILENAME = 'trades_live.db' if MODE == 'live' else 'trades_paper.db'
+DB_PATH = os.path.join(os.path.dirname(__file__), 'data', 'multi', DB_FILENAME)
 
 def format_table(data, headers):
     """Simple table formatting without external dependencies"""
