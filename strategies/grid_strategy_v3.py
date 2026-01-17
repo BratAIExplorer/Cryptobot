@@ -101,13 +101,16 @@ class GridStrategyV3(BaseStrategyEnhanced):
         V2-Compatible Signal Logic
         """
         has_positions = not open_positions.empty
-        
+
         # Initialize grids if needed
         if self.grids is None:
             self.initialize_grids_static()
-            
-        # Lock logic
-        self.is_locked = has_positions
+
+        # Lock logic - FIXED: Allow multiple concurrent positions (pyramiding)
+        # Previous: Locked after ANY position (limited to 1 position)
+        # New: Allow up to max_concurrent_positions (default 10)
+        max_concurrent = self.config.get('max_concurrent_positions', 10)
+        self.is_locked = len(open_positions) >= max_concurrent
 
         # 1. SELL Logic (Profit Taking)
         if has_positions:

@@ -68,20 +68,22 @@ def main():
         'name': 'Grid Bot BTC',
         'type': 'Grid',
         'symbols': ['BTC/USDT'],
-        # PROFITABILITY ANALYSIS:
+        # PROFITABILITY ANALYSIS (OPTIMIZED):
         # Investment Budget: $250 (Small Start)
-        # Price Range: $85,000 - $110,000 (Covers $25k price movement)
-        # Grid Step: ~$1,250 price change per line (1.47% spread)
-        # Net Profit: ~1.27% per successful trade.
-        # Trade Size: $25 (allows ~10 active positions max with $250)
-        'amount': 25,           # Trade size per grid line
-        'grid_levels': 20,      # Total lines (not all active at once)
+        # Price Range: $90,000 - $100,000 (Centered on current $95k)
+        # Grid Step: ~$256 price change per line (0.27% spread)
+        # Net Profit: ~0.4% per successful trade (higher frequency)
+        # Trade Size: $20 (allows ~12 active positions max with $250)
+        # Expected: 15-30 trades/day vs 1 trade/day previously
+        'amount': 20,           # Trade size per grid line (reduced for more positions)
+        'grid_levels': 40,      # Increased from 20 (more trading opportunities)
         'atr_multiplier': 2.0,
         'atr_period': 14,
-        'lower_limit': 85000,
-        'upper_limit': 110000,
-        'initial_balance': 250, 
-        'max_exposure_per_coin': 250
+        'lower_limit': 90000,   # Tightened from 85000 (better price tracking)
+        'upper_limit': 100000,  # Tightened from 110000 ($10k range instead of $25k)
+        'initial_balance': 250,
+        'max_exposure_per_coin': 250,
+        'max_concurrent_positions': 10  # Allow pyramiding (was implicitly 1)
     })
     
     engine.add_bot({
@@ -89,14 +91,17 @@ def main():
         'type': 'Grid',
         'symbols': ['ETH/USDT'],
         # Budget: $250
-        'amount': 25,           
+        # Current config is GOOD ($48 grid step)
+        # Just adding max_concurrent_positions to allow pyramiding
+        'amount': 25,
         'grid_levels': 30,
         'atr_multiplier': 2.5,
         'atr_period': 14,
         'lower_limit': 2800,
         'upper_limit': 4200,
-        'initial_balance': 250,  
-        'max_exposure_per_coin': 250
+        'initial_balance': 250,
+        'max_exposure_per_coin': 250,
+        'max_concurrent_positions': 10  # Allow pyramiding
     })
     
     # ==========================================
@@ -149,26 +154,26 @@ def main():
         'name': 'Buy-the-Dip Strategy',
         'type': 'Buy-the-Dip',
         'symbols': top_10,
-        
+
         # Budget: $1000 Total ($100 per coin)
         'amount': 15,                 # $15 per buy
         'initial_balance': 1000,
         'max_exposure_per_coin': 100, # Cap at $100 per coin
 
-        # Entry Conditions (V3)
-        'dip_threshold': 0.03,       # 3% dip
-        'rsi_limit': 35,             # V3 param
+        # Entry Conditions (V3) - OPTIMIZED FOR RANGING MARKET
+        'dip_threshold': 0.02,       # Lowered from 3% to 2% (current market shows 2-3% dips)
+        'rsi_limit': 35,             # V3 param (good as is)
         'cooldown_minutes': 60,
-        
+
         # Legacy/Hybrid Fallbacks
-        'dip_percentage': 0.03,
+        'dip_percentage': 0.02,      # Updated to match dip_threshold
         'min_confluence': 65,
-        
+
         # PROFIT RULES (User Request: 5-10% Profit, NO Losses)
         'take_profit_pct': 0.08,      # Target 8% Profit
         'stop_loss_pct': None,        # DISABLING STOP LOSS (Hold until profit)
-        'stop_loss_enabled': False,   
-        
+        'stop_loss_enabled': False,
+
         'max_daily_trades': 3,
         'circuit_breaker_daily': -100,
         'circuit_breaker_weekly': -300
