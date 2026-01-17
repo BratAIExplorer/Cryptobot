@@ -77,7 +77,7 @@ class RiskLimits:
                 cooldown_minutes=60
             ),
             RiskLevel.MODERATE: cls(
-                max_position_size_pct=Decimal("2.0"),
+                max_position_size_pct=Decimal("10.0"),  # Increased from 2.0% for paper trading with small capital
                 max_daily_loss_pct=Decimal("10.0"),
                 max_drawdown_pct=Decimal("20.0"),
                 max_concurrent_positions=5,
