@@ -41,9 +41,20 @@ def get_open_positions():
     cursor.execute("PRAGMA table_info(positions)")
     columns = {col[1]: col[0] for col in cursor.fetchall()}
 
-    # Determine which columns exist
-    price_col = 'buy_price' if 'buy_price' in columns else 'price'
-    time_col = 'buy_timestamp' if 'buy_timestamp' in columns else 'timestamp'
+    # Determine which columns exist (support multiple schema versions)
+    if 'entry_price' in columns:
+        price_col = 'entry_price'
+    elif 'buy_price' in columns:
+        price_col = 'buy_price'
+    else:
+        price_col = 'price'
+
+    if 'entry_date' in columns:
+        time_col = 'entry_date'
+    elif 'buy_timestamp' in columns:
+        time_col = 'buy_timestamp'
+    else:
+        time_col = 'timestamp'
 
     # Query open positions
     query = f"""
@@ -68,38 +79,33 @@ def close_position(position_id, close_price, reason="Manual close - stuck positi
     cursor.execute("PRAGMA table_info(positions)")
     columns = {col[1]: col[0] for col in cursor.fetchall()}
 
-    # Check if we have sell_price or need to use different column
-    if 'sell_price' in columns:
-        # V3 schema
-        query = """
-            UPDATE positions
-            SET status = 'CLOSED',
-                sell_price = ?,
-                sell_timestamp = ?,
-                notes = ?
-            WHERE id = ?
-        """
-        cursor.execute(query, (close_price, datetime.now().isoformat(), reason, position_id))
+    # Determine entry price column
+    if 'entry_price' in columns:
+        price_col = 'entry_price'
+    elif 'buy_price' in columns:
+        price_col = 'buy_price'
     else:
-        # Alternative schema
-        query = """
-            UPDATE positions
-            SET status = 'CLOSED'
-            WHERE id = ?
-        """
-        cursor.execute(query, (position_id,))
+        price_col = 'price'
 
+    # Just mark as CLOSED - this schema doesn't have sell_price/sell_timestamp
+    query = """
+        UPDATE positions
+        SET status = 'CLOSED',
+            updated_at = ?
+        WHERE id = ?
+    """
+    cursor.execute(query, (datetime.now().isoformat(), position_id))
     conn.commit()
 
     # Calculate P&L
-    cursor.execute("SELECT amount, buy_price FROM positions WHERE id = ?", (position_id,))
+    cursor.execute(f"SELECT amount, {price_col} FROM positions WHERE id = ?", (position_id,))
     result = cursor.fetchone()
 
     conn.close()
 
     if result:
-        amount, buy_price = result
-        pnl = (close_price - buy_price) * amount
+        amount, entry_price = result
+        pnl = (close_price - entry_price) * amount
         return pnl
     return 0
 

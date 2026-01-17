@@ -67,9 +67,20 @@ def main():
     cursor.execute("PRAGMA table_info(positions)")
     columns = {col[1]: col[0] for col in cursor.fetchall()}
 
-    # Determine which columns exist
-    price_col = 'buy_price' if 'buy_price' in columns else 'price'
-    time_col = 'buy_timestamp' if 'buy_timestamp' in columns else 'timestamp'
+    # Determine which columns exist (support multiple schema versions)
+    if 'entry_price' in columns:
+        price_col = 'entry_price'
+    elif 'buy_price' in columns:
+        price_col = 'buy_price'
+    else:
+        price_col = 'price'
+
+    if 'entry_date' in columns:
+        time_col = 'entry_date'
+    elif 'buy_timestamp' in columns:
+        time_col = 'buy_timestamp'
+    else:
+        time_col = 'timestamp'
 
     # Query open positions
     query = f"""
