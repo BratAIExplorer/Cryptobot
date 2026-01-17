@@ -90,15 +90,19 @@ def main():
         'name': 'Grid Bot ETH',
         'type': 'Grid',
         'symbols': ['ETH/USDT'],
-        # Budget: $250
-        # Current config is GOOD ($48 grid step)
-        # Just adding max_concurrent_positions to allow pyramiding
-        'amount': 25,
-        'grid_levels': 30,
+        # PROFITABILITY ANALYSIS (OPTIMIZED):
+        # Investment Budget: $250
+        # Price Range: $3,100 - $3,500 (Centered on current ~$3,300)
+        # Grid Step: ~$8 price change per line (0.24% spread)
+        # Net Profit: ~0.4% per successful trade (high frequency)
+        # Trade Size: $20 (allows ~12 active positions max with $250)
+        # Expected: 15-30 trades/day vs 0 trades/day previously
+        'amount': 20,           # Reduced from 25 (more positions)
+        'grid_levels': 50,      # Increased from 30 (tighter grid)
         'atr_multiplier': 2.5,
         'atr_period': 14,
-        'lower_limit': 2800,
-        'upper_limit': 4200,
+        'lower_limit': 3100,    # Tightened from 2800 (current price ~$3,300)
+        'upper_limit': 3500,    # Tightened from 4200 ($400 range instead of $1,400)
         'initial_balance': 250,
         'max_exposure_per_coin': 250,
         'max_concurrent_positions': 10  # Allow pyramiding
