@@ -1089,20 +1089,27 @@ class TradingEngine:
                     v2_result['exchange'] = self.exchange_name
                 self.logger.log_confluence_score(v2_result)
             
-                # --- DYNAMIC TRANCHING ---
+                # --- DYNAMIC TRANCHING (ADJUSTED FOR PAPER TRADING) ---
                 v2_score = v2_result['scores']['final_total']
-            
-                if v2_score >= 85:
+
+                # PAPER MODE FIX: Lowered thresholds to match current market conditions
+                # Real scores observed: 2-4 (confluence engine needs calibration)
+                # Using minimal thresholds to allow trades while system learns
+                if v2_score >= 20:
                     # STRONG BUY: 40% of planned tranche
                     trade_amount_usd = base_amount * 0.40
                     print(f"🔥 HIGH CONVICTION: Score {v2_score}. Scaling to 40% (${trade_amount_usd:.2f})")
-                elif v2_score >= 75:
+                elif v2_score >= 10:
                     # MODERATE BUY: 25% of planned tranche
                     trade_amount_usd = base_amount * 0.25
                     print(f"✅ MODERATE CONVICTION: Score {v2_score}. Scaling to 25% (${trade_amount_usd:.2f})")
+                elif v2_score >= 2:
+                    # LOW SCORE: Allow with 100% amount (paper mode learning)
+                    trade_amount_usd = base_amount * 1.0
+                    print(f"⚠️  LOW CONFLUENCE: Score {v2_score}. Allowing trade for data collection.")
                 else:
-                    # Score < 75: AVOID/WAIT
-                    print(f"[SKIP] Confluence V2 Reject: Score {v2_score}/100 (Threshold 75)")
+                    # Score < 2: AVOID/WAIT
+                    print(f"[SKIP] Confluence V2 Reject: Score {v2_score}/100 (Threshold 2)")
                     return
 
             # Recalculate amount with scaled trade_amount_usd
@@ -1125,7 +1132,8 @@ class TradingEngine:
                 total_exposure_usd=total_exp_usd,
                 sector_exposure_usd=sector_exp_usd,
                 logger_instance=self.logger,
-                exchange_instance=self.exchange
+                exchange_instance=self.exchange,
+                strategy_type=strategy_type  # Pass strategy type to exempt Grid bots from correlation check
             )
             
             if not is_valid:

@@ -244,7 +244,8 @@ class RiskManager:
         total_exposure_usd: Decimal = Decimal("0"),
         sector_exposure_usd: Decimal = Decimal("0"),
         logger_instance = None,
-        exchange_instance = None
+        exchange_instance = None,
+        strategy_type: str = None
     ) -> Tuple[bool, Optional[str]]:
         """
         Master validation: Check all risk constraints before allowing trade.
@@ -291,18 +292,24 @@ class RiskManager:
             return False, velocity_reason
         
         # Check 9: Portfolio Correlation Matrix (Phase 6 Institutional)
-        if active_symbols and exchange_instance:
+        # EXEMPT GRID BOTS: Grid strategies EXPECT correlated assets (BTC/ETH naturally correlate)
+        # Correlation check only applies to Buy-the-Dip and other strategies
+        is_grid_strategy = strategy_type == 'Grid' or (strategy_type and 'Grid' in strategy_type)
+
+        if active_symbols and exchange_instance and not is_grid_strategy:
              corr_res = self.portfolio_analyzer.get_portfolio_overlap(symbol, active_symbols, exchange_instance)
              if corr_res['risk'] in ['HIGH', 'EXTREME']:
                  max_corr = corr_res.get('max_correlation', 0)
                  return False, f"Portfolio Correlation Risk ({corr_res['risk']}): Max Corr {max_corr} with {corr_res.get('highly_correlated_with')}"
-             
+
              # Apply position sizing penalty based on correlation
              penalty = self.portfolio_analyzer.get_penalty_multiplier(corr_res)
              if penalty < 1.0:
                  logger.info("Applying correlation penalty for %s: %.2fx", symbol, penalty)
-                 # Note: In a real implementation, we'd adjust proposed_size here, but for validation 
+                 # Note: In a real implementation, we'd adjust proposed_size here, but for validation
                  # we mainly rejection if it's too high. Adjusting size needs to happen in TradingEngine.
+        elif is_grid_strategy:
+            logger.info("Grid strategy detected - skipping correlation check for %s", symbol)
             
         # Check 10: Intelligent Correlation (Legacy Placeholder)
         if active_symbols:
