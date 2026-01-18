@@ -80,8 +80,8 @@ class RiskLimits:
                 max_position_size_pct=Decimal("10.0"),  # Increased from 2.0% for paper trading with small capital
                 max_daily_loss_pct=Decimal("10.0"),
                 max_drawdown_pct=Decimal("20.0"),
-                max_concurrent_positions=5,
-                max_correlated_positions=3,
+                max_concurrent_positions=30,  # Increased from 5 to allow Grid pyramiding (10 BTC + 10 ETH + 10 Dip)
+                max_correlated_positions=15,  # Increased from 3 to match position limit
                 volatility_scale_threshold=Decimal("85.0"),
                 consecutive_loss_limit=4,
                 cooldown_minutes=30
@@ -90,8 +90,8 @@ class RiskLimits:
                 max_position_size_pct=Decimal("5.0"),
                 max_daily_loss_pct=Decimal("15.0"),
                 max_drawdown_pct=Decimal("25.0"),
-                max_concurrent_positions=8,
-                max_correlated_positions=4,
+                max_concurrent_positions=50,  # Increased from 8 for aggressive multi-bot trading
+                max_correlated_positions=20,  # Increased from 4 to match
                 volatility_scale_threshold=Decimal("90.0"),
                 consecutive_loss_limit=5,
                 cooldown_minutes=15
