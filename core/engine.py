@@ -1056,9 +1056,15 @@ class TradingEngine:
             # They use ATR-based grid logic and don't need confluence scoring
             strategy_type = bot.get('type', '')
             strategy_name = bot.get('name', '')
-            
+
+            # === A/B TEST BOT CONFLUENCE BYPASS ===
+            # A/B test bots (Buy-Dip-5.2%, Buy-Dip-5.5%, Buy-Dip-8.0%) need clean testing
+            # Bypassing confluence to isolate profit target as the only variable
             if strategy_type == 'Grid' or 'Grid Bot' in strategy_name:
                 print(f"✅ [GRID] Bypassing confluence check (using ATR-based grid entry)")
+                amount = trade_amount_usd / price
+            elif strategy_name.startswith('Buy-Dip-'):
+                print(f"✅ [A/B TEST] Bypassing confluence check for {strategy_name}")
                 amount = trade_amount_usd / price
             else:
                 # === CONFLUENCE CHECK FOR NON-GRID STRATEGIES ===
