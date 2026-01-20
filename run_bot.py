@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """
-🤖 REFINED PARAMETERS - Post-Analysis Implementation
-Version: 2025.12.25 (Christmas Edition - Clean Slate)
+🤖 REFINED PARAMETERS - A/B Profit Target Test
+Version: 2026.01.20 (Profit Optimization Edition)
 
 Key Changes:
 - Grid Bots: Scaled from $2K to $6K (proven winners)
 - SMA Trend: Added 20/50 crossover specs, trailing stop activation
-- Buy-the-Dip: Smart conditional cooldown, multi-timeframe filters, 60-day max hold
+- Buy-the-Dip: A/B TEST - 3 profit targets (5.2%, 5.5%, 8.0%)
+  → Testing which profit target yields best win rate & capital efficiency
+  → All other parameters identical for fair comparison
 - Momentum Swing: NEW strategy (converted from Hyper-Scalper)
 - All bots: Circuit breakers added for safety
 """
@@ -32,7 +34,7 @@ def check_stop_signal():
 # ==========================================
 # ⚙️ CONFIGURATION
 # ==========================================
-VERSION_ID = "2025.12.25"
+VERSION_ID = "2026.01.20-AB-Test"
 TRADING_MODE = 'paper'
 # ==========================================
 
@@ -133,42 +135,107 @@ def main():
     # })
     
     # ==========================================
-    # 🚀 PRIORITY 3: BUY-THE-DIP (HYBRID V2.0)
-    # Dynamic Time-Weighted TP + Trailing Stops + Quality Floors
+    # 🚀 PRIORITY 3: BUY-THE-DIP A/B PROFIT TEST
+    # Testing 3 profit targets to find optimal exit strategy
     # ==========================================
 
     # ==========================================
-    # 💎 BUY-THE-DIP V3 (Top 10 Coins - $1000 Total)
+    # 💎 BUY-THE-DIP A/B TEST (Top 10 Coins - $1000 Total Split 3 Ways)
+    # TEST GOAL: Find optimal profit target (5.2% vs 5.5% vs 8%)
     # ==========================================
     top_10 = [
-        'BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'BNB/USDT', 'XRP/USDT', 
+        'BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'BNB/USDT', 'XRP/USDT',
         'ADA/USDT', 'DOGE/USDT', 'TRX/USDT', 'DOT/USDT', 'LINK/USDT'
     ]
 
+    # TEST BOT A: 5.2% Profit Target (Fast Exits)
+    # Net profit after 0.2% fees: ~5.0%
     engine.add_bot({
-        'name': 'Buy-the-Dip Strategy',
+        'name': 'Buy-Dip-5.2%',
         'type': 'Buy-the-Dip',
         'symbols': top_10,
-        
-        # Budget: $1000 Total ($100 per coin)
-        'amount': 15,                 # $15 per buy
-        'initial_balance': 1000,
-        'max_exposure_per_coin': 100, # Cap at $100 per coin
 
-        # Entry Conditions (V3)
+        # Budget: $333 (1/3 of total)
+        'amount': 15,                 # $15 per buy
+        'initial_balance': 333,
+        'max_exposure_per_coin': 33,  # Cap at $33 per coin
+
+        # Entry Conditions (Same for all tests)
         'dip_threshold': 0.03,       # 3% dip
         'rsi_limit': 35,             # V3 param
         'cooldown_minutes': 60,
-        
+
         # Legacy/Hybrid Fallbacks
         'dip_percentage': 0.03,
         'min_confluence': 65,
-        
-        # PROFIT RULES (User Request: 5-10% Profit, NO Losses)
-        'take_profit_pct': 0.08,      # Target 8% Profit
+
+        # PROFIT TARGET: 5% = 5.2% total (including fees)
+        'take_profit_pct': 0.05,      # TEST: 5% Profit Target
         'stop_loss_pct': None,        # DISABLING STOP LOSS (Hold until profit)
-        'stop_loss_enabled': False,   
-        
+        'stop_loss_enabled': False,
+
+        'max_daily_trades': 3,
+        'circuit_breaker_daily': -100,
+        'circuit_breaker_weekly': -300
+    })
+
+    # TEST BOT B: 5.5% Profit Target (Medium Exits)
+    # Net profit after 0.2% fees: ~5.3%
+    engine.add_bot({
+        'name': 'Buy-Dip-5.5%',
+        'type': 'Buy-the-Dip',
+        'symbols': top_10,
+
+        # Budget: $333 (1/3 of total)
+        'amount': 15,                 # $15 per buy
+        'initial_balance': 333,
+        'max_exposure_per_coin': 33,  # Cap at $33 per coin
+
+        # Entry Conditions (Same for all tests)
+        'dip_threshold': 0.03,       # 3% dip
+        'rsi_limit': 35,             # V3 param
+        'cooldown_minutes': 60,
+
+        # Legacy/Hybrid Fallbacks
+        'dip_percentage': 0.03,
+        'min_confluence': 65,
+
+        # PROFIT TARGET: 5.3% = 5.5% total (including fees)
+        'take_profit_pct': 0.053,     # TEST: 5.3% Profit Target
+        'stop_loss_pct': None,        # DISABLING STOP LOSS (Hold until profit)
+        'stop_loss_enabled': False,
+
+        'max_daily_trades': 3,
+        'circuit_breaker_daily': -100,
+        'circuit_breaker_weekly': -300
+    })
+
+    # TEST BOT C: 8% Profit Target (Current/Control)
+    # Net profit after 0.2% fees: ~7.8%
+    engine.add_bot({
+        'name': 'Buy-Dip-8.0%',
+        'type': 'Buy-the-Dip',
+        'symbols': top_10,
+
+        # Budget: $334 (1/3 of total + rounding)
+        'amount': 15,                 # $15 per buy
+        'initial_balance': 334,
+        'max_exposure_per_coin': 34,  # Cap at $34 per coin
+
+        # Entry Conditions (Same for all tests)
+        'dip_threshold': 0.03,       # 3% dip
+        'rsi_limit': 35,             # V3 param
+        'cooldown_minutes': 60,
+
+        # Legacy/Hybrid Fallbacks
+        'dip_percentage': 0.03,
+        'min_confluence': 65,
+
+        # PROFIT TARGET: 8% = 8.2% total (including fees) - CONTROL
+        'take_profit_pct': 0.08,      # CONTROL: 8% Profit Target (Original)
+        'stop_loss_pct': None,        # DISABLING STOP LOSS (Hold until profit)
+        'stop_loss_enabled': False,
+
         'max_daily_trades': 3,
         'circuit_breaker_daily': -100,
         'circuit_breaker_weekly': -300
@@ -270,7 +337,10 @@ def main():
     print(f"🚀 Bot Running - {TRADING_MODE.upper()} Mode")
     print("   Portfolio Allocation (VPS Config):")
     print("   - Grid Bots:      $500 ($250 BTC + $250 ETH)")
-    print("   - Buy-the-Dip:    $1,000 (Top 10 Coins)")
+    print("   - Buy-Dip A/B Test: $1,000 (3 variants)")
+    print("     • Buy-Dip-5.2%: $333 (Fast exits)")
+    print("     • Buy-Dip-5.5%: $333 (Medium exits)")
+    print("     • Buy-Dip-8.0%: $334 (Control)")
     print("   - Total Capital:  $1,500")
     print("=" * 80)
     print("Press Ctrl+C to stop.")
