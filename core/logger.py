@@ -208,6 +208,61 @@ class TradeLogger:
         except Exception as e:
             print(f"[DB] Error fetching open positions: {e}")
             return pd.DataFrame()
+    
+    def update_open_position_prices(self, exchange_interface):
+        """
+        Update current_price for all open positions.
+        Called periodically to track unrealized P&L.
+        
+        Args:
+            exchange_interface: Exchange object to fetch current prices
+        
+        Returns:
+            int: Number of positions updated
+        """
+        session = self.db.get_session()
+        try:
+            # Get all open positions
+            open_positions = session.query(Position).filter_by(status='OPEN').all()
+            
+            if not open_positions:
+                return 0
+            
+            updated_count = 0
+            
+            for pos in open_positions:
+                try:
+                    # Fetch current price from exchange
+                    ticker = exchange_interface.fetch_ticker(pos.symbol)
+                    if ticker and 'last' in ticker:
+                        current_price = float(ticker['last'])
+                        
+                        # Update position
+                        pos.current_price = current_price
+                        pos.current_value_usd = current_price * pos.amount
+                        
+                        # Recalculate P&L
+                        if pos.entry_price and pos.entry_price > 0:
+                            pos.unrealized_pnl_pct = ((current_price - pos.entry_price) / pos.entry_price) * 100
+                            pos.unrealized_pnl_usd = (current_price - pos.entry_price) * pos.amount
+                        
+                        pos.updated_at = datetime.utcnow()
+                        updated_count += 1
+                        
+                except Exception as e:
+                    print(f"[POSITION UPDATE] Error updating {pos.symbol}: {e}")
+                    continue
+            
+            session.commit()
+            return updated_count
+            
+        except Exception as e:
+            print(f"[POSITION UPDATE] Critical error: {e}")
+            session.rollback()
+            return 0
+        finally:
+            session.close()
+            
 
     def get_total_exposure(self, symbol=None, strategy=None):
         """Get total USD invested"""
