@@ -577,7 +577,7 @@ class TradingEngine:
                             self.logger.log_trade(strategy, symbol, 'SELL', current_price, amount, 
                                                 expected_price=current_price, fee=fee, rsi=rsi, position_id=position_id, engine_version='2.0')
                 except Exception as e:
-                print(f"[AUTO-CLEANUP] Error closing aged position #{position_id}: {e}")
+                    print(f"[AUTO-CLEANUP] Error closing aged position #{position_id}: {e}")
 
 
     def process_bot(self, bot, btc_df_macro=None):
