@@ -577,11 +577,23 @@ class TradingEngine:
                             self.logger.log_trade(strategy, symbol, 'SELL', current_price, amount, 
                                                 expected_price=current_price, fee=fee, rsi=rsi, position_id=position_id, engine_version='2.0')
                 except Exception as e:
-                    print(f"[AUTO-CLEANUP] Error closing aged position #{position_id}: {e}")
+                print(f"[AUTO-CLEANUP] Error closing aged position #{position_id}: {e}")
 
 
     def process_bot(self, bot, btc_df_macro=None):
         """Execute logic for a single bot configuration (can be multiple symbols)"""
+        
+        # Update position prices before evaluating (Position Updater Fix - Jan 21, 2026)
+        try:
+            binance_adapter = self.exchange_manager.adapters.get('BINANCE')
+            if binance_adapter:
+                updated = self.logger.update_open_position_prices(binance_adapter)
+                if updated > 0:
+                    print(f"[POSITION UPDATE] Refreshed prices for {updated} open positions")
+        except Exception as e:
+            print(f"[POSITION UPDATE] Non-critical error: {e}")
+            # Continue execution - don't crash bot
+        
         symbols = bot.get('symbols', [bot.get('symbol')])
         strategy_type = bot['type']
         
