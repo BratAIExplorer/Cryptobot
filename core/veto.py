@@ -144,8 +144,8 @@ class VetoManager:
             df = self.exchange.fetch_ohlcv(symbol, timeframe='15m', limit=20)
             if df.empty: return True, "No Data"
             
-            # Calculate ATR
-            df['atr'] = calculate_atr(df['high'], df['low'], df['close'], period=14)
+            # Calculate ATR (using DataFrame method)
+            df['atr'] = calculate_atr(df, period=14)
             current_atr = df['atr'].iloc[-1]
             
             current_open = df['open'].iloc[-1]

@@ -587,12 +587,17 @@ class TradingEngine:
                 rsi = calculate_rsi(df['close']).iloc[-1]
 
                 # --- REGIME DETECTION (needed for Buy-the-Dip strategy) ---
+                # Initialize with UNDEFINED to handle exceptions
+                from core.regime_detector import RegimeState
+                regime_state = RegimeState.UNDEFINED
+                
                 # Fetch BTC macro data if not provided
                 if btc_df_macro is None or btc_df_macro.empty:
                     btc_df_macro = self.exchange.fetch_ohlcv('BTC/USDT', timeframe='1d', limit=250)
 
                 # Detect current market regime
-                regime_state, _, _ = self.regime_detector.detect_regime(btc_df_macro)
+                if btc_df_macro is not None and not btc_df_macro.empty:
+                    regime_state, _, _ = self.regime_detector.detect_regime(btc_df_macro)
 
                 # --- PER-COIN CRASH DETECTION ---
                 # === CRASH DETECTION (EXEMPT GRID BOTS) ===
