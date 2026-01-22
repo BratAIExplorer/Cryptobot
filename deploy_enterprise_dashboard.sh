@@ -82,6 +82,12 @@ echo ""
 
 cd enterprise/backend
 
+# Create logs directory
+echo "Creating logs directory..."
+mkdir -p logs
+echo "✅ Logs directory created"
+echo ""
+
 # Install Python dependencies
 echo "Installing Python dependencies..."
 pip3 install -r requirements.txt
@@ -172,10 +178,22 @@ echo ""
 
 cd ~/cryptobot_v3/enterprise/frontend
 
+# Create logs directory
+echo "Creating logs directory..."
+mkdir -p logs
+echo "✅ Logs directory created"
+echo ""
+
 # Install Node.js dependencies
 echo "Installing Node.js dependencies (this may take 5-10 minutes)..."
 npm install
 echo "✅ Frontend dependencies installed"
+echo ""
+
+# Install missing tailwindcss-animate
+echo "Installing tailwindcss-animate..."
+npm install tailwindcss-animate
+echo "✅ tailwindcss-animate installed"
 echo ""
 
 # Create .env.local file
