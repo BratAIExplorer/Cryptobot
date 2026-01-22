@@ -189,9 +189,9 @@ The system uses `MasterDecisionEngine` to route assets based on classification:
 #### 2. "Stagnation Selling" Bug (Forced Losses)
 - **Issue**: `cleanup_aged_positions` treated "Buy-Dip" bots as generic strategies, defaulting to 24h hold.
 - **Symptom**: Bot forced-sold positions at a loss after 72 hours (24h * 3 expiration).
-- **Fix**:
-    - Added explicit recognition for 'Buy-Dip' strategies.
-    - Added **Hard Block**: `IF PnL < 0: DO NOT SELL` (even if old).
+- **Fix (Updated)**:
+    - **DISABLED Stagnation Cleanup** for 'Buy-Dip' bots.
+    - **Policy**: "Infinite Hold" - Bot will NEVER sell based on time. It waits indefinitely for the Take Profit target (e.g., 5.5% or 8%).
 - **Status**: ✅ **FIXED**
 
 #### 3. Stale Price Data
