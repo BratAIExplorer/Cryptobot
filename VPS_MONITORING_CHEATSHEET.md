@@ -1,6 +1,10 @@
 # 🕵️‍♂️ VPS Monitoring Cheat Sheet
 
 Run these commands on your VPS terminal (`root@srv...`) to check bot health and performance.
+cd ~/cryptobot_v3
+
+***##Full Summary of BOTS***
+python3 run_bot.py
 
 ## 🚀 Process Management
 
@@ -69,6 +73,11 @@ FROM positions
 WHERE status='OPEN'
 ORDER BY updated_at DESC;
 "
+```
+
+**Alternative (One-Liner):**
+```bash
+sqlite3 -header -column data/multi/trades_paper.db "SELECT symbol, ROUND(entry_price,2) as entry, ROUND(current_price,2) as current, ROUND(unrealized_pnl_pct,2) as pnl_pct FROM positions WHERE status='OPEN';"
 ```
 
 **2. Check CLOSED Positions (Profit History):**
