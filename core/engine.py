@@ -153,6 +153,9 @@ class TradingEngine:
             # 5. Total Equity = Global Cash + Global Position Value
             total_equity = Decimal(str(global_cash + global_pos_value))
             
+            # DEBUG: Verify equity calculation
+            print(f"[EQUITY DEBUG] Cash: {global_cash:.2f}, PosValue: {global_pos_value:.2f}, Total: {total_equity:.2f}")
+
             # 6. Update Risk Manager
             self.risk_manager.update_portfolio_value(total_equity)
             

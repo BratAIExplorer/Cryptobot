@@ -184,6 +184,10 @@ class RiskManager:
         current_loss_pct = ((self.daily_start_value - self.portfolio_value) 
                            / self.daily_start_value * Decimal("100"))
         
+        # DEBUG: Trace why 95% loss happens
+        if current_loss_pct > 50:
+             print(f"[RISK DEBUG] StartVal: {self.daily_start_value}, CurrVal: {self.portfolio_value}, Loss: {current_loss_pct:.2f}%")
+
         if current_loss_pct > self.limits.max_daily_loss_pct:
             return False, (f"Daily loss limit reached: {current_loss_pct:.2f}% "
                           f"(limit: {self.limits.max_daily_loss_pct}%)")
