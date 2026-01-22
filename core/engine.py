@@ -610,10 +610,18 @@ class TradingEngine:
                          
                          # Check PnL
                          entry_price = position['entry_price']
-                         if entry_price and current_price < entry_price:
-                             # Position is in LOSS. DO NOT SELL.
+                         
+                         # User Request: If PnL < 0 OR PnL < MinProfit, DO NOT SELL.
+                         # We enforce a small positive floor (e.g. 0.5%) to ensure we don't sell for pennies.
+                         min_profit_pct = 0.005 # 0.5% profit required to cleanup
+                         
+                         current_pnl_pct = (current_price - entry_price) / entry_price
+                         
+                         if current_pnl_pct < min_profit_pct:
+                             # Position is in LOSS or below minimum profit target. DO NOT SELL.
                              if age_hours > (max_hold * 2) and age_hours % 24 < 1: # Log once a day
-                                 print(f"[CLEANUP SKIP] Holding aged position #{position_id} ({symbol}) due to unrealized loss (Age: {age_days:.1f}d)")
+                                 status = "LOSS" if current_pnl_pct < 0 else "LOW PROFIT"
+                                 print(f"[CLEANUP SKIP] Holding aged position #{position_id} ({symbol}) due to {status} ({current_pnl_pct*100:.2f}% < {min_profit_pct*100}%). Age: {age_days:.1f}d")
                              continue # SKIP THE REST OF THE LOOP
                      except Exception as ex:
                          print(f"[CLEANUP ERROR] Checking PnL for {symbol}: {ex}")
