@@ -280,23 +280,44 @@ class TradingEngine:
         print(f"Engine started in {self.mode} mode")
         
         # Send startup notification
-        # Warm up Regime Detector
-        print("🌡️ Warming up Market Regime Detector...")
+
+        # Step 1: Measure TRUE network latency with lightweight ping
+        print("📡 Checking Binance connection latency...")
         try:
             start_ping = time.time()
+            if hasattr(self.exchange.exchange, 'fetch_time'):
+                self.exchange.exchange.fetch_time()
+            else:
+                self.exchange.get_current_price('BTC/USDT')
+            latency_ms = Decimal(str(int((time.time() - start_ping) * 1000)))
+
+            self.resilience_manager.update_heartbeat(latency_ms)
+            self.resilience_manager.update_price_data()
+
+            # Display latency status
+            if latency_ms < 500:
+                print(f"✅ Binance latency: {latency_ms}ms (Excellent)")
+            elif latency_ms < 1000:
+                print(f"⚠️  Binance latency: {latency_ms}ms (Acceptable)")
+            elif latency_ms < 2000:
+                print(f"🔶 Binance latency: {latency_ms}ms (Slow - monitor closely)")
+            else:
+                print(f"🔴 Binance latency: {latency_ms}ms (CRITICAL - fix before live trading)")
+        except Exception as e:
+            self.resilience_manager.record_failure()
+            print(f"❌ Latency Check Failed: {e}")
+
+        # Step 2: Warm up Regime Detector (this is slow, but separate from latency)
+        print("🌡️ Warming up Market Regime Detector...")
+        try:
             btc_df_macro = self.exchange.fetch_ohlcv('BTC/USDT', timeframe='1d', limit=250)
-            latency = Decimal(str(int((time.time() - start_ping) * 1000)))
-            
+
             if not btc_df_macro.empty:
-                self.resilience_manager.update_heartbeat(latency)
-                self.resilience_manager.update_price_data()
                 state, conf, _ = self.regime_detector.detect_regime(btc_df_macro)
                 print(f"✅ Market Regime Initialized: {state.value} (Confidence: {conf*100:.1f}%)")
             else:
-                self.resilience_manager.record_failure()
                 print("⚠️  Warning: Could not fetch BTC data for regime warm-up.")
         except Exception as e:
-            self.resilience_manager.record_failure()
             print(f"❌ Regime Warm-up Failed: {e}")
 
         # Hybrid v2.0: Build correlation matrix for Buy-the-Dip strategy

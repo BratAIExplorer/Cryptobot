@@ -122,21 +122,37 @@ class BinanceAdapter(BaseExchangeAdapter):
     def get_fee_rate(self, symbol: str, order_type: str = 'taker') -> float:
         return self.taker_fee
 
+    def ping(self) -> Optional[int]:
+        """
+        Lightweight ping to measure true network latency.
+        Returns latency in milliseconds or None if failed.
+        """
+        try:
+            if not self.exchange:
+                return None
+            start = time.time()
+            self.exchange.fetch_time()
+            return int((time.time() - start) * 1000)
+        except Exception as e:
+            logger.error(f"❌ Binance ping failed: {e}")
+            return None
+
     def check_health(self) -> Dict[str, Any]:
         try:
             if not self.exchange:
                  return {'status': 'OFFLINE', 'error': 'Exchange not initialized'}
-            
-            start = time.time()
-            self.exchange.fetch_time()
-            latency = int((time.time() - start) * 1000)
+
+            latency = self.ping()
+            if latency is None:
+                self.trigger_kill_switch("Ping failed")
+                return {'status': 'OFFLINE', 'error': 'Ping failed'}
+
             status = 'ONLINE'
-            
             if latency > 1000: status = 'DEGRADED'
-            if latency > 2000: 
+            if latency > 2000:
                 status = 'CRITICAL'
                 self.trigger_kill_switch(f"High Latency: {latency}ms")
-                
+
             return {'status': status, 'latency_ms': latency}
         except Exception as e:
             self.trigger_kill_switch(f"Health Check Failed: {e}")
