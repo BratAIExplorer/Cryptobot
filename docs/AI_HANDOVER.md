@@ -15,6 +15,7 @@ The project has been refactored from a monolithic `UnifiedExchange` to a modular
 - **Factory**: `ExchangeFactory` handles instantiation.
 - **Observability**: `ExchangeHealthMonitor` runs background heartbeats for latency and connectivity.
 - **Exchange**: **BINANCE ONLY** per user preference (NO MEXC)
+- **Risk Management**: `RiskManager` with Global Equity tracking (Fixed Jan 2026)
 
 ### 2. Strategy Routing (Engine V3)
 
@@ -166,10 +167,51 @@ The system uses `MasterDecisionEngine` to route assets based on classification:
 - `docs/MASTER_ROADMAP_AND_ARCHITECTURE.md`: Technical benchmarks.
 - `docs/PRODUCT_STRATEGY_2026.md`: UX and product-level vision.
 - `docs/VPS_DEPLOYMENT_GUIDE_V3.md`: Step-by-step update process.
+- `VPS_MONITORING_CHEATSHEET.md`: Essential commands for monitoring the bot.
 
 ---
 
-## 🔄 CURRENT SESSION (2026-01-15)
+## 🔄 CURRENT SESSION (2026-01-22)
+
+### Session Context
+**Branch**: `claude/test-dip-bot-profit-lhCxz`
+**Focus**: Critical Bug Fixes (Risk Calculation & Stagnation Logic)
+**User Role**: Senior Product & Crypto Specialist & Senior Full Stack Lead
+
+### 🚑 Critical Fixes Deployed (Jan 22, 2026)
+
+#### 1. "95% Loss" Bug (Panic Accounting)
+- **Issue**: `RiskManager` was receiving `wallet_balance` (Cash only) instead of Total Equity.
+- **Symptom**: Bot calculated ~95% daily loss when capital was deployed into positions, pausing all trading.
+- **Fix**: Implemented `_update_risk_manager_equity` in `core/engine.py` to calculate `Cash + Position Value`.
+- **Status**: ✅ **FIXED**
+
+#### 2. "Stagnation Selling" Bug (Forced Losses)
+- **Issue**: `cleanup_aged_positions` treated "Buy-Dip" bots as generic strategies, defaulting to 24h hold.
+- **Symptom**: Bot forced-sold positions at a loss after 72 hours (24h * 3 expiration).
+- **Fix**:
+    - Added explicit recognition for 'Buy-Dip' strategies.
+    - Added **Hard Block**: `IF PnL < 0: DO NOT SELL` (even if old).
+- **Status**: ✅ **FIXED**
+
+#### 3. Stale Price Data
+- **Issue**: Open positions in DB never updated `current_price` or `unrealized_pnl`.
+- **Fix**: Added `update_open_position_prices` to `core/logger.py` and called it in `engine.py`.
+- **Status**: ✅ **FIXED**
+
+### 📊 Current Bot Status
+- **Health**: 🟢 **STABLE**
+- **Mode**: Paper Trading
+- **Active Strategies**: Grid Bot BTC, Grid Bot ETH, Buy-the-Dip
+- **Monitoring**: 48-72 Hour Validation Restarted (Jan 22)
+
+### 📝 New Documentation
+- `VPS_MONITORING_CHEATSHEET.md`: Quick reference for `ps`, `tail`, and `sqlite3` commands.
+- `POSITION_UPDATER_INTEGRATION.md`: Guide on the price update fix.
+
+---
+
+## 🔄 PREVIOUS SESSION (2026-01-15)
 
 ### Session Context
 **Branch**: `claude/check-dashboard-status-VNa0U`

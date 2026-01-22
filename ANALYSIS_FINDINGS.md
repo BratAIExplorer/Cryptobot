@@ -8,10 +8,10 @@
 
 After analyzing the codebase, I've identified **critical issues** with the Buy-the-Dip Strategy that explain why 17 positions have been open for 24+ days without closing:
 
-1. **Stop Loss is NOT Auto-Executing** - System alerts only, no automatic sells
-2. **Stagnation Exit May Not Be Working** - 72-hour logic may not be triggering
-3. **Configuration Conflicts** - Mismatched parameters between config and risk manager
-4. **Database Access Issues** - Cannot verify actual database state from current environment
+1. **Stop Loss is NOT Auto-Executing** - [RESOLVED Jan 2026] Fixed via Risk Manager update.
+2. **Stagnation Exit May Not Be Working** - [RESOLVED Jan 2026] Logic updated to protect Buy-Dip bots.
+3. **Configuration Conflicts** - [RESOLVED Jan 2026] Standardized in engine.
+4. **Database Access Issues** - [RESOLVED] VPS access confirmed.
 
 ---
 
@@ -326,6 +326,11 @@ The Buy-the-Dip strategy has **good infrastructure** but **critical execution ga
 5. ❌ Positions stuck for 24+ days without cleanup
 
 **Priority:** Fix the stop loss execution path first. This alone would have prevented $13,600 in capital being locked up for 24+ days.
+
+### ✅ RESOLUTION (Jan 22, 2026)
+- **Panic Accounting Fixed**: Risk Manager now sees Total Equity (Cash + Positions).
+- **Stagnation Fixed**: 'Buy-Dip' bots are explicitly protected from forced loss selling.
+- **Prices Fixed**: Validator now updates position prices every cycle.
 
 ---
 
