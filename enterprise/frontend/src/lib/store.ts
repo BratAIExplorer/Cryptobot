@@ -156,7 +156,7 @@ export const useBotStore = create<BotState>((set) => ({
 
   fetchStrategyPerformance: async () => {
     try {
-      const data = await api.getStrategyPerformance();
+      const data = await api.getPerformance();
       const strategyPerformance = data.strategies || [];
       set({ strategyPerformance });
     } catch (error: any) {
