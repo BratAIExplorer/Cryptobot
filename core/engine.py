@@ -125,6 +125,42 @@ class TradingEngine:
         # Strategy Instances (for stateful strategies like Grid)
         self.strategies = {}
 
+    def _update_risk_manager_equity(self):
+        """
+        CRITICAL FIX: Calculate TOTAL equity across all bots (Cash + Positions)
+        and update Risk Manager so it doesn't trigger false '95% loss' alerts.
+        """
+        try:
+            # 1. Total Initial Balance (Sum of all bots)
+            total_initial = sum(float(b.get('initial_balance', 0)) for b in self.active_bots)
+            
+            # 2. Global Realized PnL & Exposure
+            global_realized = self.logger.get_pnl_summary(strategy=None)
+            global_exposure = self.logger.get_total_exposure(strategy=None)
+            
+            # 3. Global Cash = Total Initial - Global Exposure + Global Realized
+            global_cash = total_initial - global_exposure + global_realized
+            
+            # 4. Global Open Position Value
+            open_positions = self.logger.get_open_positions()
+            global_pos_value = 0.0
+            if not open_positions.empty and 'current_value_usd' in open_positions.columns:
+                 global_pos_value = open_positions['current_value_usd'].sum()
+            else:
+                 # Fallback to cost if empty or missing col
+                 global_pos_value = global_exposure
+
+            # 5. Total Equity = Global Cash + Global Position Value
+            total_equity = Decimal(str(global_cash + global_pos_value))
+            
+            # 6. Update Risk Manager
+            self.risk_manager.update_portfolio_value(total_equity)
+            
+        except Exception as e:
+            # excessive logging might spam, keep it specific
+            if 'decimal' in str(e).lower():
+                print(f"[RISK FIX ERROR] Math error: {e}")
+
     def add_bot(self, strategy_config):
         """Add a bot configuration"""
         self.active_bots.append(strategy_config)
@@ -545,15 +581,48 @@ class TradingEngine:
             if strategy == 'Buy-the-Dip Strategy':
                 self.check_position_age_alerts(position, age_days)
 
-            # --- CLEANUP LOGIC ---
-            max_hold = max_hold_times.get(strategy, 24)
+            # --- STAGNATION / CLEANUP LOGIC ---
+            # 1. Determine max hold time based on strategy name
+            max_hold = 24  # Default
+            if 'Hyper-Scalper' in strategy:
+                max_hold = 0.5
+            elif 'SMA Trend' in strategy:
+                max_hold = 0 # Indefinite follow
+            elif 'Buy-Dip' in strategy or 'Buy-the-Dip' in strategy:
+                max_hold = 168 # 7 Days for swing (Soft limit)
             
-            # Only force close if max_hold > 0 (enabled) AND age > 3x limit
-            if max_hold > 0 and age_hours > (max_hold * 3):
+            # 2. Check conditions
+            # Only process if max_hold > 0 (enabled) AND age > limit
+            if max_hold > 0 and age_hours > max_hold:
+                
+                # --- CRITICAL FIX: DO NOT SELL SWING POSITIONS AT LOSS ---
+                # "Stagnation" exit is only for freeing up capital, not realizing losses
+                if 'Buy-Dip' in strategy or 'Buy-the-Dip' in strategy:
+                     # Check connection for fresh price
+                     try:
+                         # Use existing current_price from DB if recent, or fetch? 
+                         # We fetch OHLCV below, so let's check PnL BEFORE acting
+                         
+                         # Fetch current price first
+                         price_df = self.exchange.fetch_ohlcv(symbol, timeframe='1h', limit=1)
+                         if price_df.empty: continue
+                         current_price = price_df['close'].iloc[-1]
+                         
+                         # Check PnL
+                         entry_price = position['entry_price']
+                         if entry_price and current_price < entry_price:
+                             # Position is in LOSS. DO NOT SELL.
+                             if age_hours > (max_hold * 2) and age_hours % 24 < 1: # Log once a day
+                                 print(f"[CLEANUP SKIP] Holding aged position #{position_id} ({symbol}) due to unrealized loss (Age: {age_days:.1f}d)")
+                             continue # SKIP THE REST OF THE LOOP
+                     except Exception as ex:
+                         print(f"[CLEANUP ERROR] Checking PnL for {symbol}: {ex}")
+                         continue
+
                 print(f"[AUTO-CLEANUP] Force-closing aged position #{position_id}: {symbol} ({age_hours:.1f}h old, max: {max_hold}h)")
                 
                 try:
-                    # Get current price
+                    # Fetch current price again (redundant but safe)
                     df = self.exchange.fetch_ohlcv(symbol, timeframe='1h', limit=1)
                     if not df.empty:
                         current_price = df['close'].iloc[-1]
@@ -563,9 +632,6 @@ class TradingEngine:
                             # We need more history to calc RSI, fetch if needed or default to None
                             # For cleanup, accurate RSI isn't critical, but we need the variable defined
                             rsi = 50.0 # Default neutral value for forced cleanup
-                            # Optionally fetch more data if strictly needed:
-                            # df_rsi = self.exchange.fetch_ohlcv(symbol, timeframe='1h', limit=50)
-                            # rsi = calculate_rsi(df_rsi['close']).iloc[-1]
                         except:
                             rsi = 50.0
 
@@ -1224,7 +1290,7 @@ class TradingEngine:
                 
                 # Update Risk Manager Portfolio Value
                 # In a real bot, we'd fetch total equity. Here we approximate or use the fixed balance for now.
-                self.risk_manager.update_portfolio_value(Decimal(str(wallet_balance)))
+                self._update_risk_manager_equity()
         
         elif side == 'SELL' and position_id:
             # Get position details
