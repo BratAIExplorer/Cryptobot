@@ -80,7 +80,7 @@ class RiskLimits:
                 max_position_size_pct=Decimal("2.0"),
                 max_daily_loss_pct=Decimal("10.0"),
                 max_drawdown_pct=Decimal("20.0"),
-                max_concurrent_positions=5,
+                max_concurrent_positions=30,
                 max_correlated_positions=3,
                 volatility_scale_threshold=Decimal("85.0"),
                 consecutive_loss_limit=4,
