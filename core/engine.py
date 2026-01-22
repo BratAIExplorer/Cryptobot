@@ -589,7 +589,9 @@ class TradingEngine:
             elif 'SMA Trend' in strategy:
                 max_hold = 0 # Indefinite follow
             elif 'Buy-Dip' in strategy or 'Buy-the-Dip' in strategy:
-                max_hold = 168 # 7 Days for swing (Soft limit)
+                # User Request (Jan 22): "Never sell below target profit no matter how long"
+                # MAX HOLD DISABLED. Bot will wait indefinitely for configured TP (e.g. 5.5%, 8%)
+                max_hold = 0 
             
             # 2. Check conditions
             # Only process if max_hold > 0 (enabled) AND age > limit
