@@ -43,6 +43,32 @@ data/core/
 data/mexc_history/
 backups_*/
 
+# Backup and temporary files
+*.backup
+*.backup_*
+*.bak
+*~
+temp_inspection/
+tmpclaude-*
+.claude/
+
+# Development artifacts
+frontend-design/
+web-artifacts-builder/
+webapp-testing/
+skill-creator/
+theme-factory/
+dashboard_adapter.py
+*.docx
+DEFECTS.md
+Dashboard-Update-Claude-Agent.txt
+
+# Build and deployment scripts (keep in repo but ignore if needed)
+# deploy_bug_fixes.sh
+
+# Config files (may contain sensitive data)
+config/
+
 # ALLOW performance reports (for Git tracking)
 !performance_reports/
 !performance_reports/*.json
