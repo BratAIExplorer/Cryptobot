@@ -36,6 +36,9 @@ export default function DashboardPage() {
   } = useBotStore();
 
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [selectedBot, setSelectedBot] = useState<any | null>(null);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -91,22 +94,22 @@ export default function DashboardPage() {
 
   // Mock portfolio chart data (replace with real data later)
   const portfolioChartData = [
-    { date: 'Jan 10', value: 10000 },
-    { date: 'Jan 11', value: 10200 },
-    { date: 'Jan 12', value: 10500 },
-    { date: 'Jan 13', value: 10800 },
-    { date: 'Jan 14', value: 11200 },
-    { date: 'Jan 15', value: 11800 },
-    { date: 'Jan 16', value: portfolio?.total_pnl ? 10000 + portfolio.total_pnl : 12315 },
+    { date: 'Jan 10', value: 1000 },
+    { date: 'Jan 11', value: 1050 },
+    { date: 'Jan 12', value: 1100 },
+    { date: 'Jan 13', value: 1200 },
+    { date: 'Jan 14', value: 1350 },
+    { date: 'Jan 15', value: 1450 },
+    { date: 'Jan 16', value: portfolio?.total_value_usd ? portfolio.total_value_usd : 1500 },
   ];
 
   // Asset distribution data (mock - replace with real data)
   const assetData = [
-    { name: 'BTC', value: 5200, color: '#3B82F6' },
-    { name: 'ETH', value: 3100, color: '#10B981' },
-    { name: 'BNB', value: 1800, color: '#F59E0B' },
-    { name: 'SOL', value: 1200, color: '#EF4444' },
-    { name: 'USDT', value: 1015, color: '#8B5CF6' },
+    { name: 'BTC', value: 250, color: '#3B82F6' },
+    { name: 'ETH', value: 200, color: '#10B981' },
+    { name: 'BNB', value: 333, color: '#F59E0B' },
+    { name: 'SOL', value: 333, color: '#EF4444' },
+    { name: 'USDT', value: 334, color: '#8B5CF6' },
   ];
 
   const totalAssetValue = assetData.reduce((sum, asset) => sum + asset.value, 0);
@@ -117,8 +120,8 @@ export default function DashboardPage() {
     type: s.strategy,
     status: 'active',
     pnl: s.total_pnl,
-    pnlPercent: (s.total_pnl / 10000 * 100), // Assuming $10k base
-    trades: s.total_trades,
+    pnlPercent: (s.total_pnl / (s.balance || 300) * 100),
+    trades: s.trades,
     winRate: s.win_rate
   })) : [
     {
@@ -197,11 +200,11 @@ export default function DashboardPage() {
             </div>
             <div className="space-y-1">
               <p className="text-3xl font-bold text-white">
-                {portfolio ? formatCurrency(10000 + portfolio.total_pnl) : '$12,315'}
+                {portfolio ? formatCurrency(portfolio.total_value_usd) : '$1,500'}
               </p>
               <p className="text-sm text-green-400 flex items-center">
                 <TrendingUp className="w-4 h-4 mr-1" />
-                23.15%
+                Active
               </p>
             </div>
           </div>
@@ -235,11 +238,10 @@ export default function DashboardPage() {
             </div>
             <div className="space-y-1">
               <p className="text-3xl font-bold text-white">
-                {botStatus?.strategies_active || 2}
+                {botStatus?.strategies_active || 5}
               </p>
-              <p className="text-sm text-green-400 flex items-center">
-                <TrendingUp className="w-4 h-4 mr-1" />
-                3 total
+              <p className="text-sm text-blue-400 flex items-center">
+                Monitoring active
               </p>
             </div>
           </div>
@@ -264,6 +266,76 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* Trading Bots Section */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-white mb-6">Trading Bots</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {bots.map((bot, index) => (
+              <div key={index} className="bg-[#1E293B] rounded-xl p-6 border border-gray-800">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-white">{bot.name}</h3>
+                    <p className="text-sm text-gray-400">{bot.type}</p>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className={`w-2 h-2 rounded-full ${bot.status === 'active' ? 'bg-green-500' : 'bg-yellow-500'}`} />
+                    <span className={`text-sm ${bot.status === 'active' ? 'text-green-400' : 'text-yellow-400'}`}>
+                      {bot.status === 'active' ? 'Active' : 'Paused'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <p className="text-sm text-gray-400 mb-1">P&L</p>
+                    <p className={`text-xl font-bold ${bot.pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {bot.pnl >= 0 ? '+' : ''}{bot.pnl.toFixed(2)}
+                    </p>
+                    <p className={`text-xs flex items-center ${bot.pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {bot.pnl >= 0 ? <TrendingUp className="w-3 h-3 mr-1" /> : <TrendingDown className="w-3 h-3 mr-1" />}
+                      {bot.pnlPercent >= 0 ? '+' : ''}{bot.pnlPercent.toFixed(2)}%
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-400 mb-1">Trades</p>
+                    <p className="text-xl font-bold text-white">{bot.trades}</p>
+                    <p className="text-xs text-blue-400">{bot.winRate.toFixed(0)}% win</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => {
+                      setSelectedBot(bot);
+                      setShowDetailsModal(true);
+                    }}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition flex items-center justify-center"
+                  >
+                    <Zap className="w-4 h-4 mr-2" />
+                    Details
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedBot(bot);
+                      setShowSettingsModal(true);
+                    }}
+                    className="w-10 h-10 bg-gray-800 hover:bg-gray-700 text-gray-400 rounded-lg flex items-center justify-center transition"
+                  >
+                    <Settings className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleBotAction(bot.status === 'active' ? 'stop' : 'start')}
+                    disabled={actionLoading !== null}
+                    className="w-10 h-10 bg-gray-800 hover:bg-gray-700 text-gray-400 rounded-lg flex items-center justify-center transition"
+                  >
+                    <Power className={`w-4 h-4 ${bot.status === 'active' ? 'text-red-400' : 'text-green-400'}`} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* Charts Section */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           {/* Portfolio Value Chart */}
@@ -273,8 +345,8 @@ export default function DashboardPage() {
               <AreaChart data={portfolioChartData}>
                 <defs>
                   <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <XAxis
@@ -285,7 +357,7 @@ export default function DashboardPage() {
                 <YAxis
                   stroke="#6B7280"
                   style={{ fontSize: '12px' }}
-                  tickFormatter={(value) => `$${(value / 1000).toFixed(0)}K`}
+                  tickFormatter={(value) => `$${(value / 1000).toFixed(1)}K`}
                 />
                 <Tooltip
                   contentStyle={{
@@ -360,64 +432,6 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Trading Bots Section */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-white mb-6">Trading Bots</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {bots.map((bot, index) => (
-              <div key={index} className="bg-[#1E293B] rounded-xl p-6 border border-gray-800">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h3 className="text-lg font-semibold text-white">{bot.name}</h3>
-                    <p className="text-sm text-gray-400">{bot.type}</p>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span className={`w-2 h-2 rounded-full ${bot.status === 'active' ? 'bg-green-500' : 'bg-yellow-500'}`} />
-                    <span className={`text-sm ${bot.status === 'active' ? 'text-green-400' : 'text-yellow-400'}`}>
-                      {bot.status === 'active' ? 'Active' : 'Paused'}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <p className="text-sm text-gray-400 mb-1">P&L</p>
-                    <p className={`text-xl font-bold ${bot.pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                      {bot.pnl >= 0 ? '+' : ''}{bot.pnl.toFixed(2)}
-                    </p>
-                    <p className={`text-xs flex items-center ${bot.pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                      {bot.pnl >= 0 ? <TrendingUp className="w-3 h-3 mr-1" /> : <TrendingDown className="w-3 h-3 mr-1" />}
-                      {bot.pnlPercent >= 0 ? '+' : ''}{bot.pnlPercent.toFixed(2)}%
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-400 mb-1">Trades</p>
-                    <p className="text-xl font-bold text-white">{bot.trades}</p>
-                    <p className="text-xs text-blue-400">{bot.winRate.toFixed(0)}% win</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition flex items-center justify-center">
-                    <Zap className="w-4 h-4 mr-2" />
-                    Details
-                  </button>
-                  <button className="w-10 h-10 bg-gray-800 hover:bg-gray-700 text-gray-400 rounded-lg flex items-center justify-center transition">
-                    <Settings className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleBotAction(bot.status === 'active' ? 'stop' : 'start')}
-                    disabled={actionLoading !== null}
-                    className="w-10 h-10 bg-gray-800 hover:bg-gray-700 text-gray-400 rounded-lg flex items-center justify-center transition"
-                  >
-                    <Power className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
         {/* Recent Activity */}
         <div className="bg-[#1E293B] rounded-xl p-6 border border-gray-800">
           <h2 className="text-2xl font-bold text-white mb-6">Recent Activity</h2>
@@ -425,20 +439,18 @@ export default function DashboardPage() {
             {activities.length > 0 ? activities.map((activity, index) => (
               <div
                 key={index}
-                className={`flex items-start space-x-4 p-4 rounded-lg border-l-4 ${
-                  activity.type === 'buy' ? 'bg-green-950/20 border-green-500' :
+                className={`flex items-start space-x-4 p-4 rounded-lg border-l-4 ${activity.type === 'buy' ? 'bg-green-950/20 border-green-500' :
                   activity.type === 'sell' ? 'bg-red-950/20 border-red-500' :
-                  'bg-blue-950/20 border-blue-500'
-                }`}
+                    'bg-blue-950/20 border-blue-500'
+                  }`}
               >
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                  activity.type === 'buy' ? 'bg-green-600' :
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${activity.type === 'buy' ? 'bg-green-600' :
                   activity.type === 'sell' ? 'bg-red-600' :
-                  'bg-blue-600'
-                }`}>
+                    'bg-blue-600'
+                  }`}>
                   {activity.type === 'buy' ? <TrendingUp className="w-5 h-5 text-white" /> :
-                   activity.type === 'sell' ? <TrendingDown className="w-5 h-5 text-white" /> :
-                   <CheckCircle className="w-5 h-5 text-white" />}
+                    activity.type === 'sell' ? <TrendingDown className="w-5 h-5 text-white" /> :
+                      <CheckCircle className="w-5 h-5 text-white" />}
                 </div>
                 <div className="flex-1">
                   <h4 className="text-white font-medium">{activity.title}</h4>

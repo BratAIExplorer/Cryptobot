@@ -170,7 +170,7 @@ async def get_portfolio_summary(current_user: User = Depends(get_current_user)):
         summary = bot_reader.get_portfolio_summary()
 
         return PortfolioSummary(
-            total_value_usd=0.0,  # TODO: Calculate from balance
+            total_value_usd=summary.get('total_value_usd', 0.0),
             total_pnl=summary['total_pnl'],
             total_trades=summary['total_trades'],
             win_rate=summary['win_rate'],
