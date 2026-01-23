@@ -72,12 +72,26 @@ async def get_bot_status(current_user: User = Depends(get_current_user)):
                 if "mode='live'" in log_content or "mode=live" in log_content:
                     mode = "live"
 
+        # Count active strategies from bot database
+        strategies_count = 0
+        try:
+            import sqlite3
+            from utils.bot_reader import bot_reader
+            conn = bot_reader._get_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM bot_status WHERE status = 'RUNNING'")
+            strategies_count = cursor.fetchone()[0]
+            conn.close()
+        except Exception as e:
+            print(f"Warning: Could not count strategies: {e}")
+            strategies_count = 0
+
         return BotStatus(
             is_running=True,
             pid=proc.pid,
             uptime_seconds=uptime,
             mode=mode,
-            strategies_active=3,  # TODO: Parse from log or config
+            strategies_active=strategies_count,
             last_heartbeat=datetime.now()
         )
 
