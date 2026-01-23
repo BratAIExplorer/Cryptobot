@@ -1,0 +1,23 @@
+[Unit]
+Description=Crypto Trading Bot - Multi-Strategy Engine
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/cryptobot_v3
+ExecStart=/usr/bin/python3 /root/cryptobot_v3/run_bot.py
+Restart=always
+RestartSec=10
+StandardOutput=append:/root/cryptobot_v3/logs/bot_engine.log
+StandardError=append:/root/cryptobot_v3/logs/bot_engine_error.log
+
+# Environment
+Environment="PYTHONUNBUFFERED=1"
+
+# Resource limits (optional)
+MemoryLimit=2G
+CPUQuota=50%
+
+[Install]
+WantedBy=multi-user.target

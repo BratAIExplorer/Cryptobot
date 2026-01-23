@@ -87,14 +87,16 @@ export default function DashboardPage() {
     }
   };
 
-  const handleBotAction = async (action: 'start' | 'stop' | 'restart') => {
-    setActionLoading(action);
+  const handleBotAction = async (botId: number, action: 'start' | 'stop' | 'restart') => {
+    setActionLoading(`${action}-${botId}`);
     try {
+      // For now, these operate on the global bot engine as implemented in the backend
       if (action === 'start') await startBot();
       else if (action === 'stop') await stopBot();
       else if (action === 'restart') await restartBot();
 
       await fetchBotStatus();
+      await fetchBotConfigs();
     } catch (error) {
       console.error(`Error ${action}ing bot:`, error);
     } finally {
@@ -121,14 +123,20 @@ export default function DashboardPage() {
     { date: 'Jan 16', value: portfolio?.total_value_usd ? portfolio.total_value_usd : 1500 },
   ];
 
-  // Asset distribution data (mock - replace with real data)
-  const assetData = [
-    { name: 'BTC', value: 250, color: '#3B82F6' },
-    { name: 'ETH', value: 200, color: '#10B981' },
-    { name: 'BNB', value: 333, color: '#F59E0B' },
-    { name: 'SOL', value: 333, color: '#EF4444' },
-    { name: 'USDT', value: 334, color: '#8B5CF6' },
-  ];
+  // Asset distribution data
+  const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#6366F1'];
+
+  const assetData = portfolio?.strategies?.map((strat: any, index: number) => ({
+    name: strat.name.replace('Strategy', '').replace('Bot', '').trim(),
+    value: Math.max(0, strat.balance + strat.pnl),
+    color: COLORS[index % COLORS.length]
+  })) || [
+      { name: 'BTC', value: 250, color: '#3B82F6' },
+      { name: 'ETH', value: 200, color: '#10B981' },
+      { name: 'BNB', value: 333, color: '#F59E0B' },
+      { name: 'SOL', value: 333, color: '#EF4444' },
+      { name: 'USDT', value: 334, color: '#8B5CF6' },
+    ];
 
   const totalAssetValue = assetData.reduce((sum: number, asset: any) => sum + asset.value, 0);
 
@@ -366,11 +374,15 @@ export default function DashboardPage() {
                     <Settings className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => handleBotAction(bot.status === 'active' ? 'stop' : 'start')}
+                    onClick={() => handleBotAction(bot.id, bot.status === 'active' ? 'stop' : 'start')}
                     disabled={actionLoading !== null}
                     className="w-10 h-10 bg-gray-800 hover:bg-gray-700 text-gray-400 rounded-lg flex items-center justify-center transition"
                   >
-                    <Power className={`w-4 h-4 ${bot.status === 'active' ? 'text-red-400' : 'text-green-400'}`} />
+                    {actionLoading === `${bot.status === 'active' ? 'stop' : 'start'}-${bot.id}` ? (
+                      <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <Power className={`w-4 h-4 ${bot.status === 'active' ? 'text-red-400' : 'text-green-400'}`} />
+                    )}
                   </button>
                 </div>
               </div>
