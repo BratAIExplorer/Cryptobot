@@ -138,48 +138,57 @@ class BotDatabaseReader:
         cursor.execute("SELECT COUNT(*) FROM trades")
         total_trades = cursor.fetchone()[0]
 
-        # Total P&L
-        cursor.execute("SELECT SUM(COALESCE(pnl, 0)) FROM trades")
+        # Total P&L from positions table (not trades)
+        cursor.execute("SELECT SUM(COALESCE(unrealized_pnl_usd, 0)) FROM positions")
         total_pnl = cursor.fetchone()[0] or 0.0
 
         # Win rate (positions with positive P&L)
         cursor.execute("""
             SELECT
-                COUNT(CASE WHEN pnl > 0 THEN 1 END) as wins,
-                COUNT(CASE WHEN pnl IS NOT NULL THEN 1 END) as total_closed
-            FROM trades
+                COUNT(CASE WHEN unrealized_pnl_usd > 0 THEN 1 END) as wins,
+                COUNT(*) as total_positions
+            FROM positions
         """)
         row = cursor.fetchone()
         wins = row[0] or 0
-        total_closed = row[1] or 1  # Avoid division by zero
-        win_rate = (wins / total_closed * 100) if total_closed > 0 else 0.0
+        total_positions = row[1] or 1  # Avoid division by zero
+        win_rate = (wins / total_positions * 100) if total_positions > 0 else 0.0
 
-        # Active positions (open trades)
-        cursor.execute("SELECT COUNT(*) FROM trades WHERE pnl IS NULL")
+        # Active positions count
+        cursor.execute("SELECT COUNT(*) FROM positions")
         active_positions = cursor.fetchone()[0]
 
-        # Strategy breakdown
+        # Strategy breakdown from bot_status (show ALL active bots)
+        # LEFT JOIN with positions to include bots without trades
         cursor.execute("""
             SELECT
-                strategy,
-                COUNT(*) as trade_count,
-                SUM(COALESCE(pnl, 0)) as strategy_pnl
-            FROM trades
-            GROUP BY strategy
+                bs.strategy,
+                bs.wallet_balance,
+                COALESCE(COUNT(p.id), 0) as position_count,
+                COALESCE(SUM(p.unrealized_pnl_usd), 0) as strategy_pnl
+            FROM bot_status bs
+            LEFT JOIN positions p ON bs.strategy = p.strategy
+            WHERE bs.status = 'RUNNING'
+            GROUP BY bs.strategy, bs.wallet_balance
         """)
         strategies = []
         for row in cursor.fetchall():
             strategies.append({
                 "name": row[0],
-                "trades": row[1],
-                "pnl": row[2]
+                "balance": row[1],
+                "trades": row[2],
+                "pnl": row[3]
             })
 
         conn.close()
 
+        # Calculate total portfolio value from bot balances
+        total_portfolio_value = sum(strategy['balance'] for strategy in strategies)
+
         return {
             "total_trades": total_trades,
             "total_pnl": round(total_pnl, 2),
+            "total_value_usd": round(total_portfolio_value, 2),
             "win_rate": round(win_rate, 2),
             "active_positions": active_positions,
             "strategies": strategies,
