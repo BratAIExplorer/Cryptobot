@@ -12,7 +12,8 @@ import {
   Settings,
   TrendingDown,
   CheckCircle,
-  Zap
+  Zap,
+  X
 } from 'lucide-react';
 import { LineChart, Line, PieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip, Area, AreaChart } from 'recharts';
 import { formatCurrency, formatPercentage, formatRelativeTime, formatUptime, getPnlColor } from '@/lib/utils';
@@ -23,12 +24,15 @@ export default function DashboardPage() {
   const {
     botStatus,
     portfolio,
+    botConfigs,
     recentTrades,
     strategyPerformance,
     fetchBotStatus,
     fetchPortfolio,
+    fetchBotConfigs,
     fetchRecentTrades,
     fetchStrategyPerformance,
+    updateBotConfig,
     startBot,
     stopBot,
     restartBot,
@@ -61,11 +65,25 @@ export default function DashboardPage() {
       await Promise.all([
         fetchBotStatus(),
         fetchPortfolio(),
+        fetchBotConfigs(),
         fetchRecentTrades(24),
         fetchStrategyPerformance()
       ]);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
+    }
+  };
+
+  const handleUpdateConfig = async (id: number, data: any) => {
+    setActionLoading(`config-${id}`);
+    try {
+      await updateBotConfig(id, data);
+      await fetchBotConfigs();
+      setShowSettingsModal(false);
+    } catch (error) {
+      console.error('Error updating config:', error);
+    } finally {
+      setActionLoading(null);
     }
   };
 
@@ -112,49 +130,55 @@ export default function DashboardPage() {
     { name: 'USDT', value: 334, color: '#8B5CF6' },
   ];
 
-  const totalAssetValue = assetData.reduce((sum, asset) => sum + asset.value, 0);
+  const totalAssetValue = assetData.reduce((sum: number, asset: any) => sum + asset.value, 0);
 
-  // Bot configurations (use real data if available, otherwise mock)
-  const bots = strategyPerformance.length > 0 ? strategyPerformance.map(s => ({
-    name: s.strategy,
-    type: s.strategy,
-    status: 'active',
-    pnl: s.total_pnl,
-    pnlPercent: (s.total_pnl / (s.balance || 300) * 100),
-    trades: s.trades,
-    winRate: s.win_rate
-  })) : [
+  // Bot configurations (merge store configs with performance data)
+  const bots = botConfigs.map((config: any) => {
+    const perf = strategyPerformance.find((p: any) => p.strategy === config.bot_type || p.strategy === config.bot_name);
+    return {
+      id: config.id,
+      name: config.bot_name,
+      type: config.bot_type,
+      status: config.is_active ? 'active' : 'paused',
+      pnl: perf?.total_pnl || 0,
+      pnlPercent: perf ? (perf.total_pnl / (config.config.budget || 300) * 100) : 0,
+      trades: perf?.trades || 0,
+      winRate: perf?.win_rate || 0,
+      reinvestProfits: config.reinvest_profits,
+      config: config.config
+    };
+  });
+
+  // Fallback to mock if no configs (development)
+  const displayBots = bots.length > 0 ? bots : [
     {
+      id: 1,
       name: 'Grid Bot BTC',
       type: 'Grid Trading',
       status: botStatus?.is_running ? 'active' : 'paused',
-      pnl: 1547.32,
-      pnlPercent: 15.47,
+      pnl: 154.32,
+      pnlPercent: 1.54,
       trades: 124,
-      winRate: 68
+      winRate: 68,
+      reinvestProfits: true,
+      config: { grid_levels: 10, budget: 100 }
     },
     {
+      id: 2,
       name: 'Grid Bot ETH',
       type: 'Grid Trading',
       status: botStatus?.is_running ? 'active' : 'paused',
-      pnl: 892.15,
-      pnlPercent: 8.92,
+      pnl: 89.15,
+      pnlPercent: 0.89,
       trades: 256,
-      winRate: 72
-    },
-    {
-      name: 'Buy-the-Dip',
-      type: 'Opportunistic',
-      status: 'paused',
-      pnl: -124.50,
-      pnlPercent: -1.24,
-      trades: 48,
-      winRate: 45
+      winRate: 72,
+      reinvestProfits: true,
+      config: { grid_levels: 12, budget: 100 }
     }
   ];
 
   // Recent activity from trades
-  const activities = recentTrades.slice(0, 4).map(trade => ({
+  const activities = recentTrades.slice(0, 4).map((trade: any) => ({
     type: trade.side === 'buy' ? 'buy' : 'sell',
     title: `${trade.side === 'buy' ? 'Buy' : 'Sell'} Order Executed`,
     description: `${trade.strategy} ${trade.side} ${trade.symbol}`,
@@ -206,6 +230,24 @@ export default function DashboardPage() {
                 <TrendingUp className="w-4 h-4 mr-1" />
                 Active
               </p>
+            </div>
+
+            {/* Wallet Usage Bar */}
+            <div className="mt-4 pt-4 border-t border-gray-800">
+              <div className="flex justify-between items-center mb-1 text-xs text-gray-400">
+                <span>Wallet Usage</span>
+                <span>{portfolio?.total_value_usd > 0 ? ((portfolio.used_balance / portfolio.total_value_usd) * 100).toFixed(1) : '25'}%</span>
+              </div>
+              <div className="w-full bg-gray-700 rounded-full h-1.5 overflow-hidden">
+                <div
+                  className="bg-blue-500 h-full transition-all duration-500"
+                  style={{ width: portfolio?.total_value_usd > 0 ? `${(portfolio.used_balance / portfolio.total_value_usd) * 100}%` : '25%' }}
+                />
+              </div>
+              <div className="flex justify-between mt-1 text-[10px] text-gray-500">
+                <span>Used: {portfolio ? formatCurrency(portfolio.used_balance) : '$375'}</span>
+                <span>Avail: {portfolio ? formatCurrency(portfolio.available_balance) : '$1,125'}</span>
+              </div>
             </div>
           </div>
 
@@ -270,7 +312,7 @@ export default function DashboardPage() {
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-white mb-6">Trading Bots</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {bots.map((bot, index) => (
+            {displayBots.map((bot, index) => (
               <div key={index} className="bg-[#1E293B] rounded-xl p-6 border border-gray-800">
                 <div className="flex items-center justify-between mb-4">
                   <div>
@@ -436,7 +478,7 @@ export default function DashboardPage() {
         <div className="bg-[#1E293B] rounded-xl p-6 border border-gray-800">
           <h2 className="text-2xl font-bold text-white mb-6">Recent Activity</h2>
           <div className="space-y-4">
-            {activities.length > 0 ? activities.map((activity, index) => (
+            {activities.length > 0 ? activities.map((activity: any, index: number) => (
               <div
                 key={index}
                 className={`flex items-start space-x-4 p-4 rounded-lg border-l-4 ${activity.type === 'buy' ? 'bg-green-950/20 border-green-500' :
@@ -468,6 +510,150 @@ export default function DashboardPage() {
         </div>
 
       </main>
+
+      {/* Settings Modal */}
+      {showSettingsModal && selectedBot && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-[#1E293B] border border-gray-800 rounded-2xl w-full max-w-md overflow-hidden">
+            <div className="flex items-center justify-between p-6 border-b border-gray-800">
+              <h3 className="text-xl font-bold text-white">Bot Settings: {selectedBot.name}</h3>
+              <button onClick={() => setShowSettingsModal(false)} className="text-gray-400 hover:text-white">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-white font-medium">Reinvest Profits</p>
+                  <p className="text-xs text-gray-400">Automatically add earnings back to capital</p>
+                </div>
+                <button
+                  onClick={() => {
+                    handleUpdateConfig(selectedBot.id, {
+                      reinvest_profits: !selectedBot.reinvestProfits
+                    });
+                  }}
+                  disabled={actionLoading !== null}
+                  className={`w-12 h-6 rounded-full transition-colors relative ${selectedBot.reinvestProfits ? 'bg-blue-600' : 'bg-gray-700'} ${actionLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${selectedBot.reinvestProfits ? 'left-7' : 'left-1'}`} />
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs text-gray-400 uppercase font-medium">Trading Budget (USD)</label>
+                <div className="flex items-center space-x-2">
+                  <input
+                    id="bot-budget-input"
+                    type="number"
+                    defaultValue={selectedBot.config?.budget || 100}
+                    className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-4 flex space-x-3">
+                <button
+                  onClick={() => setShowSettingsModal(false)}
+                  className="flex-1 bg-gray-800 hover:bg-gray-700 text-white py-2 rounded-lg font-medium transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    const budgetInput = document.getElementById('bot-budget-input') as HTMLInputElement;
+                    const budget = budgetInput ? parseFloat(budgetInput.value) : (selectedBot.config?.budget || 100);
+                    handleUpdateConfig(selectedBot.id, {
+                      config: { ...selectedBot.config, budget }
+                    });
+                  }}
+                  disabled={actionLoading !== null}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium transition disabled:opacity-50"
+                >
+                  {actionLoading ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Details Modal */}
+      {showDetailsModal && selectedBot && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-[#1E293B] border border-gray-800 rounded-2xl w-full max-w-lg overflow-hidden">
+            <div className="flex items-center justify-between p-6 border-b border-gray-800">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-blue-600/20 rounded-lg flex items-center justify-center">
+                  <Activity className="w-6 h-6 text-blue-500" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white">{selectedBot.name}</h3>
+                  <p className="text-xs text-gray-400">{selectedBot.type}</p>
+                </div>
+              </div>
+              <button onClick={() => setShowDetailsModal(false)} className="text-gray-400 hover:text-white">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-6">
+              <div className="grid grid-cols-3 gap-4">
+                <div className="bg-gray-800/50 p-4 rounded-xl border border-gray-700">
+                  <p className="text-xs text-gray-400 mb-1">Total P&L</p>
+                  <p className={`text-lg font-bold ${selectedBot.pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {selectedBot.pnl >= 0 ? '+' : ''}{selectedBot.pnl.toFixed(2)}
+                  </p>
+                </div>
+                <div className="bg-gray-800/50 p-4 rounded-xl border border-gray-700">
+                  <p className="text-xs text-gray-400 mb-1">Win Rate</p>
+                  <p className="text-lg font-bold text-white">{selectedBot.winRate}%</p>
+                </div>
+                <div className="bg-gray-800/50 p-4 rounded-xl border border-gray-700">
+                  <p className="text-xs text-gray-400 mb-1">Active Positions</p>
+                  <p className="text-lg font-bold text-white">1</p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <h4 className="text-sm font-semibold text-white">Recent Trade Performance</h4>
+                <div className="space-y-2">
+                  {recentTrades.filter((t: any) => t.strategy === selectedBot.type || t.strategy === selectedBot.name).slice(0, 5).map((trade: any, i: number) => (
+                    <div key={i} className="flex items-center justify-between p-3 bg-gray-800/30 rounded-lg border border-gray-700/50">
+                      <div className="flex items-center space-x-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${trade.side === 'buy' ? 'bg-green-600/20 text-green-500' : 'bg-red-600/20 text-red-500'}`}>
+                          {trade.side === 'buy' ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-white">{trade.symbol} {trade.side === 'buy' ? 'Buy' : 'Sell'}</p>
+                          <p className="text-[10px] text-gray-500">{formatRelativeTime(trade.timestamp)}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className={`text-sm font-bold ${trade.pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                          {trade.pnl ? (trade.pnl >= 0 ? '+' : '') + trade.pnl.toFixed(2) : '-'}
+                        </p>
+                        <p className="text-[10px] text-gray-500">Completed</p>
+                      </div>
+                    </div>
+                  ))}
+                  {recentTrades.filter((t: any) => t.strategy === selectedBot.type || t.strategy === selectedBot.name).length === 0 && (
+                    <p className="text-sm text-gray-500 text-center py-4">No recent trades for this bot</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  onClick={() => setShowDetailsModal(false)}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-medium transition"
+                >
+                  Close View
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

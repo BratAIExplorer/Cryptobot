@@ -101,6 +101,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 interface BotState {
   botStatus: any | null;
   portfolio: any | null;
+  botConfigs: any[];
   recentTrades: any[];
   strategyPerformance: any[];
   isLoading: boolean;
@@ -109,16 +110,19 @@ interface BotState {
   // Actions
   fetchBotStatus: () => Promise<void>;
   fetchPortfolio: () => Promise<void>;
+  fetchBotConfigs: () => Promise<void>;
   fetchRecentTrades: (hours: number) => Promise<void>;
   fetchStrategyPerformance: () => Promise<void>;
+  updateBotConfig: (id: number, data: any) => Promise<void>;
   startBot: () => Promise<void>;
   stopBot: () => Promise<void>;
   restartBot: () => Promise<void>;
 }
 
-export const useBotStore = create<BotState>((set) => ({
+export const useBotStore = create<BotState>((set, get) => ({
   botStatus: null,
   portfolio: null,
+  botConfigs: [],
   recentTrades: [],
   strategyPerformance: [],
   isLoading: false,
@@ -141,6 +145,29 @@ export const useBotStore = create<BotState>((set) => ({
     } catch (error: any) {
       console.error('Failed to fetch portfolio:', error);
       set({ error: error.response?.data?.detail || 'Failed to load portfolio' });
+    }
+  },
+
+  fetchBotConfigs: async () => {
+    try {
+      const botConfigs = await api.getBotConfigs();
+      set({ botConfigs });
+    } catch (error: any) {
+      console.error('Failed to fetch bot configs:', error);
+      set({ error: error.response?.data?.detail || 'Failed to load bot configs' });
+    }
+  },
+
+  updateBotConfig: async (id: number, data: any) => {
+    set({ isLoading: true });
+    try {
+      await api.updateBotConfig(id, data);
+      const botConfigs = await api.getBotConfigs();
+      set({ botConfigs, isLoading: false });
+    } catch (error: any) {
+      console.error('Failed to update bot config:', error);
+      set({ error: error.response?.data?.detail || 'Failed to update bot config', isLoading: false });
+      throw error;
     }
   },
 

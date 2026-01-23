@@ -180,15 +180,22 @@ class BotDatabaseReader:
                 "pnl": row[3]
             })
 
-        conn.close()
-
         # Calculate total portfolio value from bot balances
         total_portfolio_value = sum(strategy['balance'] for strategy in strategies)
+
+        # Calculate used balance (cost of active positions)
+        cursor.execute("SELECT SUM(amount * entry_price) FROM positions")
+        used_balance = cursor.fetchone()[0] or 0.0
+        available_balance = total_portfolio_value - used_balance
+
+        conn.close()
 
         return {
             "total_trades": total_trades,
             "total_pnl": round(total_pnl, 2),
             "total_value_usd": round(total_portfolio_value, 2),
+            "available_balance": round(available_balance, 2),
+            "used_balance": round(used_balance, 2),
             "win_rate": round(win_rate, 2),
             "active_positions": active_positions,
             "strategies": strategies,

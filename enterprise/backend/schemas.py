@@ -58,6 +58,7 @@ class BotConfigBase(BaseModel):
     bot_type: str  # grid, buy_dip, sma_trend, momentum
     config: Dict[str, Any]
     is_paper_mode: bool = True
+    reinvest_profits: bool = True
 
 class BotConfigCreate(BotConfigBase):
     pass
@@ -67,6 +68,7 @@ class BotConfigUpdate(BaseModel):
     config: Optional[Dict[str, Any]] = None
     is_active: Optional[bool] = None
     is_paper_mode: Optional[bool] = None
+    reinvest_profits: Optional[bool] = None
 
 class BotConfigResponse(BotConfigBase):
     id: int
@@ -75,6 +77,7 @@ class BotConfigResponse(BotConfigBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
     last_trade_at: Optional[datetime] = None
+    reinvest_profits: bool = True
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -108,6 +111,8 @@ class PortfolioSummary(BaseModel):
     """Portfolio overview"""
     total_value_usd: float
     total_pnl: float
+    available_balance: float
+    used_balance: float
     total_trades: int
     win_rate: float
     active_positions: int
