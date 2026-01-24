@@ -215,9 +215,12 @@ class BotDatabaseReader:
         start_date = datetime.utcnow() - timedelta(hours=hours)
         return self.get_trades(start_date=start_date, limit=1000)
 
-    def get_strategy_performance(self) -> List[Dict]:
+    def get_strategy_performance(self, hours: Optional[int] = None) -> List[Dict]:
         """
         Get performance metrics per strategy
+
+        Args:
+            hours: Optional hours to look back
 
         Returns:
             List of strategy performance dictionaries
@@ -225,7 +228,7 @@ class BotDatabaseReader:
         conn = self._get_connection()
         cursor = conn.cursor()
 
-        cursor.execute("""
+        query = """
             SELECT
                 strategy,
                 COUNT(*) as total_trades,
@@ -236,20 +239,32 @@ class BotDatabaseReader:
                 MAX(COALESCE(pnl, 0)) as best_trade,
                 MIN(COALESCE(pnl, 0)) as worst_trade
             FROM trades
+            WHERE 1=1
+        """
+        params = []
+
+        if hours:
+            start_date = (datetime.utcnow() - timedelta(hours=hours)).isoformat()
+            query += " AND timestamp >= ?"
+            params.append(start_date)
+
+        query += """
             GROUP BY strategy
             ORDER BY total_pnl DESC
-        """)
+        """
+
+        cursor.execute(query, params)
 
         results = []
         for row in cursor.fetchall():
-            total_closed = row[1] + row[2]
-            win_rate = (row[1] / total_closed * 100) if total_closed > 0 else 0.0
+            total_closed = row[2] + row[3]  # winning + losing
+            win_rate = (row[2] / total_closed * 100) if total_closed > 0 else 0.0
 
             results.append({
                 "strategy": row[0],
-                "total_trades": row[1],
-                "winning_trades": row[1],
-                "losing_trades": row[2],
+                "trades": row[1],
+                "winning_trades": row[2],
+                "losing_trades": row[3],
                 "win_rate": round(win_rate, 2),
                 "total_pnl": round(row[4], 2),
                 "avg_pnl": round(row[5], 2),

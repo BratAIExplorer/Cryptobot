@@ -168,8 +168,9 @@ class ApiClient {
     return response.data;
   }
 
-  async getPerformance() {
-    const response = await this.client.get('/api/trades/performance');
+  async getPerformance(hours?: number) {
+    const url = hours ? `/api/trades/performance?hours=${hours}` : '/api/trades/performance';
+    const response = await this.client.get(url);
     return response.data;
   }
 

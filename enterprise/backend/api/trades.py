@@ -185,14 +185,18 @@ async def get_portfolio_summary(current_user: User = Depends(get_current_user)):
         )
 
 @router.get("/performance")
-async def get_strategy_performance(current_user: User = Depends(get_current_user)):
+async def get_strategy_performance(
+    hours: Optional[int] = Query(None, ge=1, le=168), # 1 hour to 1 week
+    current_user: User = Depends(get_current_user)
+):
     """
     Get performance metrics per strategy
 
+    - **hours**: Optional number of hours to look back (1-168)
     Returns detailed breakdown of each strategy's performance
     """
     try:
-        performance = bot_reader.get_strategy_performance()
+        performance = bot_reader.get_strategy_performance(hours=hours)
         return {"strategies": performance}
 
     except Exception as e:

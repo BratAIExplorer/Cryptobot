@@ -43,6 +43,7 @@ export default function DashboardPage() {
   const [selectedBot, setSelectedBot] = useState<any | null>(null);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [performancePeriod, setPerformancePeriod] = useState<number | undefined>(undefined);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -67,7 +68,7 @@ export default function DashboardPage() {
         fetchPortfolio(),
         fetchBotConfigs(),
         fetchRecentTrades(24),
-        fetchStrategyPerformance()
+        fetchStrategyPerformance(performancePeriod)
       ]);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -318,7 +319,29 @@ export default function DashboardPage() {
 
         {/* Trading Bots Section */}
         <div className="mb-8">
-          <h2 className="text-2xl font-bold text-white mb-6">Trading Bots</h2>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-white">Trading Bots</h2>
+            <div className="flex items-center bg-[#1E293B] border border-gray-800 rounded-lg p-1">
+              <button
+                onClick={() => { setPerformancePeriod(undefined); fetchStrategyPerformance(undefined); }}
+                className={`px-3 py-1 text-xs font-medium rounded-md transition ${performancePeriod === undefined ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}
+              >
+                All Time
+              </button>
+              <button
+                onClick={() => { setPerformancePeriod(24); fetchStrategyPerformance(24); }}
+                className={`px-3 py-1 text-xs font-medium rounded-md transition ${performancePeriod === 24 ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}
+              >
+                24h
+              </button>
+              <button
+                onClick={() => { setPerformancePeriod(8); fetchStrategyPerformance(8); }}
+                className={`px-3 py-1 text-xs font-medium rounded-md transition ${performancePeriod === 8 ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}
+              >
+                8h
+              </button>
+            </div>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {displayBots.map((bot, index) => (
               <div key={index} className="bg-[#1E293B] rounded-xl p-6 border border-gray-800">

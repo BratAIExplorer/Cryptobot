@@ -112,7 +112,7 @@ interface BotState {
   fetchPortfolio: () => Promise<void>;
   fetchBotConfigs: () => Promise<void>;
   fetchRecentTrades: (hours: number) => Promise<void>;
-  fetchStrategyPerformance: () => Promise<void>;
+  fetchStrategyPerformance: (hours?: number) => Promise<void>;
   updateBotConfig: (id: number, data: any) => Promise<void>;
   startBot: () => Promise<void>;
   stopBot: () => Promise<void>;
@@ -181,9 +181,9 @@ export const useBotStore = create<BotState>((set, get) => ({
     }
   },
 
-  fetchStrategyPerformance: async () => {
+  fetchStrategyPerformance: async (hours?: number) => {
     try {
-      const data = await api.getPerformance();
+      const data = await api.getPerformance(hours);
       const strategyPerformance = data.strategies || [];
       set({ strategyPerformance });
     } catch (error: any) {

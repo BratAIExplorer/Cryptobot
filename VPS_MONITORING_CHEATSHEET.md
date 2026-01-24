@@ -5,6 +5,10 @@ cd ~/cryptobot_v3
 
 ***##Full Summary of BOTS***
 python3 run_bot.py
+---*** CTRL+C will kill the bots**
+# 3. Restart the bot in the background (The "Forever" Mode)
+# This will NOT stop when you close the terminal
+nohup python3 -u run_bot.py > logs/bot.log 2>&1 &
 
 ## 🚀 Process Management
 
