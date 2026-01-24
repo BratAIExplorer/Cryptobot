@@ -124,7 +124,7 @@ def main():
         
         # Legacy/Hybrid Fallbacks
         'dip_percentage': 0.03,
-        'min_confluence': 50,
+        'min_confluence': 0,  # A/B TEST: Collect data on all trades to find optimal threshold
         
         # PROFIT RULES (User Request: 5-10% Profit, NO Losses)
         'take_profit_pct': 0.08,      # Target 8% Profit

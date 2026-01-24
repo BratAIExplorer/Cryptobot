@@ -4,6 +4,77 @@ This guide explains how to use the monitoring tools to ensure your system is rea
 
 ---
 
+## 🎯 **CURRENT DEPLOYMENT STATUS (2026-01-24)**
+
+### ✅ Latest Changes Deployed
+- **VPS Commit:** 3a30829
+- **Confluence:** Reduced to 50 (from 70) for more trade opportunities
+- **Capital:** $1,500 paper trading budget
+- **Status:** ✅ Bot running and actively scanning
+
+### 📊 Live Monitoring Commands (VPS)
+
+#### **1. Watch Live Logs** (See dip detections & confluence scores in real-time)
+```bash
+ssh root@72.60.40.29 "tail -f ~/cryptobot_v3/logs/bot_engine.log"
+```
+
+#### **2. Check Bot Status**
+```bash
+ssh root@72.60.40.29 "pgrep -f 'run_bot.py' && echo '✅ RUNNING' || echo '❌ STOPPED'"
+```
+
+#### **3. Quick Performance Summary**
+```bash
+ssh root@72.60.40.29 "bash ~/cryptobot_v3/scripts/get_vps_perf.sh"
+```
+
+#### **4. Watch for First Trade** (Filter important events only)
+```bash
+./scripts/watch_for_first_trade.sh
+```
+
+#### **5. Full Monitor with Auto-Refresh** (Updates every 60 seconds)
+```bash
+watch -n 60 ./scripts/monitor_live.sh
+```
+
+### 🔍 What You're Seeing Now
+
+**Expected Log Pattern:**
+```
+INFO - Dip Detected: SOL/USDT (-3.2%), Confluence: 4/50 ❌ Skipped
+INFO - Dip Detected: ADA/USDT (-4.1%), Confluence: 12/50 ❌ Skipped
+```
+
+✅ **This is CORRECT behavior!**
+- Bot is detecting dips
+- Confluence scores are low (4-12)
+- Correctly filtering out low-quality noise
+- Waiting for confluence >= 50 for trade execution
+
+**First Trade Will Look Like:**
+```
+INFO - Dip Detected: BTC/USDT (-5.2%), Confluence: 67/50 ✅ QUALIFIED
+INFO - 🟢 TRADE EXECUTED: BUY BTC/USDT @ $42,150
+```
+
+### 📈 Confluence Score Guide
+
+| Score Range | Action | Meaning |
+|:---|:---|:---|
+| 0-30 | ❌ Skip | Pure noise, no momentum |
+| 31-49 | ❌ Skip | Below threshold |
+| **50-70** | ✅ **TRADE** | Good quality signal |
+| 71-100 | ✅ **TRADE** | Excellent confluence |
+
+### 🎯 Next Steps
+1. **Monitor for 24-48 hours** - Let bot find natural high-quality setups
+2. **Review first 3 trades** - Verify they meet expectations
+3. **Fine-tune if needed** - Adjust confluence threshold based on trade frequency
+
+---
+
 ## 🚀 Quick Start
 
 ### 1. Quick Status Check (30 seconds)
