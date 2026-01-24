@@ -198,6 +198,94 @@ def main():
     })
 
     # ==========================================
+    # 💎 ADDITIONAL BUY-DIP STRATEGIES
+    # ==========================================
+    
+    # Buy-Dip-5.2% - Conservative 5.2% dip threshold
+    engine.add_bot({
+        'name': 'Buy-Dip-5.2%',
+        'type': 'Buy-the-Dip',
+        'symbols': ['BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'BNB/USDT', 'XRP/USDT'],
+        
+        # Budget: $250 Total ($50 per coin)
+        'amount': 10,                 # $10 per buy
+        'initial_balance': 250,
+        'max_exposure_per_coin': 50,
+        
+        # Entry Conditions - 5.2% dip
+        'dip_threshold': 0.052,
+        'dip_percentage': 0.052,
+        'rsi_limit': 35,
+        'cooldown_minutes': 60,
+        'min_confluence': 0,
+        
+        # Exit Rules
+        'take_profit_pct': 0.08,
+        'stop_loss_pct': None,
+        'stop_loss_enabled': False,
+        
+        'max_daily_trades': 3,
+        'circuit_breaker_daily': -50,
+        'circuit_breaker_weekly': -150
+    })
+    
+    # Buy-Dip-5.5% - Moderate 5.5% dip threshold
+    engine.add_bot({
+        'name': 'Buy-Dip-5.5%',
+        'type': 'Buy-the-Dip',
+        'symbols': ['BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'BNB/USDT', 'XRP/USDT'],
+        
+        # Budget: $250 Total ($50 per coin)
+        'amount': 10,                 # $10 per buy
+        'initial_balance': 250,
+        'max_exposure_per_coin': 50,
+        
+        # Entry Conditions - 5.5% dip
+        'dip_threshold': 0.055,
+        'dip_percentage': 0.055,
+        'rsi_limit': 35,
+        'cooldown_minutes': 60,
+        'min_confluence': 0,
+        
+        # Exit Rules
+        'take_profit_pct': 0.08,
+        'stop_loss_pct': None,
+        'stop_loss_enabled': False,
+        
+        'max_daily_trades': 3,
+        'circuit_breaker_daily': -50,
+        'circuit_breaker_weekly': -150
+    })
+    
+    # Buy-Dip-8.0% - Aggressive 8.0% dip threshold
+    engine.add_bot({
+        'name': 'Buy-Dip-8.0%',
+        'type': 'Buy-the-Dip',
+        'symbols': ['BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'BNB/USDT', 'XRP/USDT'],
+        
+        # Budget: $250 Total ($50 per coin)
+        'amount': 10,                 # $10 per buy
+        'initial_balance': 250,
+        'max_exposure_per_coin': 50,
+        
+        # Entry Conditions - 8.0% dip
+        'dip_threshold': 0.08,
+        'dip_percentage': 0.08,
+        'rsi_limit': 35,
+        'cooldown_minutes': 60,
+        'min_confluence': 0,
+        
+        # Exit Rules
+        'take_profit_pct': 0.10,      # Higher target for deeper dip
+        'stop_loss_pct': None,
+        'stop_loss_enabled': False,
+        
+        'max_daily_trades': 3,
+        'circuit_breaker_daily': -50,
+        'circuit_breaker_weekly': -150
+    })
+
+    # ==========================================
     # ⚡ VOLATILITY HUNTER ($200 Total)
     # ==========================================
     engine.add_bot({
