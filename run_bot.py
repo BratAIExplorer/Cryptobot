@@ -136,6 +136,96 @@ def main():
         'circuit_breaker_weekly': -300
     })
 
+    # ==========================================
+    # 🎯 SMA TREND BOT ($500 Total)
+    # ==========================================
+    engine.add_bot({
+        'name': 'SMA Trend Bot',
+        'type': 'SMA',
+        'symbols': ['BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'BNB/USDT', 'XRP/USDT'],
+        
+        # Budget: $500 Total ($100 per coin)
+        'amount': 20,                  # $20 per trade
+        'initial_balance': 500,
+        'max_exposure_per_coin': 100,  # Cap at $100 per coin
+        
+        # SMA Strategy Settings
+        'sma_fast': 20,
+        'sma_slow': 50,
+        'use_crossover': True,         # True crossover detection
+        'adx_threshold': 0,            # Disabled for now
+        
+        # Exit Rules
+        'take_profit_pct': 0.10,       # 10% profit target
+        'stop_loss_pct': 0.05,         # 5% stop loss
+        'stop_loss_enabled': True,
+        
+        # Confluence
+        'min_confluence': 0,           # Data collection mode
+        
+        'max_daily_trades': 5,
+        'circuit_breaker_daily': -100,
+        'circuit_breaker_weekly': -300
+    })
+
+    # ==========================================
+    # 📊 DCA STRATEGY ($300 Total)
+    # ==========================================
+    engine.add_bot({
+        'name': 'DCA Bot',
+        'type': 'DCA',
+        'symbols': ['BTC/USDT', 'ETH/USDT', 'SOL/USDT'],
+        
+        # Budget: $300 Total ($100 per coin)
+        'amount': 15,                  # $15 per buy
+        'initial_balance': 300,
+        'max_exposure_per_coin': 100,
+        
+        # DCA Settings
+        'rsi_limit': 40,               # Buy when RSI < 40
+        
+        # Exit Rules
+        'take_profit_pct': 0.08,       # 8% profit target
+        'stop_loss_pct': None,         # No stop loss (DCA averaging)
+        'stop_loss_enabled': False,
+        
+        # Confluence
+        'min_confluence': 0,           # Data collection mode
+        
+        'max_daily_trades': 3,
+        'circuit_breaker_daily': -50,
+        'circuit_breaker_weekly': -150
+    })
+
+    # ==========================================
+    # ⚡ VOLATILITY HUNTER ($200 Total)
+    # ==========================================
+    engine.add_bot({
+        'name': 'Volatility Hunter',
+        'type': 'Volatility Hunter',
+        'symbols': ['DOGE/USDT', 'TRX/USDT', 'LINK/USDT', 'DOT/USDT'],
+        
+        # Budget: $200 Total ($50 per coin)
+        'amount': 10,                  # $10 per trade
+        'initial_balance': 200,
+        'max_exposure_per_coin': 50,
+        
+        # Volatility Settings
+        'volatility_threshold': 0.03,  # 3% candle movement
+        
+        # Exit Rules
+        'take_profit_pct': 0.05,       # 5% profit target
+        'stop_loss_pct': 0.03,         # 3% stop loss
+        'stop_loss_enabled': True,
+        
+        # Confluence
+        'min_confluence': 0,           # Data collection mode
+        
+        'max_daily_trades': 10,        # High frequency
+        'circuit_breaker_daily': -50,
+        'circuit_breaker_weekly': -150
+    })
+
     # Send startup notification
     if engine.notifier:
         active_bots_summary = []
@@ -165,10 +255,13 @@ def main():
     
     print("=" * 80)
     print(f"🚀 Bot Running - {TRADING_MODE.upper()} Mode")
-    print("   Portfolio Allocation (VPS Config):")
+    print("   Portfolio Allocation (6 Strategies):")
     print("   - Grid Bots:      $500 ($250 BTC + $250 ETH)")
     print("   - Buy-the-Dip:    $1,000 (Top 10 Coins)")
-    print("   - Total Capital:  $1,500")
+    print("   - SMA Trend:      $500 (5 Coins)")
+    print("   - DCA Bot:        $300 (3 Coins)")
+    print("   - Volatility:     $200 (4 Coins)")
+    print("   - Total Capital:  $2,500")
     print("=" * 80)
     print("Press Ctrl+C to stop.")
     print()
