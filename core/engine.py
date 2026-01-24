@@ -27,7 +27,7 @@ from .regime_detector import RegimeDetector, RegimeState
 from .new_coin_detector import NewCoinDetector
 from .coin_classifier import CoinClassifier
 from .watchlist_tracker import WatchlistTracker
-from .correlation_manager import CorrelationManager
+from .correlation import CorrelationManager
 
 
 class TradingEngine:
@@ -85,12 +85,9 @@ class TradingEngine:
         self.last_watchlist_scan = None
         self.last_performance_pulse = None # For daily tracker run
         self.known_symbols_path = os.path.join(root_dir, 'data', 'known_symbols_mexc.json')
-
+        
         # Hybrid v2.0: Correlation Manager (prevents over-concentration in correlated assets)
-        self.correlation_manager = CorrelationManager(
-            correlation_window=30,  # 30-day rolling correlation
-            correlation_threshold=0.7  # 0.7+ considered highly correlated
-        )
+        self.correlation_manager = CorrelationManager(update_interval_hours=24)
         self.correlation_matrix_last_update = None
 
         # Inject correlation_manager into risk_manager

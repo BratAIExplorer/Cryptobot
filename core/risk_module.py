@@ -642,5 +642,5 @@ def setup_safe_trading_bot(user_risk_level: str) -> 'RiskManager':
         
     return RiskManager(
         limits=RiskLimits.from_risk_level(level),
-        portfolio_value=Decimal("10000") # Default placeholder, should be updated by bot immediately
+        portfolio_value=Decimal("1500") # Fixed baseline for VPS capital
     )

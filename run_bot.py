@@ -100,44 +100,6 @@ def main():
     })
     
     # ==========================================
-    # 🎯 SMA TREND BOT V2 (UPGRADED!)
-    # ==========================================
-    # V2 IMPROVEMENTS:
-    # ✅ True crossover detection (not just SMA20 > SMA50 state)
-    # ✅ ADX filter: Only trade when ADX > 25 (strong trend)
-    # ✅ Price confirmation: Price must be above both SMAs
-    # ✅ Stop loss widened: 3% → 5% (crypto-appropriate)
-    # ✅ Filters out whipsaws in sideways markets
-    #
-    # Expected: Win rate 30% → 45%, Monthly $1K → $2.5K
-
-    # engine.add_bot({
-    #     'name': 'SMA Trend Bot V2',
-    #     'type': 'SMA',
-    #     'symbols': ['BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'BNB/USDT', 'DOGE/USDT'],
-    #     'amount': 300,
-    #     'initial_balance': 4000,
-    #     'max_exposure_per_coin': 900,
-    #     'sma_fast': 20,
-    #     'sma_slow': 50,
-    #     'use_crossover': True,
-    #     'adx_threshold': 25,
-    #     'take_profit_pct': 0.10,
-    #     'stop_loss_pct': 0.05,
-    #     'trailing_stop': True,
-    #     'trailing_stop_pct': 0.04,
-    #     'trailing_activates_at': 0.06,
-    #     'max_hold_hours': 504,
-    #     'circuit_breaker_daily': -100,
-    #     'circuit_breaker_weekly': -300
-    # })
-    
-    # ==========================================
-    # 🚀 PRIORITY 3: BUY-THE-DIP (HYBRID V2.0)
-    # Dynamic Time-Weighted TP + Trailing Stops + Quality Floors
-    # ==========================================
-
-    # ==========================================
     # 💎 BUY-THE-DIP V3 (Top 10 Coins - $1000 Total)
     # ==========================================
     top_10 = [
@@ -162,7 +124,7 @@ def main():
         
         # Legacy/Hybrid Fallbacks
         'dip_percentage': 0.03,
-        'min_confluence': 65,
+        'min_confluence': 50,
         
         # PROFIT RULES (User Request: 5-10% Profit, NO Losses)
         'take_profit_pct': 0.08,      # Target 8% Profit
@@ -173,78 +135,6 @@ def main():
         'circuit_breaker_daily': -100,
         'circuit_breaker_weekly': -300
     })
-    
-    # ==========================================
-    # ⏸️  MOMENTUM SWING BOT (PAUSED - NEEDS BACKTEST!)
-    # ==========================================
-    # STATUS: Reduced to $500 test allocation
-    # ISSUE: Strategy type 'Momentum' not implemented (falls back to DCA)
-    # ACTION NEEDED: Backtest first, then decide fix or kill
-    # Expected backtest time: 2 hours
-
-    # engine.add_bot({
-    #     'name': 'Momentum Swing Bot',
-    #     'type': 'Momentum',  # WARNING: Not implemented! Falls back to DCA
-    #     'symbols': ['BTC/USDT', 'ETH/USDT'],
-    #     'amount': 75,
-    #     'initial_balance': 500,
-    #     'max_positions': 2,
-    #     'min_24h_move': 0.05,
-    #     'must_be_above_sma20': True,
-    #     'min_volume_ratio': 1.3,
-    #     'min_confluence': 70,
-    #     'take_profit_pct': 0.10,
-    #     'stop_loss_pct': 0.04,
-    #     'trailing_stop_pct': 0.06,
-    #     'max_hold_hours': 288,
-    #     'circuit_breaker_daily': -60,
-    #     'circuit_breaker_weekly': -150
-    # })
-    
-    # ==========================================
-    # 💎 HIDDEN GEM MONITOR V2 (UPGRADED!)
-    # ==========================================
-    # V2 IMPROVEMENTS:
-    # ✅ Stop loss: 20% → 10% (preserve capital!)
-    # ✅ Take profit: 10% → 15% (gems move big)
-    # ✅ No time limit (was 72h - conflicted with "hold until profitable")
-    # ✅ Current narratives: AI, L2, DeFi, Infra (no dead Metaverse/GameFi coins!)
-    # NOTE: GemSelector integration pending - using curated static list for now
-
-#     engine.add_bot({
-#         'name': 'Hidden Gem Monitor V2',
-#         'type': 'Buy-the-Dip',
-#         'symbols': [
-#             # AI Narrative
-#             'FET/USDT', 'AGIX/USDT', 'RNDR/USDT', 'GRT/USDT',
-#             # L2 Narrative
-#             'ARB/USDT', 'OP/USDT', 'MATIC/USDT', 'IMX/USDT',
-#             # DeFi Blue Chips
-#             'UNI/USDT', 'AAVE/USDT', 'CRV/USDT', 'SNX/USDT',
-#             # Infrastructure
-#             'LINK/USDT', 'ATOM/USDT', 'NEAR/USDT'
-#         ],  # V2: Current hot narratives (no SAND, MANA, AXS dead coins!)
-# 
-#         'amount': 100,
-#         'initial_balance': 1800,
-# 
-#         # V2 EXIT RULES (FIXED!)
-#         'take_profit_pct': 0.15,      # 15% TP (was 10% - gems pump harder)
-#         'stop_loss_pct': 0.10,        # 10% SL (was 20% - suicidal!)
-#         'max_hold_hours': None,       # No time limit (was 72h - forced bad exits)
-# 
-#         # Dip parameters
-#         'dip_percentage': 0.08,       # 8% dip (bigger than BTC/ETH)
-#         'min_confluence': 70,         # Higher quality filter
-# 
-#         'max_exposure_per_coin': 100
-#     })
-    
-    # ==========================================
-    # 🗑️ DIP SNIPER - DELETED (2025-12-30)
-    # Reason: 0 trades, redundant with Buy-the-Dip, broken logic
-    # Status: Permanently removed per fix-or-kill analysis
-    # ==========================================
 
     # Send startup notification
     if engine.notifier:
@@ -253,10 +143,17 @@ def main():
             syms = [s.split('/')[0] for s in b.get('symbols', [])[:5]]
             if len(b.get('symbols', [])) > 5:
                 syms.append("...")
+            
+            # Retrieve PNL and wallet balance for each bot
+            total_pnl = engine.logger.get_pnl_summary(b['name'])
+            wallet_balance = engine.logger.get_wallet_balance(b['name'], initial_balance=b.get('initial_balance', 0.0))
+
             active_bots_summary.append({
                 'name': b['name'],
                 'symbols': syms,
-                'total_count': len(b.get('symbols', []))
+                'total_count': len(b.get('symbols', [])),
+                'total_pnl': total_pnl,
+                'wallet_balance': wallet_balance
             })
         engine.notifier.notify_startup(TRADING_MODE, active_bots_summary)
     
