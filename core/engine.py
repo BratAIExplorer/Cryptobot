@@ -1197,9 +1197,20 @@ class TradingEngine:
                 # --- DYNAMIC TRANCHING ---
                 v2_score = v2_result['scores']['final_total']
 
-                # ADAPTIVE THRESHOLD: Lower threshold when market regime is warming up
-                regime_state = self.regime_detector.current_regime if hasattr(self.regime_detector, 'current_regime') else RegimeState.UNDEFINED
-                min_threshold = 20 if regime_state == RegimeState.UNDEFINED else 75
+                # Use bot's configured min_confluence threshold
+                # If bot explicitly sets min_confluence to 0, respect that (data collection mode)
+                # Otherwise use adaptive threshold based on regime
+                bot_min_confluence = bot.get('min_confluence', None)
+                
+                if bot_min_confluence is not None:
+                    # Bot has explicit threshold - use it (allows 0 for data collection)
+                    min_threshold = bot_min_confluence
+                    if min_threshold == 0:
+                        print(f"📊 [DATA COLLECTION MODE] Confluence threshold: 0 (collecting all trades for calibration)")
+                else:
+                    # No bot config - use adaptive threshold
+                    regime_state = self.regime_detector.current_regime if hasattr(self.regime_detector, 'current_regime') else RegimeState.UNDEFINED
+                    min_threshold = 20 if regime_state == RegimeState.UNDEFINED else 75
 
                 if v2_score >= 85:
                     # STRONG BUY: 40% of planned tranche
