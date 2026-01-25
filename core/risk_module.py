@@ -251,7 +251,8 @@ class RiskManager:
         total_exposure_usd: Decimal = Decimal("0"),
         sector_exposure_usd: Decimal = Decimal("0"),
         logger_instance = None,
-        exchange_instance = None
+        exchange_instance = None,
+        is_data_collection: bool = False
     ) -> Tuple[bool, Optional[str]]:
         """
         Master validation: Check all risk constraints before allowing trade.
@@ -266,8 +267,8 @@ class RiskManager:
         if not allowed:
             return False, reason
         
-        # Check 3: Position size limit
-        if proposed_size > self.limits.max_position_size_pct:
+        # Check 3: Position size limit (unless data collection)
+        if not is_data_collection and proposed_size > self.limits.max_position_size_pct:
             return False, (f"Position size {proposed_size}% exceeds limit "
                           f"{self.limits.max_position_size_pct}%")
         
@@ -276,8 +277,8 @@ class RiskManager:
             return False, (f"Maximum concurrent positions reached "
                           f"({self.limits.max_concurrent_positions})")
         
-        # Check 5: Correlation limit
-        if correlated_positions >= self.limits.max_correlated_positions:
+        # Check 5: Correlation limit (Count based)
+        if not is_data_collection and correlated_positions >= self.limits.max_correlated_positions:
             return False, (f"Too many correlated positions ({correlated_positions}). "
                           f"Limit: {self.limits.max_correlated_positions}")
         
@@ -302,7 +303,10 @@ class RiskManager:
              corr_res = self.portfolio_analyzer.get_portfolio_overlap(symbol, active_symbols, exchange_instance)
              if corr_res['risk'] in ['HIGH', 'EXTREME']:
                  max_corr = corr_res.get('max_correlation', 0)
-                 return False, f"Portfolio Correlation Risk ({corr_res['risk']}): Max Corr {max_corr} with {corr_res.get('highly_correlated_with')}"
+                 if is_data_collection:
+                     print(f"⚠️  [DATA COLLECTION] Correlation is HIGH ({max_corr}), but allowing trade for research.")
+                 else:
+                     return False, f"Portfolio Correlation Risk ({corr_res['risk']}): Max Corr {max_corr} with {corr_res.get('highly_correlated_with')}"
              
              # Apply position sizing penalty based on correlation
              penalty = self.portfolio_analyzer.get_penalty_multiplier(corr_res)

@@ -1260,6 +1260,20 @@ class TradingEngine:
             total_exp_usd = Decimal(str(self.logger.get_total_exposure()))
             sector_exp_usd = self._get_sector_exposure(symbol, open_positions_df)
             
+            # Determine if we are in Data Collection Mode
+            is_data_collection = False
+            strategy_name = bot.get('name', '')
+            strategy_type = bot.get('type', '')
+            
+            # Grid bots use their own logic, so we treat them as research-ready
+            if strategy_type == 'Grid' or 'Grid Bot' in strategy_name:
+                is_data_collection = True
+            
+            # Check bot's specific confluence threshold
+            bot_min_confluence = bot.get('min_confluence', None)
+            if bot_min_confluence is not None and bot_min_confluence <= 0:
+                is_data_collection = True
+
             is_valid, rejection_reason = self.risk_manager.validate_new_trade(
                 symbol=symbol,
                 proposed_size=Decimal(str(trade_amount_usd)) / self.risk_manager.portfolio_value * Decimal("100"),
@@ -1269,7 +1283,8 @@ class TradingEngine:
                 total_exposure_usd=total_exp_usd,
                 sector_exposure_usd=sector_exp_usd,
                 logger_instance=self.logger,
-                exchange_instance=self.exchange
+                exchange_instance=self.exchange,
+                is_data_collection=is_data_collection
             )
             
             if not is_valid:
