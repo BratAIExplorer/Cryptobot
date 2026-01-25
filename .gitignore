@@ -89,4 +89,9 @@ performance_reports/performance_2025-10*.json
 performance_reports/performance_2025-11*.json
 
 # Allow CSV exports in reports folder only
-!performance_reports/*.csv
+# Node / Frontend
+node_modules/
+.next/
+out/
+.vercel
+*.tsbuildinfo

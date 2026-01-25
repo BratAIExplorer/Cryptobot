@@ -613,6 +613,9 @@ class TradingEngine:
                 # User Request (Jan 22): "Never sell below target profit no matter how long"
                 # MAX HOLD DISABLED. Bot will wait indefinitely for configured TP (e.g. 5.5%, 8%)
                 max_hold = 0 
+            elif 'Grid' in strategy:
+                # Grid bots should hold until target is hit (Indefinite)
+                max_hold = 0
             
             # 2. Check conditions
             # Only process if max_hold > 0 (enabled) AND age > limit
@@ -1201,33 +1204,50 @@ class TradingEngine:
                 # If bot explicitly sets min_confluence to 0, respect that (data collection mode)
                 # Otherwise use adaptive threshold based on regime
                 bot_min_confluence = bot.get('min_confluence', None)
-                
                 if bot_min_confluence is not None:
                     # Bot has explicit threshold - use it (allows 0 for data collection)
                     min_threshold = bot_min_confluence
-                    if min_threshold == 0:
-                        print(f"📊 [DATA COLLECTION MODE] Confluence threshold: 0 (collecting all trades for calibration)")
+                    if min_threshold <= 0:
+                        # DATA COLLECTION MODE: Trade at 100% size to ensure exchange limits are met
+                        print(f"📊 [DATA COLLECTION MODE] Confluence threshold: 0. Using 100% tranche size (${base_amount:.2f})")
+                        trade_amount_usd = base_amount
+                    elif v2_score >= 85:
+                        # STRONG BUY: 40% of planned tranche
+                        trade_amount_usd = base_amount * 0.40
+                        print(f"🔥 HIGH CONVICTION: Score {v2_score}. Scaling to 40% (${trade_amount_usd:.2f})")
+                    elif v2_score >= 75:
+                        # MODERATE BUY: 25% of planned tranche
+                        trade_amount_usd = base_amount * 0.25
+                        print(f"✅ MODERATE CONVICTION: Score {v2_score}. Scaling to 25% (${trade_amount_usd:.2f})")
+                    elif v2_score >= min_threshold:
+                        # LOW CONVICTION: 10% of planned tranche (warmup mode)
+                        trade_amount_usd = base_amount * 0.10
+                        print(f"⚠️  LOW CONVICTION (Warmup): Score {v2_score}. Scaling to 10% (${trade_amount_usd:.2f})")
+                    else:
+                        # Score < threshold: AVOID/WAIT
+                        print(f"[SKIP] Confluence V2 Reject: Score {v2_score}/100 (Threshold {min_threshold})")
+                        return
                 else:
                     # No bot config - use adaptive threshold
                     regime_state = self.regime_detector.current_regime if hasattr(self.regime_detector, 'current_regime') else RegimeState.UNDEFINED
                     min_threshold = 20 if regime_state == RegimeState.UNDEFINED else 75
 
-                if v2_score >= 85:
-                    # STRONG BUY: 40% of planned tranche
-                    trade_amount_usd = base_amount * 0.40
-                    print(f"🔥 HIGH CONVICTION: Score {v2_score}. Scaling to 40% (${trade_amount_usd:.2f})")
-                elif v2_score >= 75:
-                    # MODERATE BUY: 25% of planned tranche
-                    trade_amount_usd = base_amount * 0.25
-                    print(f"✅ MODERATE CONVICTION: Score {v2_score}. Scaling to 25% (${trade_amount_usd:.2f})")
-                elif v2_score >= min_threshold:
-                    # LOW CONVICTION: 10% of planned tranche (warmup mode)
-                    trade_amount_usd = base_amount * 0.10
-                    print(f"⚠️  LOW CONVICTION (Warmup): Score {v2_score}. Scaling to 10% (${trade_amount_usd:.2f})")
-                else:
-                    # Score < threshold: AVOID/WAIT
-                    print(f"[SKIP] Confluence V2 Reject: Score {v2_score}/100 (Threshold {min_threshold})")
-                    return
+                    if v2_score >= 85:
+                        # STRONG BUY: 40% of planned tranche
+                        trade_amount_usd = base_amount * 0.40
+                        print(f"🔥 HIGH CONVICTION: Score {v2_score}. Scaling to 40% (${trade_amount_usd:.2f})")
+                    elif v2_score >= 75:
+                        # MODERATE BUY: 25% of planned tranche
+                        trade_amount_usd = base_amount * 0.25
+                        print(f"✅ MODERATE CONVICTION: Score {v2_score}. Scaling to 25% (${trade_amount_usd:.2f})")
+                    elif v2_score >= min_threshold:
+                        # LOW CONVICTION: 10% of planned tranche (warmup mode)
+                        trade_amount_usd = base_amount * 0.10
+                        print(f"⚠️  LOW CONVICTION (Warmup): Score {v2_score}. Scaling to 10% (${trade_amount_usd:.2f})")
+                    else:
+                        # Score < threshold: AVOID/WAIT
+                        print(f"[SKIP] Confluence V2 Reject: Score {v2_score}/100 (Threshold {min_threshold})")
+                        return
 
             # Recalculate amount with scaled trade_amount_usd
             amount = trade_amount_usd / price

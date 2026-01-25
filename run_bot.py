@@ -113,7 +113,7 @@ def main():
         'symbols': top_10,
         
         # Budget: $1000 Total ($100 per coin)
-        'amount': 15,                 # $15 per buy
+        'amount': 30,                 # $30 per buy (increased from $15 to meet exchange minimums)
         'initial_balance': 1000,
         'max_exposure_per_coin': 100, # Cap at $100 per coin
 
