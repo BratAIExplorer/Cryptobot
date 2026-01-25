@@ -273,7 +273,7 @@ class RiskManager:
                           f"{self.limits.max_position_size_pct}%")
         
         # Check 4: Concurrent positions limit
-        if current_positions >= self.limits.max_concurrent_positions:
+        if not is_data_collection and current_positions >= self.limits.max_concurrent_positions:
             return False, (f"Maximum concurrent positions reached "
                           f"({self.limits.max_concurrent_positions})")
         
@@ -289,9 +289,10 @@ class RiskManager:
             return False, reason
             
         # Check 7: Sector Limits (New V2)
-        allowed, reason = self.check_sector_limit(symbol, sector_exposure_usd, proposed_amount_usd)
-        if not allowed:
-            return False, reason
+        if not is_data_collection:
+            allowed, reason = self.check_sector_limit(symbol, sector_exposure_usd, proposed_amount_usd)
+            if not allowed:
+                return False, reason
 
         # Check 8: Drawdown Velocity (Institutional Hardening)
         velocity_halt, velocity_reason = self.check_drawdown_velocity(logger=logger_instance)
