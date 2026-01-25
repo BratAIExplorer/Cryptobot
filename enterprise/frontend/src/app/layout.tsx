@@ -9,6 +9,8 @@ export const metadata: Metadata = {
   description: "Trading bot management platform for family and friends",
 };
 
+import { Toaster } from 'react-hot-toast';
+
 export default function RootLayout({
   children,
 }: {
@@ -16,7 +18,16 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+      <body className={inter.className}>
+        {children}
+        <Toaster position="top-right" toastOptions={{
+          style: {
+            background: '#1E293B',
+            color: '#fff',
+            border: '1px solid #374151',
+          },
+        }} />
+      </body>
     </html>
   );
 }

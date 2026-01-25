@@ -13,8 +13,10 @@ import {
   TrendingDown,
   CheckCircle,
   Zap,
-  X
+  X,
+  RotateCw
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { LineChart, Line, PieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip, Area, AreaChart } from 'recharts';
 import { formatCurrency, formatPercentage, formatRelativeTime, formatUptime, getPnlColor } from '@/lib/utils';
 
@@ -90,6 +92,8 @@ export default function DashboardPage() {
 
   const handleBotAction = async (botId: number, action: 'start' | 'stop' | 'restart') => {
     setActionLoading(`${action}-${botId}`);
+    const toastId = toast.loading(`${action.charAt(0).toUpperCase() + action.slice(1)}ing bot...`);
+
     try {
       // For now, these operate on the global bot engine as implemented in the backend
       if (action === 'start') await startBot();
@@ -98,8 +102,11 @@ export default function DashboardPage() {
 
       await fetchBotStatus();
       await fetchBotConfigs();
+
+      toast.success(`Bot ${action}ed successfully`, { id: toastId });
     } catch (error) {
       console.error(`Error ${action}ing bot:`, error);
+      toast.error(`Failed to ${action} bot`, { id: toastId });
     } finally {
       setActionLoading(null);
     }
@@ -393,13 +400,27 @@ export default function DashboardPage() {
                       setShowSettingsModal(true);
                     }}
                     className="w-10 h-10 bg-gray-800 hover:bg-gray-700 text-gray-400 rounded-lg flex items-center justify-center transition"
+                    title="Settings"
                   >
                     <Settings className="w-4 h-4" />
                   </button>
                   <button
+                    onClick={() => handleBotAction(bot.id, 'restart')}
+                    disabled={actionLoading !== null}
+                    className="w-10 h-10 bg-gray-800 hover:bg-gray-700 text-gray-400 rounded-lg flex items-center justify-center transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Restart Bot"
+                  >
+                    {actionLoading === `restart-${bot.id}` ? (
+                      <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <RotateCw className="w-4 h-4 text-blue-400" />
+                    )}
+                  </button>
+                  <button
                     onClick={() => handleBotAction(bot.id, bot.status === 'active' ? 'stop' : 'start')}
                     disabled={actionLoading !== null}
-                    className="w-10 h-10 bg-gray-800 hover:bg-gray-700 text-gray-400 rounded-lg flex items-center justify-center transition"
+                    className="w-10 h-10 bg-gray-800 hover:bg-gray-700 text-gray-400 rounded-lg flex items-center justify-center transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    title={bot.status === 'active' ? 'Stop Bot' : 'Start Bot'}
                   >
                     {actionLoading === `${bot.status === 'active' ? 'stop' : 'start'}-${bot.id}` ? (
                       <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
