@@ -316,7 +316,7 @@ class RiskManager:
                  # we mainly rejection if it's too high. Adjusting size needs to happen in TradingEngine.
             
         # Check 10: Intelligent Correlation (Legacy Placeholder)
-        if active_symbols and self.correlation_manager:
+        if not is_data_collection and active_symbols and self.correlation_manager:
             is_risky, corr_reason = self.correlation_manager.check_correlation_risk(symbol, active_symbols)
             if is_risky:
                   return False, f"Correlation Risk: {corr_reason}"
