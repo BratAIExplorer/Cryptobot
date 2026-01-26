@@ -100,190 +100,101 @@ def main():
     })
     
     # ==========================================
-    # 💎 BUY-THE-DIP V3 (Top 10 Coins - $1000 Total)
+    # 💎 UNIFIED BUY-THE-DIP PORTFOLIO ($1,500 per Strategy)
     # ==========================================
-    top_10 = [
+    btd_coins = [
         'BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'BNB/USDT', 'XRP/USDT', 
-        'ADA/USDT', 'DOGE/USDT', 'TRX/USDT', 'DOT/USDT', 'LINK/USDT'
+        'ADA/USDT', 'DOGE/USDT', 'MATIC/USDT', 'DOT/USDT', 'LINK/USDT',
+        'AVAX/USDT', 'TRX/USDT'
     ]
 
+    # 1. Main Buy-the-Dip (3% Dip)
     engine.add_bot({
         'name': 'Buy-the-Dip Strategy',
         'type': 'Buy-the-Dip',
-        'symbols': top_10,
-        
-        # Budget: $1000 Total ($100 per coin)
-        'amount': 30,                 # $30 per buy (increased from $15 to meet exchange minimums)
-        'initial_balance': 1000,
-        'max_exposure_per_coin': 100, # Cap at $100 per coin
-
-        # Entry Conditions (V3)
-        'dip_threshold': 0.03,       # 3% dip
-        'rsi_limit': 35,             # V3 param
+        'symbols': btd_coins,
+        'amount': 30,                 
+        'initial_balance': 2500,
+        'max_exposure_per_coin': 200, 
+        'dip_threshold': 0.03,       
+        'rsi_limit': 35,             
         'cooldown_minutes': 60,
-        
-        # Legacy/Hybrid Fallbacks
         'dip_percentage': 0.03,
-        'min_confluence': 0,  # A/B TEST: Collect data on all trades to find optimal threshold
-        
-        # PROFIT RULES (User Request: 5-10% Profit, NO Losses)
-        'take_profit_pct': 0.08,      # Target 8% Profit
-        'stop_loss_pct': None,        # DISABLING STOP LOSS (Hold until profit)
+        'min_confluence': 0,  
+        'take_profit_pct': 0.08,      
+        'stop_loss_pct': None,        
         'stop_loss_enabled': False,   
-        
-        'max_daily_trades': 3,
-        'circuit_breaker_daily': -100,
-        'circuit_breaker_weekly': -300
-    })
-
-    # ==========================================
-    # 🎯 SMA TREND BOT ($500 Total)
-    # ==========================================
-    engine.add_bot({
-        'name': 'SMA Trend Bot',
-        'type': 'SMA',
-        'symbols': ['BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'BNB/USDT', 'XRP/USDT'],
-        
-        # Budget: $500 Total ($100 per coin)
-        'amount': 20,                  # $20 per trade
-        'initial_balance': 500,
-        'max_exposure_per_coin': 100,  # Cap at $100 per coin
-        
-        # SMA Strategy Settings
-        'sma_fast': 20,
-        'sma_slow': 50,
-        'use_crossover': True,         # True crossover detection
-        'adx_threshold': 0,            # Disabled for now
-        
-        # Exit Rules
-        'take_profit_pct': 0.10,       # 10% profit target
-        'stop_loss_pct': 0.05,         # 5% stop loss
-        'stop_loss_enabled': True,
-        
-        # Confluence
-        'min_confluence': 0,           # Data collection mode
-        
         'max_daily_trades': 5,
-        'circuit_breaker_daily': -100,
-        'circuit_breaker_weekly': -300
+        'circuit_breaker_daily': -250,
+        'circuit_breaker_weekly': -750
     })
 
-    # ==========================================
-    # 📊 DCA STRATEGY ($300 Total)
-    # ==========================================
-    engine.add_bot({
-        'name': 'DCA Bot',
-        'type': 'DCA',
-        'symbols': ['BTC/USDT', 'ETH/USDT', 'SOL/USDT'],
-        
-        # Budget: $300 Total ($100 per coin)
-        'amount': 15,                  # $15 per buy
-        'initial_balance': 300,
-        'max_exposure_per_coin': 100,
-        
-        # DCA Settings
-        'rsi_limit': 40,               # Buy when RSI < 40
-        
-        # Exit Rules
-        'take_profit_pct': 0.08,       # 8% profit target
-        'stop_loss_pct': None,         # No stop loss (DCA averaging)
-        'stop_loss_enabled': False,
-        
-        # Confluence
-        'min_confluence': 0,           # Data collection mode
-        
-        'max_daily_trades': 3,
-        'circuit_breaker_daily': -50,
-        'circuit_breaker_weekly': -150
-    })
-
-    # ==========================================
-    # 💎 ADDITIONAL BUY-DIP STRATEGIES
-    # ==========================================
-    
-    # Buy-Dip-5.2% - Conservative 5.2% dip threshold
+    # 2. Buy-Dip-5.2% - Conservative Dip
     engine.add_bot({
         'name': 'Buy-Dip-5.2%',
         'type': 'Buy-the-Dip',
-        'symbols': ['BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'BNB/USDT', 'XRP/USDT'],
-        
-        # Budget: $250 Total ($50 per coin)
-        'amount': 10,                 # $10 per buy
-        'initial_balance': 250,
-        'max_exposure_per_coin': 50,
-        
-        # Entry Conditions - 5.2% dip
+        'symbols': btd_coins,
+        'amount': 30,                 
+        'initial_balance': 2500,
+        'max_exposure_per_coin': 200,
         'dip_threshold': 0.052,
         'dip_percentage': 0.052,
         'rsi_limit': 35,
         'cooldown_minutes': 60,
         'min_confluence': 0,
-        
-        # Exit Rules
         'take_profit_pct': 0.08,
         'stop_loss_pct': None,
         'stop_loss_enabled': False,
-        
-        'max_daily_trades': 3,
-        'circuit_breaker_daily': -50,
-        'circuit_breaker_weekly': -150
+        'max_daily_trades': 5,
+        'circuit_breaker_daily': -250,
+        'circuit_breaker_weekly': -750
     })
     
-    # Buy-Dip-5.5% - Moderate 5.5% dip threshold
+    # 3. Buy-Dip-5.5% - Moderate Dip
     engine.add_bot({
         'name': 'Buy-Dip-5.5%',
         'type': 'Buy-the-Dip',
-        'symbols': ['BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'BNB/USDT', 'XRP/USDT'],
-        
-        # Budget: $250 Total ($50 per coin)
-        'amount': 10,                 # $10 per buy
-        'initial_balance': 250,
-        'max_exposure_per_coin': 50,
-        
-        # Entry Conditions - 5.5% dip
+        'symbols': btd_coins,
+        'amount': 30,                 
+        'initial_balance': 2500,
+        'max_exposure_per_coin': 200,
         'dip_threshold': 0.055,
         'dip_percentage': 0.055,
         'rsi_limit': 35,
         'cooldown_minutes': 60,
         'min_confluence': 0,
-        
-        # Exit Rules
         'take_profit_pct': 0.08,
         'stop_loss_pct': None,
         'stop_loss_enabled': False,
-        
-        'max_daily_trades': 3,
-        'circuit_breaker_daily': -50,
-        'circuit_breaker_weekly': -150
+        'max_daily_trades': 5,
+        'circuit_breaker_daily': -250,
+        'circuit_breaker_weekly': -750
     })
     
-    # Buy-Dip-8.0% - Aggressive 8.0% dip threshold
+    # 4. Buy-Dip-8.0% - Aggressive Dip
     engine.add_bot({
         'name': 'Buy-Dip-8.0%',
         'type': 'Buy-the-Dip',
-        'symbols': ['BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'BNB/USDT', 'XRP/USDT'],
-        
-        # Budget: $250 Total ($50 per coin)
-        'amount': 10,                 # $10 per buy
-        'initial_balance': 250,
-        'max_exposure_per_coin': 50,
-        
-        # Entry Conditions - 8.0% dip
+        'symbols': btd_coins,
+        'amount': 30,                 
+        'initial_balance': 2500,
+        'max_exposure_per_coin': 200,
         'dip_threshold': 0.08,
         'dip_percentage': 0.08,
         'rsi_limit': 35,
         'cooldown_minutes': 60,
         'min_confluence': 0,
-        
-        # Exit Rules
-        'take_profit_pct': 0.10,      # Higher target for deeper dip
+        'take_profit_pct': 0.10,      
         'stop_loss_pct': None,
         'stop_loss_enabled': False,
-        
-        'max_daily_trades': 3,
-        'circuit_breaker_daily': -50,
-        'circuit_breaker_weekly': -150
+        'max_daily_trades': 5,
+        'circuit_breaker_daily': -250,
+        'circuit_breaker_weekly': -750
     })
+
+    # ==========================================
+    # 🎯 SMA TREND BOT ($500 Total)
+    # ==========================================
 
     # ==========================================
     # ⚡ VOLATILITY HUNTER ($200 Total)
@@ -359,12 +270,11 @@ def main():
     print(f"🚀 Bot Running - {TRADING_MODE.upper()} Mode")
     print("   Portfolio Allocation (9 Active Bots):")
     print("   - Grid Bots:      $500 ($250 BTC + $250 ETH)")
-    print("   - Buy-the-Dip:    $1,000 (Top 10 Coins)")
+    print("   - Buy-the-Dip:    $10,000 (4 Bots x $2,500)")
     print("   - SMA Trend:      $500 (5 Coins)")
     print("   - DCA Bot:        $300 (3 Coins)")
     print("   - Volatility:     $200 (4 Coins)")
-    print("   - Deep Dip Bots:  $750 (5.2%, 5.5%, 8.0% variants)")
-    print("   - Total Capital:  $3,250")
+    print("   - Total Capital:  $11,500")
     print("=" * 80)
     print("Press Ctrl+C to stop.")
     print()

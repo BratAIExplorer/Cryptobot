@@ -18,12 +18,12 @@ def check_pnl():
     print("=" * 80)
 
     # 1. Calculate Realized PnL from TRADES table
-    # We sum (Sell Amount * Price) - (Buy Amount * Price) for closed positions
+    # Formula: SUM(Sell_Cost - Sell_Fee) - SUM(Buy_Cost + Buy_Fee)
     query_realized = """
     SELECT 
         p.strategy,
         COUNT(DISTINCT p.id) as closed_trades,
-        SUM(CASE WHEN t.side = 'SELL' THEN t.cost ELSE -t.cost END) as realized_pnl
+        SUM(CASE WHEN t.side = 'SELL' THEN t.cost - t.fee ELSE -(t.cost + t.fee) END) as realized_pnl
     FROM positions p
     JOIN trades t ON p.id = t.position_id
     WHERE p.status = 'CLOSED'
