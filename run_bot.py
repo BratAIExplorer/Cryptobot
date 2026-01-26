@@ -195,6 +195,63 @@ def main():
     # ==========================================
     # 🎯 SMA TREND BOT ($500 Total)
     # ==========================================
+    engine.add_bot({
+        'name': 'SMA Trend Bot',
+        'type': 'SMA',
+        'symbols': ['BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'BNB/USDT', 'XRP/USDT'],
+        
+        # Budget: $500 Total ($100 per coin)
+        'amount': 20,                  # $20 per trade
+        'initial_balance': 500,
+        'max_exposure_per_coin': 100,  # Cap at $100 per coin
+        
+        # SMA Strategy Settings
+        'sma_fast': 20,
+        'sma_slow': 50,
+        'use_crossover': True,         # True crossover detection
+        'adx_threshold': 0,            # Disabled for now
+        
+        # Exit Rules
+        'take_profit_pct': 0.10,       # 10% profit target
+        'stop_loss_pct': 0.05,         # 5% stop loss
+        'stop_loss_enabled': True,
+        
+        # Confluence
+        'min_confluence': 0,           # Data collection mode
+        
+        'max_daily_trades': 5,
+        'circuit_breaker_daily': -100,
+        'circuit_breaker_weekly': -300
+    })
+
+    # ==========================================
+    # 📊 DCA STRATEGY ($300 Total)
+    # ==========================================
+    engine.add_bot({
+        'name': 'DCA Bot',
+        'type': 'DCA',
+        'symbols': ['BTC/USDT', 'ETH/USDT', 'SOL/USDT'],
+        
+        # Budget: $300 Total ($100 per coin)
+        'amount': 15,                  # $15 per buy
+        'initial_balance': 300,
+        'max_exposure_per_coin': 100,
+        
+        # DCA Settings
+        'rsi_limit': 40,               # Buy when RSI < 40
+        
+        # Exit Rules
+        'take_profit_pct': 0.08,       # 8% profit target
+        'stop_loss_pct': None,         # No stop loss (DCA averaging)
+        'stop_loss_enabled': False,
+        
+        # Confluence
+        'min_confluence': 0,           # Data collection mode
+        
+        'max_daily_trades': 3,
+        'circuit_breaker_daily': -50,
+        'circuit_breaker_weekly': -150
+    })
 
     # ==========================================
     # ⚡ VOLATILITY HUNTER ($200 Total)
