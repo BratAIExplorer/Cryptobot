@@ -618,6 +618,8 @@ class TradingEngine:
                 # User Request (Jan 22): "Never sell below target profit no matter how long"
                 # MAX HOLD DISABLED. Bot will wait indefinitely for configured TP (e.g. 5.5%, 8%)
                 max_hold = 0 
+                # Safety Override: Ensure it is absolutely zero
+                continue 
             elif 'Grid' in strategy:
                 # Grid bots should hold until target is hit (Indefinite)
                 max_hold = 0
