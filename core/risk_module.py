@@ -640,7 +640,7 @@ class RiskManager:
             return False, None
 
 
-def setup_safe_trading_bot(user_risk_level: str) -> 'RiskManager':
+def setup_safe_trading_bot(user_risk_level: str, initial_capital: Decimal = Decimal("3250")) -> 'RiskManager':
     """Grandma-friendly wrapper to init risk manager"""
     try:
         level = RiskLevel(user_risk_level.lower())
@@ -650,5 +650,5 @@ def setup_safe_trading_bot(user_risk_level: str) -> 'RiskManager':
         
     return RiskManager(
         limits=RiskLimits.from_risk_level(level),
-        portfolio_value=Decimal("1500") # Fixed baseline for VPS capital
+        portfolio_value=initial_capital
     )

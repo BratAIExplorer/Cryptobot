@@ -335,6 +335,20 @@ def main():
             })
         engine.notifier.notify_startup(TRADING_MODE, active_bots_summary)
     
+    # Initialize Risk Manager with correct capital (Dynamic)
+    from core.risk_module import setup_safe_trading_bot
+    from decimal import Decimal
+    
+    # Calculate total allocated capital from all added bots
+    total_capital = sum(b.get('initial_balance', 0) for b in engine.active_bots)
+    print(f"💰 Total Risk Capital: ${total_capital} (Dynamically Calculated)")
+    
+    # Override the default risk manager
+    engine.risk_manager = setup_safe_trading_bot(
+        user_risk_level='moderate', 
+        initial_capital=Decimal(str(total_capital))
+    )
+
     # Initialize and run
     try:
         engine.start()
