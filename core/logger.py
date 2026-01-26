@@ -281,10 +281,10 @@ class TradeLogger:
             return 0.0
             
     def get_wallet_balance(self, strategy, initial_balance=0.0):
-        # Starting balance - open exposure + realized PnL
-        exposure = self.get_total_exposure_by_strategy(strategy)
+        # CORRECT Cash Balance = initial_balance + (SUM(SELL) - SUM(BUY))
+        # realized = get_pnl_summary returns SUM(SELL) - SUM(BUY)
         realized = self.get_pnl_summary(strategy)
-        return initial_balance - exposure + realized
+        return initial_balance + realized
 
     # --- DECISION MAKING (HUMAN IN LOOP) ---
     def create_decision(self, position_id, decision_type, rationale, price):

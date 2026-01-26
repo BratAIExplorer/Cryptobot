@@ -284,9 +284,10 @@ class RiskManager:
         
         # Check 6: Portfolio Heat (New V2)
         proposed_amount_usd = (proposed_size / Decimal("100")) * self.portfolio_value
-        allowed, reason = self.check_portfolio_heat(total_exposure_usd + proposed_amount_usd)
-        if not allowed:
-            return False, reason
+        if not is_data_collection:
+            allowed, reason = self.check_portfolio_heat(total_exposure_usd + proposed_amount_usd)
+            if not allowed:
+                return False, reason
             
         # Check 7: Sector Limits (New V2)
         if not is_data_collection:

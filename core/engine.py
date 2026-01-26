@@ -135,8 +135,10 @@ class TradingEngine:
             global_realized = self.logger.get_pnl_summary(strategy=None)
             global_exposure = self.logger.get_total_exposure(strategy=None)
             
-            # 3. Global Cash = Total Initial - Global Exposure + Global Realized
-            global_cash = total_initial - global_exposure + global_realized
+            # 3. Global Cash = Total Initial + Global Realized (Net of all trade costs)
+            # logger.get_pnl_summary() returns SUM(SELL) - SUM(BUY).
+            # global_cash = total_initial + (total_sells - total_buys)
+            global_cash = total_initial + global_realized
             
             # 4. Global Open Position Value
             open_positions = self.logger.get_open_positions()
@@ -424,9 +426,12 @@ class TradingEngine:
         # --- PORTFOLIO SNAPSHOT (Institutional Hardening) ---
         self._take_portfolio_snapshot()
         
+        # Update equity before drawdown check
+        self._update_risk_manager_equity()
+        
         # Check max drawdown limit (Industry standard safety feature)
-        total_pnl = self.logger.get_pnl_summary()  # All strategies combined
-        current_equity = Decimal(str(self.risk_manager.portfolio_value)) + Decimal(str(total_pnl))
+        # Risk Manager's portfolio_value is now the Total Equity (Cash + Positions)
+        current_equity = self.risk_manager.portfolio_value
         can_trade, drawdown_pct = self.risk_manager.check_drawdown_limit(current_equity, self.logger)
         
         # Alert at 80% of max drawdown (warning)
