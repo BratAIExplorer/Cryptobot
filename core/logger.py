@@ -203,6 +203,8 @@ class TradeLogger:
                 df['buy_price'] = df['entry_price']
                 df['buy_timestamp'] = df['entry_date']
                 df['cost'] = df['position_size_usd']
+                # Calculate current market value for equity tracking
+                df['current_value_usd'] = df['cost'] + df['unrealized_pnl_usd'].fillna(0)
                 
             return df
         except Exception as e:
@@ -225,6 +227,33 @@ class TradeLogger:
         except Exception as e:
             print(f"[DB] Error calculating exposure: {e}")
             return 0.0
+        finally:
+            session.close()
+
+    def update_unrealized_pnl(self, symbol, current_price):
+        """Update unrealized P&L for all open positions of a symbol"""
+        session = self.db.get_session()
+        try:
+            positions = session.query(Position).filter(
+                Position.symbol == symbol,
+                Position.status == 'OPEN'
+            ).all()
+            
+            for pos in positions:
+                # Unrealized PnL = (Current Price - Entry Price) * Amount
+                # Ensure we handle Decimal vs float correctly
+                entry_price = float(pos.entry_price) if pos.entry_price else 0.0
+                amount = float(pos.amount) if pos.amount else 0.0
+                curr_price = float(current_price)
+                
+                unrealized = (curr_price - entry_price) * amount
+                pos.unrealized_pnl_usd = unrealized
+                pos.updated_at = datetime.utcnow()
+                
+            session.commit()
+        except Exception as e:
+            print(f"[DB] Error updating unrealized P&L for {symbol}: {e}")
+            session.rollback()
         finally:
             session.close()
             

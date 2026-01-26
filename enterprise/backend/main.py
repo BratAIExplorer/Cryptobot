@@ -35,7 +35,7 @@ async def lifespan(app: FastAPI):
     print("🚀 Starting CryptoBot Enterprise Platform...")
 
     # Initialize database
-    print("📊 Initializing PostgreSQL database...")
+    print("📊 Initializing Enterprise database (SQLite)...")
     Base.metadata.create_all(bind=engine)
 
     # Create default admin user if not exists

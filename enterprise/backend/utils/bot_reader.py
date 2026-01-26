@@ -138,21 +138,28 @@ class BotDatabaseReader:
         cursor.execute("SELECT COUNT(*) FROM trades")
         total_trades = cursor.fetchone()[0]
 
-        # Total P&L from positions table (not trades)
+        # Total Realized P&L from trades table (CLOSED positions)
+        cursor.execute("SELECT SUM(COALESCE(pnl, 0)) FROM trades")
+        realized_pnl = cursor.fetchone()[0] or 0.0
+
+        # Total Unrealized P&L from positions table (OPEN positions)
         cursor.execute("SELECT SUM(COALESCE(unrealized_pnl_usd, 0)) FROM positions")
-        total_pnl = cursor.fetchone()[0] or 0.0
+        unrealized_pnl = cursor.fetchone()[0] or 0.0
+
+        # Current Portfolio Total P&L
+        total_pnl = realized_pnl + unrealized_pnl
 
         # Win rate (positions with positive P&L)
         cursor.execute("""
-            SELECT
-                COUNT(CASE WHEN unrealized_pnl_usd > 0 THEN 1 END) as wins,
-                COUNT(*) as total_positions
-            FROM positions
+            SELECT 
+                COUNT(CASE WHEN pnl > 0 THEN 1 END) as wins,
+                COUNT(*) as total_trades
+            FROM trades
         """)
         row = cursor.fetchone()
         wins = row[0] or 0
-        total_positions = row[1] or 1  # Avoid division by zero
-        win_rate = (wins / total_positions * 100) if total_positions > 0 else 0.0
+        total_trades_calc = row[1] or 1  # Avoid division by zero
+        win_rate = (wins / total_trades_calc * 100) if total_trades_calc > 0 else 0.0
 
         # Active positions count
         cursor.execute("SELECT COUNT(*) FROM positions")
@@ -180,13 +187,25 @@ class BotDatabaseReader:
                 "pnl": row[3]
             })
 
-        # Calculate total portfolio value from bot balances
-        total_portfolio_value = sum(strategy['balance'] for strategy in strategies)
+        # Calculate total available balance (Cash) from bot balances
+        available_balance = sum(strategy['balance'] for strategy in strategies)
 
-        # Calculate used balance (cost of active positions)
-        cursor.execute("SELECT SUM(amount * entry_price) FROM positions")
-        used_balance = cursor.fetchone()[0] or 0.0
-        available_balance = total_portfolio_value - used_balance
+        # Calculate used balance (Current Market Value of active positions)
+        # Market Value = Cost + Unrealized PnL
+        cursor.execute("""
+            SELECT 
+                SUM(COALESCE(position_size_usd, 0)) as cost,
+                SUM(COALESCE(unrealized_pnl_usd, 0)) as unrealized
+            FROM positions 
+            WHERE status = 'OPEN'
+        """)
+        row = cursor.fetchone()
+        cost = row[0] or 0.0
+        active_unrealized = row[1] or 0.0
+        used_balance = cost + active_unrealized
+
+        # Total Portfolio Value = Cash + Market Value of Positions
+        total_portfolio_value = available_balance + used_balance
 
         conn.close()
 

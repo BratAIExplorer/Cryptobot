@@ -258,14 +258,16 @@ class RiskManager:
         Master validation: Check all risk constraints before allowing trade.
         """
         # Check 1: Cooldown period
-        allowed, reason = self.check_cooldown()
-        if not allowed:
-            return False, reason
+        if not is_data_collection:
+            allowed, reason = self.check_cooldown()
+            if not allowed:
+                return False, reason
         
         # Check 2: Daily loss limit
-        allowed, reason = self.check_daily_loss_limit()
-        if not allowed:
-            return False, reason
+        if not is_data_collection:
+            allowed, reason = self.check_daily_loss_limit()
+            if not allowed:
+                return False, reason
         
         # Check 3: Position size limit (unless data collection)
         if not is_data_collection and proposed_size > self.limits.max_position_size_pct:

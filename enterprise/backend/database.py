@@ -10,17 +10,26 @@ import os
 
 load_dotenv()
 
-# PostgreSQL for user management (NOT the bot's SQLite database)
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/cryptobot_enterprise")
+# Default to SQLite for zero-config portability (change to PostgreSQL in production if needed)
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./enterprise.db")
 
-# Create engine with connection pooling
-engine = create_engine(
-    DATABASE_URL,
-    pool_size=10,
-    max_overflow=20,
-    pool_pre_ping=True,  # Verify connections before using
-    echo=False  # Set to True for SQL logging
-)
+# Create engine 
+# NOTE: check_same_thread=False is required for SQLite in FastAPI
+if DATABASE_URL.startswith("sqlite"):
+    engine = create_engine(
+        DATABASE_URL,
+        connect_args={"check_same_thread": False},
+        pool_pre_ping=True
+    )
+else:
+    # PostgreSQL configuration
+    engine = create_engine(
+        DATABASE_URL,
+        pool_size=10,
+        max_overflow=20,
+        pool_pre_ping=True,
+        echo=False
+    )
 
 # Session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

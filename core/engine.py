@@ -709,6 +709,18 @@ class TradingEngine:
 
         for symbol in symbols:
             try:
+                # Determine if we are in Data Collection Mode
+                is_data_collection = False
+                strategy_name = bot.get('name', '')
+                strategy_type = bot.get('type', '')
+                
+                if strategy_type == 'Grid' or 'Grid Bot' in strategy_name:
+                    is_data_collection = True
+                
+                bot_min_confluence = bot.get('min_confluence', None)
+                if bot_min_confluence is not None and bot_min_confluence <= 0:
+                    is_data_collection = True
+
                 # Fetch data first to allow resilience recovery
                 df = self.exchange.fetch_ohlcv(symbol, timeframe='1h', limit=50)
                 
@@ -736,6 +748,9 @@ class TradingEngine:
 
                 current_price = df['close'].iloc[-1]
                 rsi = calculate_rsi(df['close']).iloc[-1]
+
+                # Update Unrealized P&L in Database for this symbol
+                self.logger.update_unrealized_pnl(symbol, current_price)
 
                 # --- REGIME DETECTION (needed for Buy-the-Dip strategy) ---
                 # Fetch BTC macro data if not provided
@@ -1046,6 +1061,11 @@ class TradingEngine:
                             skip_buy = True
                             skip_reason = f"⚠️  BEAR Regime: Only buying top 10 coins ({coin_base} not in safe list)"
 
+                    # DATA COLLECTION BYPASS: Capture ALL dips for research if in data collection mode
+                    if is_data_collection and skip_buy:
+                        print(f"📊 [DATA COLLECTION] Bypassing regime block: {skip_reason}")
+                        skip_buy = False
+
                     # If regime blocks this buy, log and skip
                     if skip_buy:
                         print(f"[{bot['name']}] {symbol} {skip_reason}")
@@ -1142,25 +1162,38 @@ class TradingEngine:
         max_exposure = bot.get('max_exposure_per_coin', 2000)
         trade_amount_usd = bot['amount']
         
+        # Determine if we are in Data Collection Mode
+        is_data_collection = False
+        strategy_name = bot.get('name', '')
+        strategy_type = bot.get('type', '')
+        if strategy_type == 'Grid' or 'Grid Bot' in strategy_name:
+            is_data_collection = True
+        bot_min_confluence = bot.get('min_confluence', None)
+        if bot_min_confluence is not None and bot_min_confluence <= 0:
+            is_data_collection = True
+
         if side == 'BUY':
             # Check current exposure (Issue #5 fix: per-strategy)
             current_exposure = self.logger.get_total_exposure(symbol, strategy=bot['name'])
             
             if current_exposure + trade_amount_usd > max_exposure:
-                # Log the skipped trade
-                self.logger.log_skipped_trade(
-                    strategy=bot['name'],
-                    symbol=symbol,
-                    side='BUY',
-                    price=price,
-                    intended_amount=trade_amount_usd / price,
-                    skip_reason='EXPOSURE_LIMIT',
-                    current_exposure=current_exposure,
-                    max_exposure=max_exposure,
-                    details=f"Would exceed limit: ${current_exposure:.2f} + ${trade_amount_usd} > ${max_exposure}"
-                )
-                print(f"[SKIP] {symbol} exposure limit reached: ${current_exposure:.2f} / ${max_exposure}")
-                return
+                if is_data_collection:
+                    print(f"📊 [DATA COLLECTION] Bypassing exposure limit for {symbol}: ${current_exposure:.2f} / ${max_exposure}")
+                else:
+                    # Log the skipped trade
+                    self.logger.log_skipped_trade(
+                        strategy=bot['name'],
+                        symbol=symbol,
+                        side='BUY',
+                        price=price,
+                        intended_amount=trade_amount_usd / price,
+                        skip_reason='EXPOSURE_LIMIT',
+                        current_exposure=current_exposure,
+                        max_exposure=max_exposure,
+                        details=f"Would exceed limit: ${current_exposure:.2f} + ${trade_amount_usd} > ${max_exposure}"
+                    )
+                    print(f"[SKIP] {symbol} exposure limit reached: ${current_exposure:.2f} / ${max_exposure}")
+                    return
             
             # Base amount for dynamic scaling
             base_amount = trade_amount_usd
@@ -1265,19 +1298,7 @@ class TradingEngine:
             total_exp_usd = Decimal(str(self.logger.get_total_exposure()))
             sector_exp_usd = self._get_sector_exposure(symbol, open_positions_df)
             
-            # Determine if we are in Data Collection Mode
-            is_data_collection = False
-            strategy_name = bot.get('name', '')
-            strategy_type = bot.get('type', '')
-            
-            # Grid bots use their own logic, so we treat them as research-ready
-            if strategy_type == 'Grid' or 'Grid Bot' in strategy_name:
-                is_data_collection = True
-            
-            # Check bot's specific confluence threshold
-            bot_min_confluence = bot.get('min_confluence', None)
-            if bot_min_confluence is not None and bot_min_confluence <= 0:
-                is_data_collection = True
+            # is_data_collection already determined at start of execute_trade
 
             is_valid, rejection_reason = self.risk_manager.validate_new_trade(
                 symbol=symbol,
