@@ -223,3 +223,22 @@ Even with `min_confluence` at 0, the engine was scaling trade sizes based on con
 - **Default Admin**: admin / change_me_immediately
 - **Database Password**: Cryptobot_999
 - **Database Path (V3)**: `~/cryptobot_v3/data/multi/trades_paper.db`
+
+---
+
+## Issue #9: Exposure Limits Bypassed in Data Collection Mode
+
+### Symptoms
+- Bots exceeded their `max_exposure_per_coin` limits.
+- A single coin could consume most of a bot's budget if it kept dipping.
+- Logs showed: `📊 [DATA COLLECTION] Bypassing exposure limit for {symbol}...`
+
+### Root Cause
+In `core/engine.py`, there was a logic block specifically designed to **bypass** the exposure check if `is_data_collection` was True (which happens when `min_confluence <= 0`). This was intended for research but was dangerous for a scaled portfolio.
+
+### Solution
+**Removed the bypass logic entirely.**
+The engine now strictly enforces `max_exposure_per_coin` for ALL bots, regardless of their mode or confluence settings.
+
+- **File**: `core/engine.py` (lines ~1181)
+- **Fix**: Removed `if is_data_collection:` check before the specific limit enforcement block.

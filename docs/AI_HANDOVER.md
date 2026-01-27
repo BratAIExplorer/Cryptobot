@@ -798,6 +798,57 @@ The system uses `MasterDecisionEngine` to route assets based on classification:
 - 🎯 **VALIDATION PERIOD**: 48-72 hours (until 2026-01-18/19) - in progress
 - 📊 **NEXT CHECK**: 2-4 hours - expect 15-30 trades
 - 🚀 **TASK 12 COMPLETE**: Enterprise web platform (backend + frontend) ready for deployment
+
+---
+
+## 🔄 CURRENT SESSION (2026-01-27)
+
+### Session Context
+**Branch**: `claude/check-dashboard-status-VNa0U`
+**Focus**: Scaling Buy-the-Dip Portfolio & Risk Management
+**User Role**: Senior Product & Crypto Specialist
+
+### 🚀 Major Enhancements Deployed
+
+#### 1. Buy-the-Dip Portfolio Scaling
+- **Objective**: Scale from test mode to full portfolio deployment.
+- **Changes**:
+    - **Total BTD Capital**: Increased to **$10,000** (4 Bots x $2,500 each).
+    - **Strategies**:
+        1. `Buy-the-Dip Strategy` (3% Dip)
+        2. `Buy-Dip-5.2%` (Conservative)
+        3. `Buy-Dip-5.5%` (Moderate)
+        4. `Buy-Dip-8.0%` (Aggressive)
+    - **Unified Watchlist**: All 4 bots now trade the same **12 Major Coins**: `BTC, ETH, SOL, BNB, XRP, ADA, DOGE, MATIC, DOT, LINK, AVAX, TRX`.
+    - **Trade Size**: Scaled to **$30** per buy.
+
+#### 2. "Never Sell on Loss" Policy
+- **Requirement**: User explicitly requested to never sell assets at a loss.
+- **Implementation**:
+    - **Auto-Cleanup Disabled**: 'Buy-the-Dip' strategies now have `max_hold = 0` (Infinite Hold).
+    - **Exit Logic**: Bots only sell on Profit Target (e.g., +8%) or if User manually intervenes.
+
+### 🚑 Critical Fixes Deployed
+
+#### 1. Exposure Limit Bypass (Safety Critical)
+- **Issue**: In "Data Collection Mode" (`min_confluence <= 0`), the engine was **bypassing** the `max_exposure_per_coin` check.
+- **Risk**: A bot could theoretically spend its entire budget on a single falling coin.
+- **Fix**: **Removed the bypass** in `core/engine.py`. Limits ($200/coin) are now strictly enforced regardless of mode.
+- **Status**: ✅ **FIXED**
+
+#### 2. Net PnL Reporting
+- **Issue**: Standard PnL reports were ignoring exchange fees (0.1%), showing inflated profits.
+- **Fix**: Updated `check_pnl_v3.py` to calculate `Realized PnL = (Sell_Val - Sell_Fee) - (Buy_Val + Buy_Fee)`.
+- **Status**: ✅ **FIXED**
+
+### 📝 Updated Documentation
+- **`README.md`**: Created comprehensive guide for the scaled bot (deployment, config, reporting).
+- **`check_pnl_v3.py`**: New reporting tool for accurate Net Profit tracking.
+
+### ⏭️ Next Steps for AI Agent
+1. **Verify Deployment**: Ensure VPS has pulled `claude/check-dashboard-status-VNa0U`.
+2. **Monitor Exposure**: Watch `logs/bot_engine.log` to confirm "Exposure Limit Reached" messages appear if limits are hit (proving the fix works).
+3. **Analyze Performance**: After 24-48h, run `check_pnl_v3.py` to evaluate the 4-tier BTD strategy performance.
   - Backend: FastAPI + PostgreSQL (30+ endpoints, JWT auth, RBAC)
   - Frontend: Next.js 14 + React 18 (dashboard, bot control, trading data)
   - Status: ✅ Code complete, awaiting VPS deployment
