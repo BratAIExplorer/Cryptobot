@@ -1179,23 +1179,20 @@ class TradingEngine:
             current_exposure = self.logger.get_total_exposure(symbol, strategy=bot['name'])
             
             if current_exposure + trade_amount_usd > max_exposure:
-                if is_data_collection:
-                    print(f"📊 [DATA COLLECTION] Bypassing exposure limit for {symbol}: ${current_exposure:.2f} / ${max_exposure}")
-                else:
-                    # Log the skipped trade
-                    self.logger.log_skipped_trade(
-                        strategy=bot['name'],
-                        symbol=symbol,
-                        side='BUY',
-                        price=price,
-                        intended_amount=trade_amount_usd / price,
-                        skip_reason='EXPOSURE_LIMIT',
-                        current_exposure=current_exposure,
-                        max_exposure=max_exposure,
-                        details=f"Would exceed limit: ${current_exposure:.2f} + ${trade_amount_usd} > ${max_exposure}"
-                    )
-                    print(f"[SKIP] {symbol} exposure limit reached: ${current_exposure:.2f} / ${max_exposure}")
-                    return
+                # Log the skipped trade
+                self.logger.log_skipped_trade(
+                    strategy=bot['name'],
+                    symbol=symbol,
+                    side='BUY',
+                    price=price,
+                    intended_amount=trade_amount_usd / price,
+                    skip_reason='EXPOSURE_LIMIT',
+                    current_exposure=current_exposure,
+                    max_exposure=max_exposure,
+                    details=f"Would exceed limit: ${current_exposure:.2f} + ${trade_amount_usd} > ${max_exposure}"
+                )
+                print(f"[SKIP] {symbol} exposure limit reached: ${current_exposure:.2f} / ${max_exposure}")
+                return
             
             # Base amount for dynamic scaling
             base_amount = trade_amount_usd
