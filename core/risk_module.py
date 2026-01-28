@@ -186,7 +186,8 @@ class RiskManager:
         
         # DEBUG: Trace why 95% loss happens
         if current_loss_pct > 50:
-             print(f"[RISK DEBUG] StartVal: {self.daily_start_value}, CurrVal: {self.portfolio_value}, Loss: {current_loss_pct:.2f}%")
+             pass 
+             #print(f"[RISK DEBUG] StartVal: {self.daily_start_value}, CurrVal: {self.portfolio_value}, Loss: {current_loss_pct:.2f}%")
 
         if current_loss_pct > self.limits.max_daily_loss_pct:
             return False, (f"Daily loss limit reached: {current_loss_pct:.2f}% "
@@ -438,7 +439,7 @@ class RiskManager:
         # BUY-THE-DIP HYBRID V2.0 STRATEGY
         # Dynamic Time-Weighted TP + Trailing Stops + Quality Floors
         # ========================================
-        if strategy == "Buy-the-Dip Strategy":
+        if strategy in ["Buy-the-Dip Strategy", "Buy-the-Dip"] or "Buy-Dip" in strategy:
 
             # STEP 1: Determine coin quality tier for catastrophic floor
             symbol = position_data.get('symbol', '')
