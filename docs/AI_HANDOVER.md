@@ -841,6 +841,11 @@ The system uses `MasterDecisionEngine` to route assets based on classification:
 - **Fix**: Updated `check_pnl_v3.py` to calculate `Realized PnL = (Sell_Val - Sell_Fee) - (Buy_Val + Buy_Fee)`.
 - **Status**: ✅ **FIXED**
 
+#### 3. Risk Manager Stagnation Logic (Fix for Scaled Bots)
+- **Issue**: Scaled BTD bots (e.g., `Buy-Dip-5.2%`) were falling through to default "Stagnation" logic and selling after 72h because their names didn't match the strict `"Buy-the-Dip Strategy"` check.
+- **Fix**: Updated `core/risk_module.py` to match any strategy containing `"Buy-Dip"`.
+- **Status**: ✅ **FIXED**
+
 ### 📝 Updated Documentation
 - **`README.md`**: Created comprehensive guide for the scaled bot (deployment, config, reporting).
 - **`check_pnl_v3.py`**: New reporting tool for accurate Net Profit tracking.
