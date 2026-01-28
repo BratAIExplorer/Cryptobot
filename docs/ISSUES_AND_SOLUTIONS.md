@@ -242,3 +242,21 @@ The engine now strictly enforces `max_exposure_per_coin` for ALL bots, regardles
 
 - **File**: `core/engine.py` (lines ~1181)
 - **Fix**: Removed `if is_data_collection:` check before the specific limit enforcement block.
+
+---
+
+## Issue #10: Risk Manager Stagnation Logic Mismatch
+
+### Symptoms
+- Scaled Buy-the-Dip bots (e.g., `Buy-Dip-5.2%`) were selling positions after 72 hours due to "Stagnation", despite the "Never Sell on Loss" policy.
+- Logs showed: `Selling XRP/USDT: Stagnation: Open 74.7h with <1% profit`.
+
+### Root Cause
+The `RiskManager.check_exit_conditions()` method contained a specific check for `strategy == "Buy-the-Dip Strategy"`. The new scaled bots have different names (`Buy-Dip-5.2%`, etc.), so they failed this check and fell through to the default "Standard Logic" which includes a 72-hour stagnation force-close.
+
+### Solution
+**Broadened the strategy name check.**
+Updated the condition to checks if the strategy name *contains* "Buy-Dip" or matches the original name.
+
+- **File**: `core/risk_module.py`
+- **Fix**: Changed `if strategy == "Buy-the-Dip Strategy":` to `if strategy in [...] or "Buy-Dip" in strategy:`.
