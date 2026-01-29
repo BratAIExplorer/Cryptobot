@@ -361,6 +361,14 @@ class TradingEngine:
             except Exception as e:
                 print(f"❌ Error initializing status for bot {bot.get('name', 'Unknown')}: {e}")
 
+    def _is_exempt_from_risk_stop(self, bot):
+        """Check if a bot should be allowed to run even during Risk Stop"""
+        strategy_type = bot.get('type', '')
+        # Allow Grid bots to run (they need to manage existing lines)
+        if strategy_type == 'Grid' or 'Grid' in bot.get('name', ''):
+            return True
+        return False
+
     def run_cycle(self):
         """Execute one full pass of the trading logic and safety checks"""
         
@@ -390,11 +398,11 @@ class TradingEngine:
             return
             
         # --- DAILY LOSS LIMIT CHECK ---
-        can_trade_daily, reason = self.risk_manager.check_daily_loss_limit()
+        # Modified: Don't return immediately. Set flag so we can exempt Grid Bots.
+        can_trade_daily, daily_reason = self.risk_manager.check_daily_loss_limit()
         if not can_trade_daily:
-            print(f"🔴 RISK STOP: {reason}")
-            # Throttled notification could go here if needed
-            return
+            print(f"🔴 RISK STOP: {daily_reason} (Blocking standard bots, allowing Grid)")
+            # return  <-- REMOVED to allow Grid exemption
         
         # --- COOLDOWN CHECK ---
         can_trade_cooldown, reason = self.risk_manager.check_cooldown()
@@ -518,7 +526,13 @@ class TradingEngine:
                 # 2. Update DB
                 self.logger.update_bot_status(bot['name'], current_status, total_trades, total_pnl, wallet_balance)
                 
-                # 3. Process Strategy - Passing btc_df_macro to avoid redundant fetches
+                # 3. Process Strategy
+                
+                # RISK CHECK: block non-grid bots if daily limit reached
+                if not can_trade_daily and not self._is_exempt_from_risk_stop(bot):
+                     # print(f"[{bot['name']}] Skipped due to Risk Stop") # Optional noise reduction
+                     continue
+                
                 self.process_bot(bot, btc_df_macro=btc_df_macro)
             except Exception as e:
                 print(f"❌ Error in bot loop for {bot.get('name', 'Unknown')}: {e}")
