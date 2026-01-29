@@ -8,7 +8,7 @@
 
 **DECISION REQUIRED - Pick ONE:**
 
-#### **Option A: Wait for Natural Exits (SAFEST)**
+#### **Option A: Wait for Natural Exits (SAFEST) ✅ SELECTED**
 ```bash
 # On VPS: Stop the bot first
 sudo systemctl stop cryptobot
