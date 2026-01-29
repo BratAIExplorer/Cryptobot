@@ -203,13 +203,15 @@ class RegimeDetector:
         if price > ma200 and ma50 < ma200 and not metrics.higher_highs:
             return RegimeState.TRANSITION_BEARISH, 0.7
         
-        # UNDEFINED (0.25x)
+        # UNDEFINED (0.25x) -> CHANGED TO BEARISH CAUTION
         # Mixed signals or within 2% of MA200 (Magnet zone)
         ma_prox = abs(price - ma200) / ma200
         if ma_prox < 0.02:
-            return RegimeState.UNDEFINED, 0.5
+            # If we are chopping around MA200, assume danger/bearish transition
+            return RegimeState.TRANSITION_BEARISH, 0.5
             
-        return RegimeState.UNDEFINED, 0.3
+        # Default Fallback: If no clear signal, assume the worst (Defense)
+        return RegimeState.BEAR_CONFIRMED, 0.3
     
     def _metrics_to_dict(self, metrics: RegimeMetrics) -> Dict:
         """Convert metrics dataclass to dictionary"""
@@ -238,7 +240,7 @@ class RegimeDetector:
         multipliers = {
             RegimeState.BULL_CONFIRMED: 1.25,     # Increased aggression (1.25x)
             RegimeState.TRANSITION_BULLISH: 0.60, # Moderate
-            RegimeState.UNDEFINED: 0.20,          # Conservative
+            RegimeState.UNDEFINED: 0.0,           # BLOCK (Safety First - Don't trade if unsure)
             RegimeState.TRANSITION_BEARISH: 0.25, # Caution
             RegimeState.BEAR_CONFIRMED: 0.0,      # Block
             RegimeState.CRISIS: 0.0               # FREEZE

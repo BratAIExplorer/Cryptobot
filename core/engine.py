@@ -364,6 +364,10 @@ class TradingEngine:
     def run_cycle(self):
         """Execute one full pass of the trading logic and safety checks"""
         
+        # --- CRITICAL FIX: Update Equity FIRST ---
+        # Ensure Risk Manager sees Total Equity (Cash + Positions) before running checks
+        self._update_risk_manager_equity()
+        
         # --- HEALTH CHECK (KILL SWITCH) ---
         if hasattr(self.exchange, 'check_health'):
             health = self.exchange.check_health()
@@ -425,9 +429,6 @@ class TradingEngine:
         
         # --- PORTFOLIO SNAPSHOT (Institutional Hardening) ---
         self._take_portfolio_snapshot()
-        
-        # Update equity before drawdown check
-        self._update_risk_manager_equity()
         
         # Check max drawdown limit (Industry standard safety feature)
         # Risk Manager's portfolio_value is now the Total Equity (Cash + Positions)

@@ -108,26 +108,26 @@ def main():
         'AVAX/USDT', 'TRX/USDT'
     ]
 
-    # 1. Main Buy-the-Dip (3% Dip)
-    engine.add_bot({
-        'name': 'Buy-the-Dip Strategy',
-        'type': 'Buy-the-Dip',
-        'symbols': btd_coins,
-        'amount': 30,                 
-        'initial_balance': 2500,
-        'max_exposure_per_coin': 200, 
-        'dip_threshold': 0.03,       
-        'rsi_limit': 35,             
-        'cooldown_minutes': 60,
-        'dip_percentage': 0.03,
-        'min_confluence': 0,  
-        'take_profit_pct': 0.08,      
-        'stop_loss_pct': None,        
-        'stop_loss_enabled': False,   
-        'max_daily_trades': 5,
-        'circuit_breaker_daily': -250,
-        'circuit_breaker_weekly': -750
-    })
+    # 1. Main Buy-the-Dip (DISABLED - LEGACY LOSS LEADER)
+    # engine.add_bot({
+    #     'name': 'Buy-the-Dip Strategy',
+    #     'type': 'Buy-the-Dip',
+    #     'symbols': btd_coins,
+    #     'amount': 30,                 
+    #     'initial_balance': 2500,
+    #     'max_exposure_per_coin': 200, 
+    #     'dip_threshold': 0.05,       # Changed from 0.03 to 0.05 per Analysis
+    #     'rsi_limit': 35,             
+    #     'cooldown_minutes': 60,
+    #     'dip_percentage': 0.05,      # Changed from 0.03 to 0.05
+    #     'min_confluence': 0,  
+    #     'take_profit_pct': 0.08,      
+    #     'stop_loss_pct': None,        
+    #     'stop_loss_enabled': False,   
+    #     'max_daily_trades': 5,
+    #     'circuit_breaker_daily': -250,
+    #     'circuit_breaker_weekly': -750
+    # })
 
     # 2. Buy-Dip-5.2% - Conservative Dip
     engine.add_bot({
@@ -141,7 +141,7 @@ def main():
         'dip_percentage': 0.052,
         'rsi_limit': 35,
         'cooldown_minutes': 60,
-        'min_confluence': 0,
+        'min_confluence': 40,
         'take_profit_pct': 0.08,
         'stop_loss_pct': None,
         'stop_loss_enabled': False,
@@ -162,7 +162,7 @@ def main():
         'dip_percentage': 0.055,
         'rsi_limit': 35,
         'cooldown_minutes': 60,
-        'min_confluence': 0,
+        'min_confluence': 40,
         'take_profit_pct': 0.08,
         'stop_loss_pct': None,
         'stop_loss_enabled': False,
@@ -183,7 +183,7 @@ def main():
         'dip_percentage': 0.08,
         'rsi_limit': 35,
         'cooldown_minutes': 60,
-        'min_confluence': 0,
+        'min_confluence': 40,
         'take_profit_pct': 0.10,      
         'stop_loss_pct': None,
         'stop_loss_enabled': False,
@@ -275,7 +275,7 @@ def main():
         'stop_loss_enabled': True,
         
         # Confluence
-        'min_confluence': 0,           # Data collection mode
+        'min_confluence': 40,           # Confluence enforced
         
         'max_daily_trades': 10,        # High frequency
         'circuit_breaker_daily': -50,
@@ -325,13 +325,13 @@ def main():
     
     print("=" * 80)
     print(f"🚀 Bot Running - {TRADING_MODE.upper()} Mode")
-    print("   Portfolio Allocation (9 Active Bots):")
+    print("   Portfolio Allocation (8 Active Bots):")
     print("   - Grid Bots:      $500 ($250 BTC + $250 ETH)")
-    print("   - Buy-the-Dip:    $10,000 (4 Bots x $2,500)")
+    print("   - Buy-the-Dip:    $7,500 (3 Bots x $2,500)")
     print("   - SMA Trend:      $500 (5 Coins)")
     print("   - DCA Bot:        $300 (3 Coins)")
     print("   - Volatility:     $200 (4 Coins)")
-    print("   - Total Capital:  $11,500")
+    print("   - Total Capital:  $9,000")
     print("=" * 80)
     print("Press Ctrl+C to stop.")
     print()
