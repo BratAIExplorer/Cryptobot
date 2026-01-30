@@ -1,14 +1,13 @@
 """
-Quick analysis script to check bot performance
+Quick analysis script to check bot performance with REALIZED vs UNREALIZED PnL
 """
 import sqlite3
 import pandas as pd
-
-# Connect to database
-# Auto-detect database path (V3 uses data/multi/trades_paper.db)
+import requests
+import time
 import os
 
-# Try multiple possible database locations in order
+# Connect to database
 possible_paths = [
     'data/multi/trades_paper.db',  # V3 multi-exchange (CURRENT)
     'data/trades_paper.db',         # V2 paper mode
@@ -24,40 +23,46 @@ for path in possible_paths:
 
 if db_path is None:
     print("❌ ERROR: No database file found!")
-    print("   Searched paths:")
-    for path in possible_paths:
-        print(f"   - {path}")
-    print("\nIs the bot running? Check with: ps aux | grep run_bot")
     exit(1)
 
 print(f"📊 Reading Database: {db_path}")
 conn = sqlite3.connect(db_path)
 
-# 1. Strategy Summary
+def get_current_prices(symbols):
+    """Fetch current prices from Binance for accurate Unrealized PnL"""
+    if not symbols:
+        return {}
+    
+    # Clean symbols (remove /USDT for API if needed, but Binance takes symbol=BTCUSDT)
+    # Our DB uses 'BTC/USDT', Binance uses 'BTCUSDT'
+    clean_symbols = [s.replace('/', '') for s in symbols]
+    prices = {}
+    
+    print(f"🌍 Fetching live prices for {len(clean_symbols)} assets...")
+    try:
+        # Batch fetch via ticker/price (efficient)
+        resp = requests.get("https://api.binance.com/api/v3/ticker/price")
+        data = resp.json()
+        
+        # Create map
+        market_map = {item['symbol']: float(item['price']) for item in data}
+        
+        # Match back to our format
+        for s in symbols:
+            clean = s.replace('/', '')
+            if clean in market_map:
+                prices[s] = market_map[clean]
+    except Exception as e:
+        print(f"⚠️ Error fetching prices: {e}")
+    
+    return prices
+
+# 1. Open Positions & Unrealized PnL
 print("=" * 100)
-print("STRATEGY PERFORMANCE SUMMARY")
+print("OPEN POSITIONS (Unrealized PnL)")
 print("=" * 100)
 
-query = """
-SELECT 
-    strategy,
-    COUNT(*) as total_trades,
-    SUM(CASE WHEN side='BUY' THEN 1 ELSE 0 END) as buys,
-    SUM(CASE WHEN side='SELL' THEN 1 ELSE 0 END) as sells,
-    SUM(CASE WHEN side='BUY' THEN -cost WHEN side='SELL' THEN cost ELSE 0 END) as net_pnl
-FROM trades
-GROUP BY strategy
-"""
-df = pd.read_sql_query(query, conn)
-print(df.to_string(index=False))
-print()
-
-# 2. Open Positions
-print("=" * 100)
-print("OPEN POSITIONS (Unrealized)")
-print("=" * 100)
-
-query = """
+query_open = """
 SELECT 
     strategy,
     symbol,
@@ -70,68 +75,102 @@ WHERE side='BUY'
     AND position_id NOT IN (SELECT position_id FROM trades WHERE side='SELL')
 ORDER BY timestamp DESC
 """
-df_open = pd.read_sql_query(query, conn)
+df_open = pd.read_sql_query(query_open, conn)
+
+unrealized_pnl_total = 0.0
+equity_value_total = 0.0
+
 if not df_open.empty:
-    print(df_open.to_string(index=False))
-    print(f"\nTotal Open Positions: {len(df_open)}")
-    print(f"Total Capital Locked: ${df_open['cost'].sum():.2f}")
+    unique_symbols = df_open['symbol'].unique().tolist()
+    current_prices = get_current_prices(unique_symbols)
+    
+    # Calculate Unrealized PnL
+    df_open['current_price'] = df_open['symbol'].map(current_prices)
+    df_open['current_value'] = df_open['amount'] * df_open['current_price']
+    df_open['unrealized_pnl'] = df_open['current_value'] - df_open['cost']
+    df_open['pnl_pct'] = (df_open['unrealized_pnl'] / df_open['cost']) * 100
+    
+    # Metrics
+    unrealized_pnl_total = df_open['unrealized_pnl'].sum()
+    equity_value_total = df_open['current_value'].sum()
+    total_invested = df_open['cost'].sum()
+    
+    # Display top 20 oldest or largest? Let's show aggregated by Coin first
+    print(f"Total Invested:   ${total_invested:,.2f}")
+    print(f"Current Value:    ${equity_value_total:,.2f}")
+    print(f"Unrealized PnL:   ${unrealized_pnl_total:,.2f} ({(unrealized_pnl_total/total_invested)*100:.2f}%)")
+    print("-" * 100)
+    
+    # Group by Strategy + Symbol for cleaner view
+    summary = df_open.groupby(['strategy', 'symbol']).agg({
+        'amount': 'sum',
+        'cost': 'sum',
+        'current_value': 'sum',
+        'unrealized_pnl': 'sum'
+    }).reset_index()
+    summary['pnl_pct'] = (summary['unrealized_pnl'] / summary['cost']) * 100
+    print(summary.sort_values('unrealized_pnl').to_string(index=False))
+
 else:
     print("No open positions")
+
 print()
 
-# 3. Closed Positions (Realized P&L)
+# 2. Strategy Performance (Cash Flow vs Realized)
 print("=" * 100)
-print("CLOSED POSITIONS (Realized P&L)")
+print("STRATEGY PERFORMANCE (Cash Flow vs Realized)")
 print("=" * 100)
 
-query = """
+# Calculate Realized PnL per strategy
+query_closed = """
 SELECT 
     b.strategy,
-    b.symbol,
-    b.price as buy_price,
-    s.price as sell_price,
-    b.amount,
-    b.cost as buy_cost,
-    s.cost as sell_cost,
-    (s.cost - b.cost) as realized_pnl,
-    ((s.cost - b.cost) / b.cost * 100) as pnl_pct,
-    b.timestamp as buy_time,
-    s.timestamp as sell_time
+    (s.cost - b.cost) as profit
 FROM trades b
 INNER JOIN trades s ON b.position_id = s.position_id
 WHERE b.side='BUY' AND s.side='SELL'
-ORDER BY s.timestamp DESC
 """
-df_closed = pd.read_sql_query(query, conn)
-if not df_closed.empty:
-    print(df_closed.to_string(index=False))
-    print(f"\nTotal Closed Trades: {len(df_closed)}")
-    print(f"Total Realized P&L: ${df_closed['realized_pnl'].sum():.2f}")
-    print(f"Win Rate: {(df_closed['realized_pnl'] > 0).sum() / len(df_closed) * 100:.1f}%")
-else:
-    print("No closed positions yet")
-print()
+df_closed = pd.read_sql_query(query_closed, conn)
+realized_map = df_closed.groupby('strategy')['profit'].sum().to_dict()
 
-# 4. Recent Activity
-print("=" * 100)
-print("LAST 10 TRADES")
-print("=" * 100)
-
-query = """
+# Calculate Cash Flow (Trades table raw)
+query_cashflow = """
 SELECT 
-    timestamp,
     strategy,
-    symbol,
-    side,
-    price,
-    amount,
-    cost
+    COUNT(*) as total_trades,
+    SUM(CASE WHEN side='BUY' THEN 1 ELSE 0 END) as buys,
+    SUM(CASE WHEN side='SELL' THEN 1 ELSE 0 END) as sells,
+    SUM(CASE WHEN side='BUY' THEN -cost WHEN side='SELL' THEN cost ELSE 0 END) as net_cash_flow
 FROM trades
-ORDER BY timestamp DESC
-LIMIT 10
+GROUP BY strategy
 """
-df_recent = pd.read_sql_query(query, conn)
-print(df_recent.to_string(index=False))
-print()
+df_cf = pd.read_sql_query(query_cashflow, conn)
+
+# Merge Realized PnL
+df_cf['realized_pnl'] = df_cf['strategy'].map(realized_map).fillna(0)
+
+# Merge Unrealized PnL (from open positions)
+if not df_open.empty:
+    unrealized_map = df_open.groupby('strategy')['unrealized_pnl'].sum().to_dict()
+    df_cf['unrealized_pnl'] = df_cf['strategy'].map(unrealized_map).fillna(0)
+    
+    # Count open positions
+    open_counts = df_open.groupby('strategy').size().to_dict()
+    df_cf['open_positions'] = df_cf['strategy'].map(open_counts).fillna(0).astype(int)
+else:
+    df_cf['unrealized_pnl'] = 0.0
+    df_cf['open_positions'] = 0
+
+# Calculate Total PnL (Realized + Unrealized)
+df_cf['TOTAL_PNL'] = df_cf['realized_pnl'] + df_cf['unrealized_pnl']
+
+# Reorder columns
+cols = ['strategy', 'buys', 'sells', 'open_positions', 'net_cash_flow', 'realized_pnl', 'unrealized_pnl', 'TOTAL_PNL']
+print(df_cf[cols].to_string(index=False))
+print("-" * 100)
+print(f"TOTAL REALIZED PnL:   ${df_cf['realized_pnl'].sum():,.2f}")
+print(f"TOTAL UNREALIZED PnL: ${df_cf['unrealized_pnl'].sum():,.2f}")
+print(f"OVERALL NET PROFIT:   ${(df_cf['realized_pnl'].sum() + df_cf['unrealized_pnl'].sum()):,.2f}")
 
 conn.close()
+

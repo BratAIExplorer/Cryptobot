@@ -367,6 +367,11 @@ class TradingEngine:
         # Allow Grid bots to run (they need to manage existing lines)
         if strategy_type == 'Grid' or 'Grid' in bot.get('name', ''):
             return True
+        
+        # Allow Buy-the-Dip bots (they are designed to buy into weakness/drawdowns)
+        if strategy_type == 'Buy-the-Dip' or 'Buy-Dip' in bot.get('name', '') or 'Buy-the-Dip Strategy' in bot.get('name', ''):
+            return True
+            
         return False
 
     def run_cycle(self):
@@ -528,12 +533,17 @@ class TradingEngine:
                 
                 # 3. Process Strategy
                 
-                # RISK CHECK: block non-grid bots if daily limit reached
-                if not can_trade_daily and not self._is_exempt_from_risk_stop(bot):
-                     # print(f"[{bot['name']}] Skipped due to Risk Stop") # Optional noise reduction
-                     continue
+                # 3. Process Strategy
                 
-                self.process_bot(bot, btc_df_macro=btc_df_macro)
+                # RISK CHECK: Determines if we can BUY. Exits are always allowed.
+                # If daily limit reached, we pass risk_stop_active=True to process_bot
+                # This ensures we can still Sell/Take Profit but NOT Buy.
+                
+                risk_stop_active = False
+                if not can_trade_daily and not self._is_exempt_from_risk_stop(bot):
+                     risk_stop_active = True
+                
+                self.process_bot(bot, btc_df_macro=btc_df_macro, risk_stop_active=risk_stop_active)
             except Exception as e:
                 print(f"❌ Error in bot loop for {bot.get('name', 'Unknown')}: {e}")
 
@@ -705,10 +715,15 @@ class TradingEngine:
                     print(f"[AUTO-CLEANUP] Error closing aged position #{position_id}: {e}")
 
 
-    def process_bot(self, bot, btc_df_macro=None):
-        """Execute logic for a single bot configuration (can be multiple symbols)"""
+    def process_bot(self, bot, btc_df_macro=None, risk_stop_active=False):
+        """Execute logic for a single bot configuration"""
         symbols = bot.get('symbols', [bot.get('symbol')])
         strategy_type = bot['type']
+
+        # Log once per cycle if risk stop is active
+        if risk_stop_active and datetime.now().minute % 60 == 0:
+             # print(f"⚠️ [RISK STOP] {bot['name']} in EXIT ONLY mode.")
+             pass
         
         # --- PILLAR C INTEGRATION: Add active watchlist coins to Buy-the-Dip ---
         # DISABLED FOR VPS V3 SAFETY - Only trade explicit Top 10 list
@@ -1052,8 +1067,13 @@ class TradingEngine:
                         signal = 'BUY'
                 
                 elif strategy_type == 'Buy-the-Dip':
-                    # HYBRID V2.0: Regime-Aware Entry Filtering
-                    # Check market regime before buying dips
+                    # RISK STOP CHECK: Block Entry
+                    if risk_stop_active:
+                         # Exits handled earlier. Just skip entry.
+                         pass
+                    else:
+                        # HYBRID V2.0: Regime-Aware Entry Filtering
+                        # Check market regime before buying dips
 
                     # Get current regime state
                     regime_state_value = regime_state.value if hasattr(regime_state, 'value') else str(regime_state)
@@ -1120,7 +1140,13 @@ class TradingEngine:
 
                 # Execute BUY
                 if signal == 'BUY':
-                    # --- VETO CHECK (Phase 2) ---
+                    # RISK STOP CHECK: Block Generic Entry
+                    if risk_stop_active:
+                         # print(f"[{bot['name']}] SKIPPING BUY due to Risk Stop")
+                         signal = None # Cancel signal
+                    
+                    if signal == 'BUY': # Check again
+                        # --- VETO CHECK (Phase 2) ---
                     is_allowed, veto_reason = self.veto_manager.check_entry_allowed(symbol, bot['name'])
                     if not is_allowed:
                         print(f"[{bot['name']}] ⛔ VETO BLOCKED BUY {symbol}: {veto_reason}")

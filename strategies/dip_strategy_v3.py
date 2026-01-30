@@ -48,6 +48,15 @@ class DipStrategyV3(BaseStrategyEnhanced):
         
         # 3. Buy Logic
         if rsi < self.rsi_limit:
+             # CHECK MAX EXPOSURE
+             max_exposure = self.config.get('max_exposure_per_coin', 200)
+             current_exposure = self.logger.get_position_exposure(self.name, self.symbol)
+             
+             if current_exposure >= max_exposure:
+                 # Log only once per hour to avoid spam
+                 # self.logger.info(f"[{self.name}] Skipped Buy {self.symbol}: Max Exposure Reached (${current_exposure:.2f}/${max_exposure})")
+                 return
+
              reason = f"RSI Dip: {rsi:.1f} < {self.rsi_limit}"
              self.place_order('BUY', self.config.get('amount', 20), current_price, rsi=rsi, reason=reason)
              

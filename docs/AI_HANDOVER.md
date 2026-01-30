@@ -171,7 +171,36 @@ The system uses `MasterDecisionEngine` to route assets based on classification:
 
 ---
 
-## 🔄 CURRENT SESSION (2026-01-22)
+---
+
+## 🔄 CURRENT SESSION (2026-01-29)
+
+### Session Context
+**Branch**: `claude/check-dashboard-status-VNa0U` (Continuing work)
+**Focus**: Performance Optimization & Metrics Accuracy
+**User Role**: Senior Product & Crypto Specialist
+
+### 🚀 Optimizations Implemented
+
+#### 1. Reporting Engine Fix (`analyze_trades.py`)
+- **Issue**: "Net PnL" was reporting Cash Flow (Invested Capital), making active strategies look like failures.
+- **Fix**: Rewrote script to fetch **Live Binance Prices**.
+- **New Metrics**:
+    - **Net Cash Flow**: Money in/out (Expect negative for accumulating bots).
+    - **Unrealized PnL**: Value of open positions vs Cost.
+    - **Total Equity**: True portfolio value.
+- **Status**: ✅ **COMPLETED**
+
+#### 2. Buy-the-Dip Strategy Tuning (`run_bot.py` & `dip_strategy_v3.py`)
+- **Optimization**: Increased dip threshold from **3% -> 5%** (aligned with best-performing backtests).
+- **Critical Bug Fix**: The `$200` `max_exposure_per_coin` limit was defined in config but **IGNORED** by the code.
+- **Fix**: Added explicit check in `dip_strategy_v3.py` to BLOCK buying if exposure > limit.
+- **Impact**: Bot will now **PAUSE BUYING** on heavy bags until profit targets are hit.
+- **Status**: ✅ **COMPLETED**
+
+---
+
+## 🔄 PREVIOUS SESSION (2026-01-22)
 
 ### Session Context
 **Branch**: `claude/test-dip-bot-profit-lhCxz`
