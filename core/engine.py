@@ -406,7 +406,7 @@ class TradingEngine:
         # Modified: Don't return immediately. Set flag so we can exempt Grid Bots.
         can_trade_daily, daily_reason = self.risk_manager.check_daily_loss_limit()
         if not can_trade_daily:
-            print(f"🔴 RISK STOP: {daily_reason} (Blocking standard bots, allowing Grid)")
+            print(f"🔴 RISK STOP: {daily_reason} (Blocking standard bots, allowing Grid & Dip)")
             # return  <-- REMOVED to allow Grid exemption
         
         # --- COOLDOWN CHECK ---
@@ -540,8 +540,14 @@ class TradingEngine:
                 # This ensures we can still Sell/Take Profit but NOT Buy.
                 
                 risk_stop_active = False
-                if not can_trade_daily and not self._is_exempt_from_risk_stop(bot):
-                     risk_stop_active = True
+                if not can_trade_daily:
+                    if not self._is_exempt_from_risk_stop(bot):
+                        risk_stop_active = True
+                    else:
+                        # Log exemption (throttled logic ideally, but once per loop is acceptable for debug)
+                        # We'll use a minute check to prevent 100% spam
+                        if datetime.now().minute % 5 == 0 and datetime.now().second < 10:
+                             print(f"🛡️ [RISK EXEMPT] {bot['name']} allowed to run during Daily Limit.")
                 
                 self.process_bot(bot, btc_df_macro=btc_df_macro, risk_stop_active=risk_stop_active)
             except Exception as e:
