@@ -438,7 +438,7 @@ class RiskManager:
         # BUY-THE-DIP HYBRID V2.0 STRATEGY
         # Dynamic Time-Weighted TP + Trailing Stops + Quality Floors
         # ========================================
-        if strategy == "Buy-the-Dip Strategy":
+        if strategy == "Buy-the-Dip":
 
             # STEP 1: Determine coin quality tier for catastrophic floor
             symbol = position_data.get('symbol', '')
@@ -549,8 +549,10 @@ class RiskManager:
             sl_threshold = Decimal("-0.10") # Give space in bull runs
 
         # Time-Based Stagnation (Exit after 72h no progress)
-        if hours_open > 72 and pnl_pct < 0.01:
-            return 'SELL', f"Stagnation: Open {hours_open:.1f}h with <1% profit"
+        # EXEMPT: Buy-the-Dip, Grid, SMA (they are long-term or indefinite)
+        if strategy not in ['Buy-the-Dip', 'Grid', 'SMA']:
+            if hours_open > 72 and pnl_pct < 0.01:
+                return 'SELL', f"Stagnation: Open {hours_open:.1f}h with <1% profit"
 
         # Regime Switch Veto (Sudden Bull -> Crisis)
         entry_regime = position_data.get('entry_regime')
@@ -560,9 +562,10 @@ class RiskManager:
 
         # Take Profit (Strategy-Specific)
         tp_target = Decimal("0.03") # Default 3%
-        if strategy == "Hyper-Scalper Bot": tp_target = Decimal("0.01")
-        if strategy == "Grid Bot BTC" or strategy == "Grid Bot ETH": tp_target = Decimal("0.015")
-        if strategy == "SMA Trend Bot": tp_target = Decimal("0.10")
+        if strategy == "Hyper-Scalper": tp_target = Decimal("0.01")
+        if strategy == "Grid": tp_target = Decimal("0.015")
+        if strategy == "SMA": tp_target = Decimal("0.10")
+        if strategy == "DCA": tp_target = Decimal("0.03")
 
         if pnl_pct >= tp_target:
              return 'SELL', f"Take Profit Reached (+{pnl_pct*100:.2f}%)"
