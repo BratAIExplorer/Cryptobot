@@ -361,6 +361,19 @@ class TradingEngine:
             except Exception as e:
                 print(f"❌ Error initializing status for bot {bot.get('name', 'Unknown')}: {e}")
 
+    def _is_exempt_from_risk_stop(self, bot):
+        """Check if a bot should be allowed to run even during Risk Stop or Global Veto"""
+        strategy_type = bot.get('type', '')
+        # Allow Grid bots to run (they need to manage existing lines)
+        if strategy_type == 'Grid' or 'Grid' in bot.get('name', ''):
+            return True
+        
+        # Allow Buy-the-Dip bots (they are designed to buy into weakness/drawdowns)
+        if strategy_type == 'Buy-the-Dip' or 'Buy-Dip' in bot.get('name', '') or 'Buy-the-Dip Strategy' in bot.get('name', ''):
+            return True
+            
+        return False
+
     def run_cycle(self):
         """Execute one full pass of the trading logic and safety checks"""
         
@@ -386,11 +399,9 @@ class TradingEngine:
             return
             
         # --- DAILY LOSS LIMIT CHECK ---
-        can_trade_daily, reason = self.risk_manager.check_daily_loss_limit()
+        can_trade_daily, daily_reason = self.risk_manager.check_daily_loss_limit()
         if not can_trade_daily:
-            print(f"🔴 RISK STOP: {reason}")
-            # Throttled notification could go here if needed
-            return
+            print(f"🔴 RISK STOP: {daily_reason} (Blocking standard bots, allowing Grid & Dip)")
         
         # --- COOLDOWN CHECK ---
         can_trade_cooldown, reason = self.risk_manager.check_cooldown()
@@ -399,6 +410,7 @@ class TradingEngine:
             return
             
         # --- GLOBAL MARKET REGIME VETO (Hard Veto) ---
+        regime_veto_active = False
         # Fetch 1d BTC data for macro trend
         start_ping = time.time()
         btc_df_macro = self.exchange.fetch_ohlcv('BTC/USDT', timeframe='1d', limit=250)
@@ -409,10 +421,10 @@ class TradingEngine:
             self.resilience_manager.update_price_data()
             regime_state, _, _ = self.regime_detector.detect_regime(btc_df_macro)
             if not self.regime_detector.should_trade(regime_state):
+                regime_veto_active = True
                 # Print only once every hour (or use throttled alert)
                 if datetime.now().minute % 60 == 0:
-                    print(f"🛑 GLOBAL VETO: Trading blocked due to {regime_state.value} regime.")
-                return 
+                    print(f"🛑 GLOBAL VETO: Trading blocked due to {regime_state.value} regime. (Exempting Grid & Dip)")
         else:
             self.resilience_manager.record_failure()
             # If we essential data is missing, we might still want to process exits, so don't return here
@@ -496,6 +508,17 @@ class TradingEngine:
 
         for bot in self.active_bots:
             try:
+                # Check for exemptions
+                is_exempt = self._is_exempt_from_risk_stop(bot)
+                
+                # If Risk Stop is active and bot is NOT exempt, skip
+                if not can_trade_daily and not is_exempt:
+                    continue
+                    
+                # If Regime Veto is active and bot is NOT exempt, skip
+                if regime_veto_active and not is_exempt:
+                    continue
+
                 # --- Heartbeat & Status Update ---
                 current_status = 'RUNNING'
                 
